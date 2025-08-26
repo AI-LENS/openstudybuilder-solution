@@ -5,7 +5,11 @@ from string import ascii_lowercase
 from typing import Any, Callable, Collection, Iterable
 
 from neomodel import NodeSet, db  # type: ignore
+from opencensus.trace import execution_context
 
+from clinical_mdr_api.domain_repositories.study_definitions.study_definition_repository_impl import (
+    StudyDefinitionRepositoryImpl,
+)
 from clinical_mdr_api.domain_repositories.study_selections.study_soa_repository import (
     SoALayout,
 )
@@ -86,6 +90,7 @@ from common.exceptions import (
     NotFoundException,
     ValidationException,
 )
+from common.telemetry import trace_calls
 from common.utils import booltostr
 
 
@@ -167,6 +172,7 @@ class StudyService:
         return result
 
     @staticmethod
+    @trace_calls
     def _models_study_from_study_definition_ar(
         study_definition_ar: StudyDefinitionAR,
         find_project_by_project_number: Callable[[str], ProjectAR],
@@ -274,6 +280,7 @@ class StudyService:
                 filtered_sections.remove(section.value)
         return filtered_sections
 
+    @trace_calls
     @db.transaction
     def get_by_uid(
         self,
@@ -412,6 +419,7 @@ class StudyService:
 
         return list(parsed_items.values())
 
+    @trace_calls
     def _extract_terms_at_date(self, study_uid, study_value_version: str = None):
         study_standard_versions = self._repos.study_standard_version_repository.find_standard_versions_in_study(
             study_uid=study_uid,
@@ -430,7 +438,7 @@ class StudyService:
             terms_at_specific_date = self._repos.ct_package_repository.find_by_uid(
                 study_standard_version_sdtm.ct_package_uid
             ).effective_date
-        return (
+        dt = (
             datetime(
                 terms_at_specific_date.year,
                 terms_at_specific_date.month,
@@ -439,10 +447,16 @@ class StudyService:
                 59,
                 59,
                 999999,
+                tzinfo=timezone.utc,
             )
             if terms_at_specific_date
             else None
         )
+
+        if span := execution_context.get_current_span():
+            span.add_attribute("call.return", dt.isoformat() if dt else "None")
+
+        return dt
 
     @db.transaction
     def lock(self, uid: str, change_description: str) -> Study:
@@ -812,6 +826,7 @@ class StudyService:
 
         return [StudySimple.from_input(item) for item in items]
 
+    @trace_calls
     def get_all(
         self,
         include_sections: list[StudyComponentEnum] | None = None,
@@ -2024,8 +2039,9 @@ class StudyService:
             study_uid,
         )
 
+    @staticmethod
     def check_if_study_uid_and_version_exists(
-        self, study_uid: str, study_value_version: str | None = None
+        study_uid: str, study_value_version: str | None = None
     ):
         """
         Check if the study with the given study_uid and optionally with the study_value_version exists.
@@ -2038,7 +2054,7 @@ class StudyService:
             bool: True if the study exists, False otherwise.
         """
 
-        if not self._repos.study_definition_repository.check_if_study_uid_and_version_exists(
+        if not StudyDefinitionRepositoryImpl.check_if_study_uid_and_version_exists(
             study_uid=study_uid, study_value_version=study_value_version
         ):
             NotFoundException.raise_if(

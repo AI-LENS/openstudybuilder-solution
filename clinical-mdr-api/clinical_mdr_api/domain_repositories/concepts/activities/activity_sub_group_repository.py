@@ -353,6 +353,7 @@ class ActivitySubGroupRepository(ConceptGenericRepository[ActivitySubGroupAR]):
         self,
         subgroup_uid: str,
         version: str | None = None,
+        search_string: str | None = None,
         page_number: int = 1,
         page_size: int = 10,
         total_count: bool = False,
@@ -364,6 +365,7 @@ class ActivitySubGroupRepository(ConceptGenericRepository[ActivitySubGroupAR]):
         Args:
             subgroup_uid: The UID of the activity subgroup
             version: Optional specific version to get linked activities for
+            search_string: Optional search string to filter activities by name or other fields
             page_number: The page number for pagination (starting from 1)
             page_size: The number of items per page (0 for all items)
             total_count: Whether to return the total count of records
@@ -419,12 +421,28 @@ class ActivitySubGroupRepository(ConceptGenericRepository[ActivitySubGroupAR]):
         // 7. Convert version strings to numbers for sorting
         WITH activity_uid, versions.version as version, 
              toInteger(SPLIT(versions.version, '.')[0]) as major_version,
-             toInteger(SPLIT(versions.version, '.')[1]) as minor_version
+             toInteger(SPLIT(versions.version, '.')[1]) as minor_version,
+             activity_values
         ORDER BY activity_uid, major_version DESC, minor_version DESC
         
         // 8. Collect by activity_uid and take the first (highest) version for each activity
         // Since we already sorted by major and minor version in descending order
-        WITH activity_uid, collect({version: version, major: major_version, minor: minor_version})[0] as highest_version
+        WITH activity_uid, collect({version: version, major: major_version, minor: minor_version, values: activity_values})[0] as highest_version
+        """
+
+        # Add search filtering if search_string is provided
+        if search_string:
+            query += """
+        // Apply search filtering on the highest version activity values
+        WHERE toLower(highest_version.values.name) CONTAINS toLower($search_string)
+           OR toLower(highest_version.values.definition) CONTAINS toLower($search_string)
+           OR toLower(highest_version.values.abbreviation) CONTAINS toLower($search_string)
+           OR toLower(highest_version.values.nci_concept_id) CONTAINS toLower($search_string)
+        """
+            params["search_string"] = search_string
+
+        query += """
+        WITH activity_uid, highest_version
         """
 
         # Add COUNT query for total if needed

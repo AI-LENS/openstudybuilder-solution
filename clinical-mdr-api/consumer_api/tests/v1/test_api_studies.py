@@ -91,6 +91,8 @@ STUDY_ACTIVITIES_FIELDS_ALL = [
     "activity_uid",
     "activity_name",
     "is_data_collected",
+    "activity_nci_concept_id",
+    "activity_nci_concept_name",
 ]
 
 STUDY_ACTIVITIES_FIELDS_NOT_NULL = [
@@ -101,20 +103,117 @@ STUDY_ACTIVITIES_FIELDS_NOT_NULL = [
     "is_data_collected",
 ]
 
+STUDY_ACTIVITY_INSTANCES_FIELDS_ALL = [
+    "study_uid",
+    "uid",
+    "study_activity_subgroup",
+    "study_activity_group",
+    "soa_group",
+    "activity",
+    "activity_instance",
+]
+
+STUDY_ACTIVITY_INSTANCES_FIELDS_NOT_NULL = [
+    "study_uid",
+    "uid",
+    "study_activity_subgroup",
+    "study_activity_group",
+    "soa_group",
+    "activity",
+]
+
+STUDY_ACTIVITY_INSTANCES_SOA_GROUP_FIELDS_ALL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+
+STUDY_ACTIVITY_INSTANCES_SOA_GROUP_FIELDS_NOT_NULL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_GROUP_FIELDS_ALL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_GROUP_FIELDS_NOT_NULL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_SUBGROUP_FIELDS_ALL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_SUBGROUP_FIELDS_NOT_NULL = [
+    "uid",
+    "name",
+    "order",
+    "selection_uid",
+]
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_INSTANCE_FIELDS_ALL = [
+    "uid",
+    "name",
+    "nci_concept_id",
+    "nci_concept_name",
+    "topic_code",
+    "param_code",
+    "version",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_INSTANCE_FIELDS_NOT_NULL = [
+    "uid",
+    "name",
+    "version",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_FIELDS_ALL = [
+    "uid",
+    "name",
+    "nci_concept_id",
+    "nci_concept_name",
+    "order",
+    "version",
+]
+
+STUDY_ACTIVITY_INSTANCES_ACTIVITY_FIELDS_NOT_NULL = [
+    "uid",
+    "name",
+    "version",
+]
+
 
 STUDY_DETAILED_SOA_FIELDS_ALL = [
     "study_uid",
+    "study_activity_uid",
     "visit_short_name",
     "epoch_name",
+    "activity_uid",
     "activity_name",
     "activity_subgroup_name",
     "activity_group_name",
     "soa_group_name",
     "is_data_collected",
+    "activity_nci_concept_id",
+    "activity_nci_concept_name",
 ]
 
 STUDY_DETAILED_SOA_FIELDS_NOT_NULL = [
     "study_uid",
+    "study_activity_uid",
+    "activity_uid",
     "activity_name",
     "visit_short_name",
     "is_data_collected",
@@ -124,14 +223,20 @@ STUDY_DETAILED_SOA_FIELDS_NOT_NULL = [
 STUDY_OPERATIONAL_SOA_FIELDS_ALL = [
     "study_uid",
     "study_id",
+    "study_activity_uid",
+    "activity_uid",
     "activity_name",
     "activity_uid",
+    "activity_nci_concept_id",
+    "activity_nci_concept_name",
     "activity_group_name",
     "activity_group_uid",
     "activity_subgroup_name",
     "activity_subgroup_uid",
     "activity_instance_name",
     "activity_instance_uid",
+    "activity_instance_nci_concept_id",
+    "activity_instance_nci_concept_name",
     "epoch_name",
     "param_code",
     "soa_group_name",
@@ -142,6 +247,8 @@ STUDY_OPERATIONAL_SOA_FIELDS_ALL = [
 
 STUDY_OPERATIONAL_SOA_FIELDS_NOT_NULL = [
     "study_uid",
+    "study_activity_uid",
+    "activity_uid",
     "activity_name",
     "activity_uid",
     "visit_uid",
@@ -157,6 +264,7 @@ total_studies: int = 25
 study_visits: list[models.StudyVisit]
 total_study_visits: int = 25
 study_activities: list[models.StudyActivity]
+study_activity_instances: list[models.StudyActivityInstance]
 total_study_activities: int = 25
 study_detailed_soas: list[models.StudyDetailedSoA]
 total_study_detailed_soa: int = 25
@@ -174,7 +282,7 @@ def api_client(test_data):
 @pytest.fixture(scope="module")
 def test_data(api_client):
     """Initialize test data"""
-    db_name = "consumer-api-v1"
+    db_name = "consumer-api-v1-studies"
     set_db(db_name)
     study = inject_base_data()
     create_study_visit_codelists(create_unit_definitions=False, use_test_utils=True)
@@ -226,7 +334,9 @@ def test_data(api_client):
     activity_subgroup_uid = TestUtils.create_activity_subgroup(
         "Activity Sub Group", activity_groups=[activity_group_uid]
     ).uid
+
     study_activities = []
+
     for idx in range(0, total_study_activities):
         activity = TestUtils.create_activity(
             f"Activity {str(idx + 1).zfill(2)}",
@@ -234,7 +344,7 @@ def test_data(api_client):
             activity_subgroups=[activity_subgroup_uid],
         )
 
-        TestUtils.create_activity_instance(
+        activity_instance = TestUtils.create_activity_instance(
             name=f"Activity instance {idx}",
             activity_instance_class_uid=activity_instance_class.uid,
             name_sentence_case=f"activity instance {idx}",
@@ -247,15 +357,16 @@ def test_data(api_client):
             activity_items=[],
         )
 
-        study_activities.append(
-            TestUtils.create_study_activity(
-                study_uid=studies[0].uid,
-                soa_group_term_uid=soa_group_term.term_uid,
-                activity_uid=activity.uid,
-                activity_group_uid=activity_group_uid,
-                activity_subgroup_uid=activity_subgroup_uid,
-            )
+        study_activity = TestUtils.create_study_activity(
+            study_uid=studies[0].uid,
+            soa_group_term_uid=soa_group_term.term_uid,
+            activity_uid=activity.uid,
+            activity_group_uid=activity_group_uid,
+            activity_subgroup_uid=activity_subgroup_uid,
+            activity_instance_uid=activity_instance.uid,
         )
+
+        study_activities.append(study_activity)
 
     for idx in range(0, total_study_operational_soa):
         TestUtils.create_study_activity_schedule(
@@ -625,6 +736,124 @@ def test_get_all_study_activities(api_client, page_size):
     } == {study_activity.study_activity_uid for study_activity in study_activities}
 
     TestUtils.assert_sort_order(all_fetched_study_activities, "uid", False)
+
+
+def test_get_study_activity_instances(api_client):
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+
+    TestUtils.assert_paginated_response_shape_ok(res)
+    for item in res["items"]:
+        TestUtils.assert_response_shape_ok(
+            item,
+            STUDY_ACTIVITY_INSTANCES_FIELDS_ALL,
+            STUDY_ACTIVITY_INSTANCES_FIELDS_NOT_NULL,
+        )
+
+        TestUtils.assert_response_shape_ok(
+            item["soa_group"],
+            STUDY_ACTIVITY_INSTANCES_SOA_GROUP_FIELDS_ALL,
+            STUDY_ACTIVITY_INSTANCES_SOA_GROUP_FIELDS_NOT_NULL,
+        )
+        TestUtils.assert_response_shape_ok(
+            item["study_activity_group"],
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_GROUP_FIELDS_ALL,
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_GROUP_FIELDS_NOT_NULL,
+        )
+        TestUtils.assert_response_shape_ok(
+            item["study_activity_subgroup"],
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_SUBGROUP_FIELDS_ALL,
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_SUBGROUP_FIELDS_NOT_NULL,
+        )
+        TestUtils.assert_response_shape_ok(
+            item["activity"],
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_FIELDS_ALL,
+            STUDY_ACTIVITY_INSTANCES_ACTIVITY_FIELDS_NOT_NULL,
+        )
+        if item["activity_instance"]:
+            TestUtils.assert_response_shape_ok(
+                item["activity_instance"],
+                STUDY_ACTIVITY_INSTANCES_ACTIVITY_INSTANCE_FIELDS_ALL,
+                STUDY_ACTIVITY_INSTANCES_ACTIVITY_INSTANCE_FIELDS_NOT_NULL,
+            )
+
+
+def test_get_study_activity_instances_pagination_sorting(api_client):
+    # Default page size
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    TestUtils.assert_paginated_response_shape_ok(res)
+    assert len(res["items"]) == 25
+    TestUtils.assert_sort_order(res["items"], "uid", False)
+
+    # Non-default page size
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances?page_size=2"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    TestUtils.assert_paginated_response_shape_ok(res)
+    assert len(res["items"]) == 2
+    TestUtils.assert_sort_order(res["items"], "uid", False)
+
+    # Non-default page number and page size
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances?page_size=3&page_number=2"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    TestUtils.assert_paginated_response_shape_ok(res)
+    assert len(res["items"]) == 3
+    TestUtils.assert_sort_order(res["items"], "uid", False)
+
+    # Non-default sort_by
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances?page_size=10&sort_by=activity.name"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    TestUtils.assert_paginated_response_shape_ok(res)
+    assert len(res["items"]) == 10
+    TestUtils.assert_sort_order(res["items"], "activity.name", False)
+
+    # Non-default sort_by and sort_order
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances?sort_order=desc&sort_by=activity.name"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    TestUtils.assert_paginated_response_shape_ok(res)
+    assert len(res["items"]) == 25
+    TestUtils.assert_sort_order(res["items"], "activity.name", True)
+
+
+@pytest.mark.parametrize("page_size", [8, 20, 100])
+def test_get_all_study_activity_instances(api_client, page_size):
+    all_fetched_study_activity_instances = []
+
+    response = api_client.get(
+        f"{BASE_URL}/studies/{studies[0].uid}/study-activity-instances?page_size={page_size}"
+    )
+    all_fetched_study_activity_instances.extend(response.json()["items"])
+
+    while response.json()["items"]:
+        # Fetch the next page until no items are returned
+        response = api_client.get(response.json()["next"])
+        all_fetched_study_activity_instances.extend(response.json()["items"])
+
+    assert len(all_fetched_study_activity_instances) == total_study_activities
+    assert {
+        study_activity_instance["activity"]["uid"]
+        for study_activity_instance in all_fetched_study_activity_instances
+    } == {study_activity.activity.uid for study_activity in study_activities}
+
+    TestUtils.assert_sort_order(all_fetched_study_activity_instances, "uid", False)
 
 
 def test_get_study_detailed_soa(api_client):

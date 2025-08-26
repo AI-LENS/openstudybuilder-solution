@@ -11,9 +11,9 @@ from clinical_mdr_api.repositories._utils import (
     get_order_by_clause,
     merge_q_query_filters,
     transform_filters_into_neomodel,
-    validate_filter_by_is_dict,
+    validate_filter_by_dict,
     validate_filters_and_add_search_string,
-    validate_sort_by_is_dict,
+    validate_sort_by_dict,
 )
 from common.utils import validate_page_number_and_page_size
 
@@ -66,8 +66,8 @@ class NeomodelExtBaseRepository:
         total_count: bool = False,
     ) -> tuple[list[_StandardsReturnType], int]:
         # Validate params
-        filter_by = validate_filter_by_is_dict(filter_by=filter_by)
-        sort_by = validate_sort_by_is_dict(sort_by=sort_by)
+        filter_by = validate_filter_by_dict(filter_by=filter_by)
+        sort_by = validate_sort_by_dict(sort_by=sort_by)
         validate_page_number_and_page_size(page_number=page_number, page_size=page_size)
 
         q_filters = transform_filters_into_neomodel(

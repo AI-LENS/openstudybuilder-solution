@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from functools import wraps
 from typing import Callable, Generator, Sequence
@@ -109,11 +110,35 @@ def trace_calls(
 
                 if args:
                     l = len(_args)
-                    span.add_attribute("call.args", [_args[i] for i in args if i < l])
+                    span.add_attribute(
+                        "call.args",
+                        json.dumps(
+                            [
+                                (
+                                    str(_args[i])
+                                    if isinstance(_args[i], object)
+                                    else _args[i]
+                                )
+                                for i in args
+                                if i < l
+                            ]
+                        ),
+                    )
 
                 if kwargs:
                     span.add_attribute(
-                        "call.kwargs", {k: _kwargs[k] for k in kwargs if k in _kwargs}
+                        "call.kwargs",
+                        json.dumps(
+                            {
+                                str(k): (
+                                    str(_kwargs[k])
+                                    if isinstance(_kwargs[k], object)
+                                    else _kwargs[k]
+                                )
+                                for k in kwargs
+                                if k in _kwargs
+                            }
+                        ),
                     )
 
                 return func(*_args, **_kwargs)

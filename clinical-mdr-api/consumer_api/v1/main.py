@@ -23,6 +23,7 @@ router = APIRouter()
 # GET endpoint to retrieve a list of studies
 @router.get(
     "/studies",
+    tags=["[V1] Studies"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={
@@ -77,6 +78,7 @@ async def get_studies(
 # GET endpoint to retrieve a study's visits
 @router.get(
     "/studies/{uid}/study-visits",
+    tags=["[V1] Studies"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={
@@ -142,6 +144,7 @@ async def get_study_visits(
 # GET endpoint to retrieve a study's activities
 @router.get(
     "/studies/{uid}/study-activities",
+    tags=["[V1] Studies"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={
@@ -204,9 +207,76 @@ async def get_study_activities(
     )
 
 
+# GET endpoint to retrieve a study's activity instances
+@router.get(
+    "/studies/{uid}/study-activity-instances",
+    tags=["[V1] Studies"],
+    dependencies=[security, rbac.STUDY_READ],
+    status_code=200,
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Item not found",
+        },
+    },
+)
+async def get_study_activity_instances(
+    request: Request,
+    uid: Annotated[str, Path(description="Study UID")],
+    sort_by: models.SortByStudyActivityInstances = models.SortByStudyActivityInstances.UID,
+    sort_order: models.SortOrder = models.SortOrder.ASC,
+    page_size: Annotated[
+        int, Query(ge=1, le=settings.max_page_size)
+    ] = settings.page_size_100,
+    page_number: Annotated[int, Query(ge=1)] = 1,
+    study_version_number: Annotated[
+        str | None, Query(description="Study Version Number", example="2.1")
+    ] = None,
+) -> PaginatedResponseWithStudyVersion[models.StudyActivityInstance]:
+    """
+    Returns a paginated list of study activity instances, sorted by the specified sort criteria and order.
+
+    If `study_version_number` query parameter is provided, study activity instances
+    associated with the specified study version will be returned.
+    Otherwise, activity instances for the latest study version will be returned.
+    """
+    study_version = DB.get_study_version(
+        study_uid=uid,
+        study_version_number=study_version_number,
+    )
+
+    study_activity_instances = DB.get_study_activity_instances(
+        study_uid=uid,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page_size=page_size,
+        page_number=page_number,
+        study_version_number=study_version_number,
+    )
+
+    return PaginatedResponseWithStudyVersion.from_input(
+        request=request,
+        study_version=study_version,
+        sort_by=sort_by.value,
+        sort_order=sort_order.value,
+        page_size=page_size,
+        page_number=page_number,
+        items=[
+            models.StudyActivityInstance.from_input(study_activity_instance)
+            for study_activity_instance in study_activity_instances
+        ],
+        query_param_names=["study_version_number"],
+    )
+
+
 # GET endpoint to retrieve a study's detailed soa
 @router.get(
     "/studies/{uid}/detailed-soa",
+    tags=["[V1] Studies"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={
@@ -273,6 +343,7 @@ async def get_study_detailed_soa(
 # GET endpoint to retrieve a study's operational soa
 @router.get(
     "/studies/{uid}/operational-soa",
+    tags=["[V1] Studies"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={
@@ -336,9 +407,135 @@ async def get_study_operational_soa(
     )
 
 
+# GET endpoint to retrieve a library of activities
+@router.get(
+    "/library/activities",
+    tags=["[V1] Library"],
+    dependencies=[security, rbac.LIBRARY_READ],
+    status_code=200,
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Item not found",
+        },
+    },
+)
+async def get_library_activities(
+    request: Request,
+    sort_by: Annotated[
+        models.SortByLibraryItem, Query()
+    ] = models.SortByLibraryItem.NAME,
+    sort_order: models.SortOrder = models.SortOrder.ASC,
+    page_size: Annotated[
+        int, Query(ge=1, le=settings.max_page_size)
+    ] = settings.page_size_100,
+    page_number: Annotated[int, Query(ge=1)] = 1,
+    library: models.Library | None = None,
+    status: models.LibraryItemStatus | None = None,
+) -> PaginatedResponse[models.LibraryActivity]:
+    """
+    Returns a paginated list of library activities, sorted by the specified sort field and order.
+
+    Activities can be filtered by  `library` (_Sponsor, Requested_) and/or `status` (_Final, Draft, Retired_).
+    """
+
+    library_activities = DB.get_library_activities(
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page_size=page_size,
+        page_number=page_number,
+        library=library,
+        status=status,
+    )
+
+    return PaginatedResponse.from_input(
+        request=request,
+        sort_by=sort_by.value,
+        sort_order=sort_order.value,
+        page_size=page_size,
+        page_number=page_number,
+        items=[
+            models.LibraryActivity.from_input(library_activity)
+            for library_activity in library_activities
+        ],
+        query_param_names=["status", "library"],
+    )
+
+
+# GET endpoint to retrieve a library of activity instances
+@router.get(
+    "/library/activity-instances",
+    tags=["[V1] Library"],
+    dependencies=[security, rbac.LIBRARY_READ],
+    status_code=200,
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Item not found",
+        },
+    },
+)
+async def get_library_activity_instances(
+    request: Request,
+    sort_by: Annotated[
+        models.SortByLibraryItem, Query()
+    ] = models.SortByLibraryItem.NAME,
+    sort_order: models.SortOrder = models.SortOrder.ASC,
+    page_size: Annotated[
+        int, Query(ge=1, le=settings.max_page_size)
+    ] = settings.page_size_100,
+    page_number: Annotated[int, Query(ge=1)] = 1,
+    library: models.Library | None = None,
+    status: models.LibraryItemStatus | None = None,
+    activity_uid: Annotated[
+        str | None, Query(description="Filter by activity UID")
+    ] = None,
+) -> PaginatedResponse[models.LibraryActivityInstance]:
+    """
+    Returns a paginated list of library activity instances, sorted by the specified sort field and order.
+
+    Activity instances can be filtered by:
+      - **library**: Sponsor, Requested
+      - **status**: Final, Draft, Retired
+      - **activity_uid**: case-sensitive match, for example 'Activity_000251'
+    """
+
+    library_activity_instances = DB.get_library_activity_instances(
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page_size=page_size,
+        page_number=page_number,
+        library=library,
+        status=status,
+        activity_uid=activity_uid,
+    )
+
+    return PaginatedResponse.from_input(
+        request=request,
+        sort_by=sort_by.value,
+        sort_order=sort_order.value,
+        page_size=page_size,
+        page_number=page_number,
+        items=[
+            models.LibraryActivityInstance.from_input(library_activity_instance)
+            for library_activity_instance in library_activity_instances
+        ],
+        query_param_names=["status", "library", "activity_uid"],
+    )
+
+
 # GET endpoint to retrieve a study's soa in papillons required structure
 @router.get(
     "/papillons/soa",
+    tags=["[V1] Papillons"],
     dependencies=[security, rbac.STUDY_READ],
     status_code=200,
     responses={

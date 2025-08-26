@@ -179,6 +179,16 @@ const organizedRows = computed(() => {
     value: props.activity.definition || '-',
   })
 
+  // Synonyms
+  fields.push({
+    key: 'synonyms',
+    label: t('ActivityTable.synonyms'),
+    value:
+      props.activity.synonyms && props.activity.synonyms.length > 0
+        ? props.activity.synonyms.join(', ')
+        : '-',
+  })
+
   // Conditionally add other fields
   if (props.showAbbreviation) {
     fields.push({

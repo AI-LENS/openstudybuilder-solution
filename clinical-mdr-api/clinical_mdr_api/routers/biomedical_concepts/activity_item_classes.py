@@ -275,6 +275,16 @@ def get_all_terms(
     request: Request,  # request is actually required by the allow_exports decorator
     activity_item_class_uid: Annotated[str, ActivityItemClassUID],
     dataset_uid: Annotated[str, DatasetUID],
+    use_sponsor_model: Annotated[
+        bool | None,
+        Query(
+            description=(
+                "Whether to use the Sponsor Model to filter Codelists and Terms.\n\n"
+                "If set to True, the Sponsor Model will take precedence.\n\n"
+                "Defaults to True."
+            )
+        ),
+    ] = True,
     sort_by: Annotated[
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
@@ -306,6 +316,7 @@ def get_all_terms(
     results = ActivityItemClassService().get_terms_of_activity_item_class(
         activity_item_class_uid=activity_item_class_uid,
         dataset_uid=dataset_uid,
+        use_sponsor_model=use_sponsor_model,
         sort_by=sort_by,
         page_number=page_number,
         page_size=page_size,

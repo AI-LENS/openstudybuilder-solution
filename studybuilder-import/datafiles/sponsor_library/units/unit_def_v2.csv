@@ -252,7 +252,7 @@ CDISC synonym(s): Month
 CDISC definition: One of the 12 divisions of a year as determined by a calendar. It corresponds to the unit of time of approximately to one cycle of the moon's phases, about 30 days or 4 weeks. (NCI)
 NCI preferred term:Month
 
-[age subset]",1950,mo,Y,N,N,N,N,N,Y,Y,
+[age subset]",1950,mo,Y,N,N,Y,N,N,Y,Y,
 year,TIME,Y,Y,N,N,N,YEARS,N,N,31557600,YEARS,,C29848,"<CodeLists>
 <CodeList Value=""UNIT""></CodeList>
 <CodeList Value=""AGEU""></CodeList>
@@ -1434,7 +1434,7 @@ Tbsp,DOSE UNIT,N,Y,N,N,N,,N,N,1,Tbsp,,C48541,"A dosing measurement based on the 
 mU/kg,RELATIVE DOSE UNIT,Y,Y,N,N,N,,N,N,1,0,,,"mU/kg, milli Units per Kilogram to be used for derived topic codes on dosing",1720,mU/kg,N,N,N,N,N,N,Y,Y,
 days,TIME,Y,Y,N,Y,N,,N,N,86400,DAYS,,C25301,,1950,d,Y,Y,N,Y,N,N,Y,Y,
 hours,TIME,Y,Y,N,Y,N,,N,N,3600,HOURS,,C25529,,1950,h,Y,N,N,Y,N,N,Y,Y,
-months,TIME,N,Y,N,N,N,,N,N,,MONTHS,,C29846,,1950,mo,Y,N,N,N,N,N,Y,Y,
+months,TIME,N,Y,N,N,N,,N,N,,MONTHS,,C29846,,1950,mo,Y,N,N,Y,N,N,Y,Y,
 week,TIME,Y,Y,N,N,N,,N,N,604800,WEEKS,,C29844,,1950,wk,Y,Y,N,Y,N,Y,Y,Y,
 weeks,TIME,Y,Y,N,N,N,,N,N,604800,WEEKS,,C29844,,1950,wk,Y,Y,N,Y,N,N,Y,Y,
 years,TIME,N,Y,N,N,N,,N,N,,YEARS,,C29848,,1950,a,Y,Y,N,Y,N,N,Y,Y,

@@ -77,21 +77,3 @@ class MultiTemplateParameterTerm(BaseModel):
         description="A list of indexed template parameter terms that are used at this position in the template.",
         default_factory=list,
     )
-
-
-class TemplateParameterComplexValue(MultiTemplateParameterTerm):
-    """
-    TemplateParameterComplexValue is a value for a complex type that can be implemented using
-    Numeric terms. Below you can find the example of it.
-    {
-        position: 1,
-        conjunction: '',
-        format_string: "[TimeUnit] [NumericValue]"
-        parameters: [
-            {name: "TimeUnit_0001", uid: "39040243"},
-            {name: "NumericValue_0002", uid: null, value: 123 }
-        ]
-    }
-    """
-
-    format_string: Annotated[str | None, Field()]

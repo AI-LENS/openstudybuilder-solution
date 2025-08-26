@@ -206,12 +206,18 @@ function clear() {
   filterTable()
 }
 
-function isDate() {
-  if (Date.parse(new Date(items.value[0])) && items.value[0].length > 20) {
-    return true
-  } else {
-    return false
-  }
+function isDate(key) {
+  // Check if the column key indicates it's a date field
+  // Date columns typically end with '_date' or are named 'modified' or 'created'
+  if (!key) return false
+
+  return (
+    key.includes('_date') ||
+    key.includes('_at') ||
+    key === 'modified' ||
+    key === 'created' ||
+    key === 'updated'
+  )
 }
 
 function getColumnData(value) {

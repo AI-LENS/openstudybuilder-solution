@@ -181,7 +181,7 @@ const actions = [
     label: t('StudyActivityTable.update_activity_version'),
     icon: 'mdi-update',
     condition: (item) =>
-      item.latest_activity && !item.latest_activity.is_request_rejected,
+      isDifferent(item) && !item.latest_activity.is_request_rejected,
     click: openUpdateForm,
     accessRole: roles.STUDY_WRITE,
   },
@@ -351,6 +351,17 @@ function getActionsForItem(item) {
   return result
 }
 
+function isDifferent(activity) {
+  if (activity.latest_activity) {
+    return (
+      JSON.stringify(activity.activity?.activity_groupings) !==
+        JSON.stringify(activity.latest_activity?.activity_groupings) ||
+      activity.activity?.name !== activity.latest_activity?.name
+    )
+  }
+  return false
+}
+
 function openUpdateForm(item) {
   selectedStudyActivity.value = item
   if (item.activity.library_name === 'Sponsor') {
@@ -368,7 +379,7 @@ function closeUpdateForm() {
 }
 
 function actionsMenuBadge(item) {
-  if (item.activity.replaced_by_activity || item.latest_activity) {
+  if (item.activity.replaced_by_activity || isDifferent(item)) {
     return {
       color: item.keep_old_version ? 'green' : 'error',
       icon: 'mdi-exclamation',

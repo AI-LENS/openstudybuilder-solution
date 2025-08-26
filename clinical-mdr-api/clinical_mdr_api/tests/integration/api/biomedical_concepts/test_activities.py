@@ -36,7 +36,10 @@ from clinical_mdr_api.tests.integration.utils.api import (
     inject_base_data,
 )
 from clinical_mdr_api.tests.integration.utils.utils import TestUtils
-from clinical_mdr_api.tests.utils.checks import assert_response_status_code
+from clinical_mdr_api.tests.utils.checks import (
+    assert_response_status_code,
+    parse_json_response,
+)
 
 # pylint: disable=unused-argument
 # pylint: disable=redefined-outer-name
@@ -438,8 +441,7 @@ def test_get_activity_pagination(api_client):
     sort_by = '{"name": true}'
     for page_number in range(1, 4):
         url = f"/concepts/activities/activities?page_number={page_number}&page_size=3&sort_by={sort_by}"
-        response = api_client.get(url)
-        res = response.json()
+        res = parse_json_response(api_client.get(url))
         res_names = [item["name"] for item in res["items"]]
         results_paginated[page_number] = res_names
         log.info("Page %s: %s", page_number, res_names)
@@ -452,9 +454,11 @@ def test_get_activity_pagination(api_client):
 
     log.info("All rows returned by pagination: %s", results_paginated_merged)
 
-    res_all = api_client.get(
-        f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
-    ).json()
+    res_all = parse_json_response(
+        api_client.get(
+            f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
+        )
+    )
     results_all_in_one_page = list(map(lambda x: x["name"], res_all["items"]))
     log.info("All rows in one page: %s", results_all_in_one_page)
     assert len(results_all_in_one_page) == len(results_paginated_merged)
@@ -463,9 +467,11 @@ def test_get_activity_pagination(api_client):
 
     # Assert sorting by ActivityGroup works fine
     sort_by = '{"activity_groupings[0].activity_group_name":true}'
-    res_all = api_client.get(
-        f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
-    ).json()
+    res_all = parse_json_response(
+        api_client.get(
+            f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
+        )
+    )
     all_results = list(
         map(
             lambda x: x["activity_groupings"][0]["activity_group_name"],
@@ -476,9 +482,11 @@ def test_get_activity_pagination(api_client):
         all_results
     ), "Results should be returned by ActivityGroup name ascending order"
     sort_by = '{"activity_groupings[0].activity_group_name":false}'
-    res_all = api_client.get(
-        f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
-    ).json()
+    res_all = parse_json_response(
+        api_client.get(
+            f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
+        )
+    )
     all_results = list(
         map(
             lambda x: x["activity_groupings"][0]["activity_group_name"],
@@ -491,9 +499,11 @@ def test_get_activity_pagination(api_client):
 
     # Assert sorting by ActivitySubGroup works fine
     sort_by = '{"activity_groupings[0].activity_subgroup_name":true}'
-    res_all = api_client.get(
-        f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
-    ).json()
+    res_all = parse_json_response(
+        api_client.get(
+            f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
+        )
+    )
     all_results = list(
         map(
             lambda x: x["activity_groupings"][0]["activity_subgroup_name"],
@@ -504,9 +514,11 @@ def test_get_activity_pagination(api_client):
         all_results
     ), "Results should be returned by ActivitySubGroup name ascending order"
     sort_by = '{"activity_groupings[0].activity_subgroup_name":false}'
-    res_all = api_client.get(
-        f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
-    ).json()
+    res_all = parse_json_response(
+        api_client.get(
+            f"/concepts/activities/activities?page_number=1&page_size=100&sort_by={sort_by}"
+        )
+    )
     all_results = list(
         map(
             lambda x: x["activity_groupings"][0]["activity_subgroup_name"],

@@ -186,6 +186,8 @@ class OdmFormValue(ConceptValue):
     repeating = BooleanProperty()
     sdtm_version = StringProperty()
 
+    has_root = RelationshipFrom("OdmFormRoot", "HAS_VERSION", model=VersionRelationship)
+
 
 class OdmFormRefRelation(ClinicalMdrRel):
     order_number = IntegerProperty()
@@ -253,6 +255,10 @@ class OdmItemGroupValue(ConceptValue):
     purpose = StringProperty()
     comment = StringProperty()
 
+    has_root = RelationshipFrom(
+        "OdmItemGroupRoot", "HAS_VERSION", model=VersionRelationship
+    )
+
 
 class OdmItemGroupRoot(ConceptRoot):
     has_description = RelationshipTo(
@@ -319,6 +325,8 @@ class OdmItemValue(ConceptValue):
     sds_var_name = StringProperty()
     origin = StringProperty()
     comment = StringProperty()
+
+    has_root = RelationshipFrom("OdmItemRoot", "HAS_VERSION", model=VersionRelationship)
 
 
 class OdmItemRoot(ConceptRoot):

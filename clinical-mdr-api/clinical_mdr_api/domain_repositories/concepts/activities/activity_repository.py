@@ -703,6 +703,9 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
         WITH 
             concept_root.uid AS uid,
             concept_value.name AS name,
+            concept_value.definition AS definition,
+            concept_value.synonyms AS synonyms,
+            concept_value.abbreviation AS abbreviation,
             coalesce(concept_value.is_data_collected, False) AS is_data_collected,
             version_rel.status AS status,
             activity_group_root.uid AS activity_group_uid,
@@ -1055,8 +1058,12 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
         concept_value_label = self.value_class.__label__
         query = f"""CYPHER runtime=slotted MATCH (concept_root:{concept_label})-[:{only_specific_status}]->(concept_value:{concept_value_label})
         """
+        # IF group_by_groupings false THEN add grouping granularity
         if kwargs.get("group_by_groupings") is False:
-            query += "OPTIONAL MATCH (concept_value)-[:HAS_GROUPING]->(activity_grouping:ActivityGrouping)"
+            # OPTIONAL because not all activities have groupings
+            query += """OPTIONAL MATCH (concept_value)-[:HAS_GROUPING]->(activity_grouping:ActivityGrouping)
+                MATCH (concept_value)
+            """
         return query
 
     def generic_alias_clause(self, **kwargs):

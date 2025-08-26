@@ -1,7 +1,6 @@
 <template>
   <div>
-    <!-- <v-app-bar flat color="#e5e5e5" class="mt-2" style="height: 60px"> -->
-    <v-row v-if="!doc" class="mt-2 ml-2">
+    <v-row v-if="!doc" class="mt-2 ml-2 mr-2">
       <v-col cols="2">
         <v-select
           v-model="data.target_type"
@@ -37,44 +36,52 @@
         />
       </v-col>
     </v-row>
-    <v-row v-if="!doc" class="mt-2 ml-2">
+    <v-row v-if="!doc" class="mt-2 ml-2 mr-2">
       <v-col cols="2">
-        <v-row>
-          <v-select
-            v-model="selectedNamespaces"
-            :items="allowedNamespaces"
-            :label="$t('OdmViewer.allowed_namespaces')"
-            density="comfortable"
-            clearable
-            multiple
-            chips
-          />
-        </v-row>
+        <v-select
+          v-model="selectedNamespaces"
+          :items="allowedNamespaces"
+          :label="$t('OdmViewer.allowed_namespaces')"
+          density="comfortable"
+          clearable
+          multiple
+        >
+          <template v-slot:selection="{ item, index }">
+            <v-chip
+              v-if="index < 2"
+              :text="item.title"
+              density="compact"
+            ></v-chip>
+
+            <span
+              v-if="index === 2"
+              class="text-grey text-caption align-self-center"
+            >
+              (+{{ selectedNamespaces.length - 2 }}
+              {{ selectedNamespaces.length - 2 === 1 ? 'other' : 'others' }})
+            </span>
+          </template>
+        </v-select>
       </v-col>
       <v-col cols="2">
-        <v-row>
-          <v-radio-group
-            v-model="data.stylesheet"
-            :label="$t('OdmViewer.stylesheet')"
-            inline
-            row
-          >
-            <v-radio :label="$t('OdmViewer.blank')" value="blank" />
-            <v-radio :label="$t('OdmViewer.sdtm')" value="sdtm" />
-          </v-radio-group>
-        </v-row>
+        <v-select
+          v-model="data.selectedStylesheet"
+          :items="data.stylesheet"
+          density="comfortable"
+          :label="$t('OdmViewer.stylesheet')"
+        />
       </v-col>
       <v-col cols="2">
-        <v-row justify="center">
-          <v-btn
-            :disabled="!data.target_uid"
-            color="primary"
-            :label="$t('_global.load')"
-            @click="loadXml"
-          >
-            {{ $t('OdmViewer.load') }}
-          </v-btn>
-        </v-row>
+        <v-btn
+          :disabled="!data.target_uid"
+          color="primary"
+          :label="$t('_global.load')"
+          @click="loadXml"
+          size="large"
+          block
+        >
+          {{ $t('OdmViewer.load') }}
+        </v-btn>
       </v-col>
     </v-row>
     <v-row v-else class="mt-0 ml-2">
@@ -117,6 +124,14 @@
         icon="mdi-file-document-outline"
         @click="downloadHtml"
       />
+      <v-spacer />
+      <v-switch
+        v-model="showOdmXml"
+        :label="$t('OdmViewer.xml_code')"
+        color="primary"
+        class="mr-6"
+        inset
+      ></v-switch>
     </v-row>
     <div v-show="loading">
       <v-row align="center" justify="center" style="text-align: -webkit-center">
@@ -133,8 +148,15 @@
         </v-col>
       </v-row>
     </div>
-    <div v-show="doc" class="mt-4">
+    <div v-show="doc && !showOdmXml" class="mt-4">
       <iframe />
+    </div>
+    <div class="mt-4" v-show="doc && showOdmXml">
+      <v-card color="primary" style="overflow-x: auto">
+        <pre v-show="!loading" class="ml-6 mt-6 pre" style="color: #ff0">{{
+          xmlString
+        }}</pre>
+      </v-card>
     </div>
   </div>
 </template>
@@ -163,7 +185,6 @@ const props = defineProps({
     default: null,
   },
 })
-const emit = defineEmits(['clearUid'])
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -177,13 +198,25 @@ const elementStatuses = [
 
 const allowedNamespaces = ref([])
 const selectedNamespaces = ref([])
+const showOdmXml = ref(false)
 
 const elements = ref([])
 let xml = ''
+const xmlString = ref('')
 const doc = ref(null)
 const data = ref({
-  target_type: 'study_event',
-  stylesheet: 'sdtm',
+  target_type: 'form',
+  stylesheet: [
+    {
+      title: t('OdmViewer.crf_with_annotations'),
+      value: 'with-annotations',
+    },
+    {
+      title: t('OdmViewer.falcon'),
+      value: 'falcon',
+    },
+  ],
+  selectedStylesheet: 'with-annotations',
   export_to: 'v1',
 })
 const loading = ref(false)
@@ -221,7 +254,7 @@ onMounted(() => {
 })
 
 function automaticLoad() {
-  data.value.target_type = route.params.type || 'study_event'
+  data.value.target_type = route.params.type || 'form'
   data.value.target_uid = route.params.uid
   setElements()
   if (_isEmpty(allowedNamespaces.value)) {
@@ -284,9 +317,10 @@ async function loadXml() {
   data.value.allowed_namespaces = getAllowedNamespaces()
   crfs.getXml(data.value).then((resp) => {
     const parser = new DOMParser()
+    xmlString.value = resp.data
     xml = parser.parseFromString(resp.data, 'application/xml')
     const xsltProcessor = new XSLTProcessor()
-    crfs.getXsl(data.value.stylesheet).then((resp) => {
+    crfs.getXsl(data.value.selectedStylesheet).then((resp) => {
       const xmlDoc = parser.parseFromString(resp.data, 'text/xml')
       xsltProcessor.importStylesheet(xmlDoc)
       doc.value = new XMLSerializer().serializeToString(
@@ -312,14 +346,13 @@ async function loadXml() {
     },
   })
   url = `${window.location.href}`
-  emit('clearUid')
 }
 
 function getDownloadFileName() {
-  const stylesheet =
-    data.value.stylesheet === 'odm_template_sdtmcrf.xsl'
-      ? '_sdtm_crf_'
-      : '_blank_crf_'
+  let stylesheet = '_with_annotations_crf_'
+  if (data.value.selectedStylesheet === 'falcon') {
+    stylesheet = '_falcon_crf_'
+  }
   const templateName = elements.value.filter(
     (el) => el.uid === data.value.target_uid
   )[0].name

@@ -175,6 +175,42 @@ def get_study_flowchart_docx(
 
 
 @router.get(
+    "/{study_uid}/flowchart.xlsx",
+    dependencies=[security, rbac.STUDY_READ],
+    summary="Builds and returns an XLSX document with Protocol, Detailed or Operational SoA table with footnotes",
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        200: {"content": {MIME_TYPE_XLSX: {}}},
+        404: _generic_descriptions.ERROR_404,
+    },
+)
+def get_study_flowchart_xlsx(
+    study_uid: Annotated[str, STUDY_UID_PATH],
+    study_value_version: Annotated[
+        str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
+    ] = None,
+    time_unit: Annotated[str | None, TIME_UNIT_QUERY] = None,
+    layout: Annotated[SoALayout, LAYOUT_QUERY] = SoALayout.PROTOCOL,
+) -> StreamingResponse:
+    workbook = StudyFlowchartService().get_study_flowchart_xlsx(
+        study_uid=study_uid,
+        study_value_version=study_value_version,
+        layout=layout,
+        time_unit=time_unit,
+    )
+
+    # render document into Bytes stream
+    stream = io.BytesIO()
+    workbook.save(stream)
+
+    study_id = _get_study_id(study_uid, study_value_version)
+    filename = f"{study_id or study_uid} {layout.value} SoA.xlsx"
+    mime_type = MIME_TYPE_XLSX
+
+    return _streaming_response(stream, filename, mime_type)
+
+
+@router.get(
     "/{study_uid}/operational-soa.xlsx",
     dependencies=[security, rbac.STUDY_READ],
     summary="Builds and returns an XLSX document with Operational SoA",
@@ -461,6 +497,8 @@ def _streaming_response(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Content-Length": f"{filesize:d}",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'",
         },
     )
 

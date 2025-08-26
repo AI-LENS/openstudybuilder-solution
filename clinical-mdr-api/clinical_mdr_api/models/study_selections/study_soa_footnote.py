@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Callable, Self
+from typing import Annotated, Self
 
 from pydantic import Field
 
@@ -7,26 +7,110 @@ from clinical_mdr_api.domains.study_selections.study_soa_footnote import (
     StudySoAFootnoteVO,
     StudySoAFootnoteVOHistory,
 )
-from clinical_mdr_api.domains.syntax_instances.footnote import FootnoteAR
-from clinical_mdr_api.domains.syntax_templates.footnote_template import (
-    FootnoteTemplateAR,
-)
 from clinical_mdr_api.models.error import BatchErrorResponse
 from clinical_mdr_api.models.study_selections.study_selection import (
     RESPONSE_CODE_FIELD,
     ReferencedItem,
 )
-from clinical_mdr_api.models.syntax_instances.footnote import (
-    Footnote,
-    FootnoteCreateInput,
-)
-from clinical_mdr_api.models.syntax_templates.footnote_template import FootnoteTemplate
+from clinical_mdr_api.models.syntax_instances.footnote import FootnoteCreateInput
 from clinical_mdr_api.models.utils import (
     BaseModel,
     PatchInputModel,
     PostInputModel,
     get_latest_on_datetime_str,
 )
+
+
+class CompactFootnote(BaseModel):
+    uid: Annotated[str, Field()]
+    name_plain: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+    name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    version: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    library_name: Annotated[str | None, Field()] = None
+    template_uid: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+    template_name: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    @classmethod
+    def footnote_from_study_soa_footnote_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVO,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_uid,
+            name=study_soa_footnote_vo.footnote_name,
+            name_plain=study_soa_footnote_vo.footnote_name_plain,
+            version=study_soa_footnote_vo.footnote_version,
+            library_name=study_soa_footnote_vo.footnote_library_name,
+            template_uid=study_soa_footnote_vo.footnote_template_uid,
+            template_name=study_soa_footnote_vo.footnote_template_name,
+        )
+
+    @classmethod
+    def latest_footnote_from_study_soa_footnote_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVO,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_uid,
+            name_plain=study_soa_footnote_vo.latest_footnote_name_plain,
+            version=study_soa_footnote_vo.latest_footnote_version,
+            library_name=study_soa_footnote_vo.footnote_library_name,
+            template_uid=study_soa_footnote_vo.footnote_template_uid,
+        )
+
+    @classmethod
+    def footnote_from_study_soa_footnote_history_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVOHistory,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_uid,
+            name_plain=study_soa_footnote_vo.footnote_name_plain,
+            version=study_soa_footnote_vo.footnote_version,
+            template_uid=study_soa_footnote_vo.footnote_template_uid,
+        )
+
+
+class CompactFootnoteTemplate(BaseModel):
+    uid: Annotated[str, Field()]
+    name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    name_plain: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+    version: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    library_name: Annotated[str | None, Field()] = None
+    parameters: Annotated[list[str] | None, Field()] = None
+
+    @classmethod
+    def footnote_template_from_study_soa_footnote_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVO,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_template_uid,
+            name=study_soa_footnote_vo.footnote_template_name,
+            name_plain=study_soa_footnote_vo.footnote_template_name_plain,
+            version=study_soa_footnote_vo.footnote_template_version,
+            library_name=study_soa_footnote_vo.footnote_template_library_name,
+            parameters=study_soa_footnote_vo.footnote_template_parameters,
+        )
+
+    @classmethod
+    def footnote_template_from_study_soa_footnote_history_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVOHistory,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_template_uid,
+            name_plain=study_soa_footnote_vo.footnote_template_name_plain,
+            version=study_soa_footnote_vo.footnote_template_version,
+        )
 
 
 class StudySoAFootnote(BaseModel):
@@ -39,7 +123,7 @@ class StudySoAFootnote(BaseModel):
             json_schema_extra={"nullable": True},
         ),
     ] = None
-    order: Annotated[int, Field()]
+    order: Annotated[int | None, Field(json_schema_extra={"nullable": True})] = None
     modified: Annotated[
         datetime | None,
         Field(
@@ -50,10 +134,10 @@ class StudySoAFootnote(BaseModel):
     ] = None
     referenced_items: list[ReferencedItem] = Field(default_factory=list)
     footnote: Annotated[
-        Footnote | None, Field(json_schema_extra={"nullable": True})
+        CompactFootnote | None, Field(json_schema_extra={"nullable": True})
     ] = None
     template: Annotated[
-        FootnoteTemplate | None, Field(json_schema_extra={"nullable": True})
+        CompactFootnoteTemplate | None, Field(json_schema_extra={"nullable": True})
     ] = None
     accepted_version: Annotated[
         bool | None,
@@ -63,7 +147,7 @@ class StudySoAFootnote(BaseModel):
         ),
     ] = None
     latest_footnote: Annotated[
-        Footnote | None,
+        CompactFootnote | None,
         Field(
             description="Latest version of footnote selected for study selection.",
             json_schema_extra={"nullable": True},
@@ -75,45 +159,9 @@ class StudySoAFootnote(BaseModel):
     def from_study_soa_footnote_vo(
         cls,
         study_soa_footnote_vo: StudySoAFootnoteVO,
-        find_footnote_by_uid: Callable[[str], FootnoteAR | None],
-        find_footnote_template_by_uid: Callable[[str], FootnoteTemplateAR | None],
         study_value_version: str | None = None,
+        order: int | None = None,
     ) -> Self:
-        footnote = None
-        latest_footnote = None
-        footnote_template = None
-        if study_soa_footnote_vo.footnote_uid:
-            latest_footnote = Footnote.from_footnote_ar(
-                find_footnote_by_uid(study_soa_footnote_vo.footnote_uid)
-            )
-            if study_soa_footnote_vo.footnote_version:
-                if latest_footnote.version == study_soa_footnote_vo.footnote_version:
-                    footnote = latest_footnote
-                    latest_footnote = None
-                else:
-                    footnote = Footnote.from_footnote_ar(
-                        find_footnote_by_uid(
-                            study_soa_footnote_vo.footnote_uid,
-                            version=study_soa_footnote_vo.footnote_version,
-                        )
-                    )
-            else:
-                footnote = Footnote.from_footnote_ar(
-                    find_footnote_by_uid(
-                        study_soa_footnote_vo.footnote_uid,
-                    )
-                )
-        elif study_soa_footnote_vo.footnote_template_uid:
-            footnote_template = FootnoteTemplate.from_footnote_template_ar(
-                find_footnote_template_by_uid(
-                    study_soa_footnote_vo.footnote_template_uid,
-                    version=study_soa_footnote_vo.footnote_template_version,
-                )
-                if study_soa_footnote_vo.footnote_template_version
-                else find_footnote_template_by_uid(
-                    study_soa_footnote_vo.footnote_template_uid
-                )
-            )
         return cls(
             uid=study_soa_footnote_vo.uid,
             study_uid=study_soa_footnote_vo.study_uid,
@@ -122,7 +170,7 @@ class StudySoAFootnote(BaseModel):
                 if study_value_version
                 else get_latest_on_datetime_str()
             ),
-            order=study_soa_footnote_vo.footnote_number,
+            order=order,
             referenced_items=[
                 ReferencedItem(
                     item_uid=ref_item.item_uid,
@@ -132,9 +180,28 @@ class StudySoAFootnote(BaseModel):
                 )
                 for ref_item in study_soa_footnote_vo.referenced_items
             ],
-            footnote=footnote,
-            latest_footnote=latest_footnote,
-            template=footnote_template,
+            footnote=(
+                CompactFootnote.footnote_from_study_soa_footnote_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo
+                )
+                if study_soa_footnote_vo.footnote_uid
+                else None
+            ),
+            latest_footnote=(
+                CompactFootnote.latest_footnote_from_study_soa_footnote_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo
+                )
+                if study_soa_footnote_vo.footnote_version
+                != study_soa_footnote_vo.latest_footnote_version
+                else None
+            ),
+            template=(
+                CompactFootnoteTemplate.footnote_template_from_study_soa_footnote_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo
+                )
+                if not study_soa_footnote_vo.footnote_uid
+                else None
+            ),
             modified=study_soa_footnote_vo.modified,
             accepted_version=study_soa_footnote_vo.accepted_version,
             author_username=study_soa_footnote_vo.author_username,
@@ -186,25 +253,10 @@ class StudySoAFootnoteHistory(StudySoAFootnote):
     def from_study_soa_footnote_vo_history(
         cls,
         study_soa_footnote_vo: StudySoAFootnoteVOHistory,
-        find_footnote_by_uid: Callable[[str], FootnoteAR | None],
-        find_footnote_template_by_uid: Callable[[str], FootnoteTemplateAR | None],
     ) -> Self:
-        footnote = None
-        footnote_template = None
-        if study_soa_footnote_vo.footnote_uid:
-            footnote = Footnote.from_footnote_ar(
-                find_footnote_by_uid(study_soa_footnote_vo.footnote_uid)
-            )
-        elif study_soa_footnote_vo.footnote_template_uid:
-            footnote_template = FootnoteTemplate.from_footnote_template_ar(
-                find_footnote_template_by_uid(
-                    study_soa_footnote_vo.footnote_template_uid
-                )
-            )
         return cls(
             uid=study_soa_footnote_vo.uid,
             study_uid=study_soa_footnote_vo.study_uid,
-            order=study_soa_footnote_vo.footnote_number,
             referenced_items=[
                 ReferencedItem(
                     item_uid=ref_item.item_uid,
@@ -213,8 +265,20 @@ class StudySoAFootnoteHistory(StudySoAFootnote):
                 )
                 for ref_item in study_soa_footnote_vo.referenced_items
             ],
-            footnote=footnote,
-            template=footnote_template,
+            footnote=(
+                CompactFootnote.footnote_from_study_soa_footnote_history_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo
+                )
+                if study_soa_footnote_vo.footnote_uid
+                else None
+            ),
+            template=(
+                CompactFootnoteTemplate.footnote_template_from_study_soa_footnote_history_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo
+                )
+                if not study_soa_footnote_vo.footnote_uid
+                else None
+            ),
             start_date=study_soa_footnote_vo.start_date,
             end_date=study_soa_footnote_vo.end_date,
             change_type=study_soa_footnote_vo.change_type,

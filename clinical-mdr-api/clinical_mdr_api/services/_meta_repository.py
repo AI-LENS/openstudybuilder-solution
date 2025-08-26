@@ -728,7 +728,7 @@ class MetaRepository:
 
     @property
     def study_epoch_repository(self) -> StudyEpochRepository:
-        return StudyEpochRepository(self._author_id)
+        return StudyEpochRepository()
 
     @property
     def study_disease_milestone_repository(self) -> StudyDiseaseMilestoneRepository:
@@ -740,7 +740,7 @@ class MetaRepository:
 
     @property
     def study_visit_repository(self) -> StudyVisitRepository:
-        return StudyVisitRepository(self._author_id)
+        return StudyVisitRepository()
 
     @property
     def ct_config_repository(self) -> CTConfigRepository:

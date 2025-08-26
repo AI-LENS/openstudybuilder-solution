@@ -18,5 +18,5 @@ Cypress.Commands.add('createTestArm', (study_uid) => {
 })
 
 Cypress.Commands.add('deleteStudyArm', () => {
-    cy.request('DELETE', Cypress.env('API') + 'studies/Study_000001/study-arms/StudyArm_000155').then((response) => cy.log('Test arm deleted' + response.status))
+    cy.request('DELETE', Cypress.env('API') + `studies/${Cypress.env('TEST_STUDY_UID')}/study-arms/StudyArm_000155`).then((response) => cy.log('Test arm deleted' + response.status))
 })

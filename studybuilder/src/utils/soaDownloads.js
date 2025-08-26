@@ -43,7 +43,7 @@ async function excelDownload(layout) {
       response = await study.exportStudyDetailedSoaExcel(uid)
       break
     case 'protocol':
-      response = await study.exportStudyProtocolSoaExcel(uid)
+      response = await study.exportStudyProtocolSoaExcel(uid, { layout })
       break
     case 'operational':
       response = await study.exportStudyOperationalSoaExcel(uid)

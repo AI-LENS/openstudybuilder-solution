@@ -560,6 +560,60 @@ class ActivityService(ConceptGenericService[ActivityAR]):
 
         return GenericFilteringReturn.create(items=instance_models, total=total_count)
 
+    def get_flattened_activity_instances_for_version(
+        self,
+        activity_uid: str,
+        version: str | None,
+        page_number: int = 1,
+        page_size: int = 10,
+    ) -> GenericFilteringReturn[ActivityInstanceDetail]:
+        """
+        Get flattened activity instances for export where parent and children are separate rows.
+
+        Args:
+            activity_uid: The unique ID of the activity.
+            version: The specific version of the activity.
+            page_number: The page number for pagination.
+            page_size: The number of items per page (0 for all).
+
+        Returns:
+            A paginated response with flattened activity instances.
+        """
+        # Get all instances without pagination first
+        result = self.get_activity_instances_for_version(
+            activity_uid=activity_uid,
+            version=version,
+            page_number=1,
+            page_size=0,  # Get all
+        )
+
+        # Flatten the parent-child hierarchy
+        flattened_items = []
+        for parent_instance in result.items:
+            # Add the parent instance
+            flattened_items.append(parent_instance)
+
+            # Add all child versions as separate items
+            if hasattr(parent_instance, "children") and parent_instance.children:
+                for child in parent_instance.children:
+                    # Convert child dict to ActivityInstanceDetail if needed
+                    if isinstance(child, dict):
+                        child_instance = ActivityInstanceDetail(**child)
+                    else:
+                        child_instance = child
+                    flattened_items.append(child_instance)
+
+        # Apply pagination to flattened list
+        total = len(flattened_items)
+        if page_size > 0:
+            start_idx = (page_number - 1) * page_size
+            end_idx = start_idx + page_size
+            paginated_items = flattened_items[start_idx:end_idx]
+        else:
+            paginated_items = flattened_items
+
+        return GenericFilteringReturn.create(items=paginated_items, total=total)
+
     def get_compact_activity_with_splitted_groupings(
         self,
         library: str | None = None,

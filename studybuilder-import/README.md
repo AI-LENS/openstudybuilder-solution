@@ -73,8 +73,8 @@ LOG_LEVEL=INFO
 MDR_MIGRATION_SAMPLE=False
 MDR_MIGRATION_FROM_SAME_ENV=False
 ```
-`LOG_LEVEL` determines the logging level. `INFO` is the recommended setting for normal use.
-This shows info level messages, and hides `DEBUG` and `TRACE`.
+`LOG_LEVEL` determines the logging level. The default is `WARNING` which reduces log output by showing only warnings and errors.
+Set to `INFO` for more detailed logging during debugging, or `DEBUG` for maximum verbosity.
 
 `MDR_MIGRATION_SAMPLE` determines if a small subset of data should be imported
 rather than the full content of the provided files.

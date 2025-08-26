@@ -2,6 +2,11 @@ const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor")
 
 let epochDescription = `Epoch ${Date.now()}`
 
+When('User waits for epochs to load', () => {
+    cy.intercept(`**/study-epochs?page_size=0`).as('getEpochs')
+    cy.wait('@getEpochs').its('response.statusCode').should('eq', 200)
+})
+
 When('Study Epoch is found', () => cy.searchAndCheckPresence(epochDescription, true))
 
 When('Study Epoch is not available', () => cy.searchAndCheckPresence(epochDescription, false))

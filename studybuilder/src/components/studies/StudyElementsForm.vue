@@ -230,10 +230,21 @@ export default {
   },
   methods: {
     close() {
-      this.form = {}
+      // Reset form data
+      this.form = {
+        planned_duration: {},
+      }
       this.$emit('close')
       this.colorHash = null
-      this.$refs.observer.reset()
+
+      // Reset form validation and working state
+      if (this.$refs.observer) {
+        this.$refs.observer.reset()
+      }
+      if (this.$refs.form) {
+        this.$refs.form.working = false
+      }
+
       this.formStore.reset()
     },
     async cancel() {

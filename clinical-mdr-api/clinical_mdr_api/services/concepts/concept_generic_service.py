@@ -614,7 +614,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
             activity_sequence_number += 1
             # add research flag
             if response_model.is_research_lab and len(adam_final) <= 6:
-                final_generated_name = f"{adam_final+"X"}{activity_sequence_number}"
+                final_generated_name = f"{adam_final}X{activity_sequence_number}"
             else:
                 final_generated_name = f"{adam_final}{activity_sequence_number}"
             number_of_letters_to_remove = 0

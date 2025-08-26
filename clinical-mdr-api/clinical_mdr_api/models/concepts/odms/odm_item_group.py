@@ -332,13 +332,13 @@ class OdmItemGroupItemPostInput(PostInputModel):
     uid: Annotated[str, Field(min_length=1)]
     order_number: Annotated[int, Field(lt=settings.max_int_neo4j)]
     mandatory: Annotated[str, Field()]
-    key_sequence: Annotated[str, Field()]
+    key_sequence: Annotated[str | None, Field()] = None
     method_oid: Annotated[str | None, Field()] = None
-    imputation_method_oid: Annotated[str, Field()]
-    role: Annotated[str, Field()]
-    role_codelist_oid: Annotated[str, Field()]
+    imputation_method_oid: Annotated[str | None, Field()] = None
+    role: Annotated[str | None, Field()] = None
+    role_codelist_oid: Annotated[str | None, Field()] = None
     collection_exception_condition_oid: Annotated[str | None, Field()] = None
-    vendor: Annotated[OdmRefVendorPostInput, Field()]
+    vendor: OdmRefVendorPostInput
 
 
 class OdmItemGroupVersion(OdmItemGroup):

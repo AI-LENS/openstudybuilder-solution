@@ -180,7 +180,9 @@ async function fetchFiles() {
     'studybuilder-export',
   ]
   const url =
-    process.env.NODE_ENV === 'development' ? '' : `https://${location.host}`
+    process.env.NODE_ENV === 'development'
+      ? ''
+      : `${location.protocol}//${location.host}`
   for (const component of components) {
     const license = await axios.get(`${url}/LICENSE-${component}.md`)
     licenses.value[component] = license.data

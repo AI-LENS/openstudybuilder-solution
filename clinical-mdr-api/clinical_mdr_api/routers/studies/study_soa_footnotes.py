@@ -266,7 +266,9 @@ def get_study_soa_footnote(
 ) -> StudySoAFootnote:
     service = StudySoAFootnoteService()
     return service.get_by_uid(
-        uid=study_soa_footnote_uid, study_value_version=study_value_version
+        study_uid=study_uid,
+        uid=study_soa_footnote_uid,
+        study_value_version=study_value_version,
     )
 
 

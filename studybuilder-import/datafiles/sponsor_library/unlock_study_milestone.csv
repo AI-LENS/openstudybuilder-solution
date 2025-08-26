@@ -1,0 +1,6 @@
+CT_CD_LIST_SUBMVAL,CT_NAME,NAME_SENTENSE_CASE,CT_SUBMVAL,DEFINITION,ORDER,CT_CD,NCI_PREFERRED_NAME
+UNLOCK_STUDY_MILESTONE,Updates after Protocol Development Milestone,updates after protocol development milestone,UPDATES_AFTER_PROTOCOL_DEVELOPMENT_MILESTONE,Milestone for unlocking study for updates after protocol development milestone,1,,Updates after Protocol Development Milestone
+UNLOCK_STUDY_MILESTONE,Data Collection Updates,data collection updates,DATA_COLLECTION_UPDATES,Milestone for unlocking study for data collection updates,2,,Data Collection Updates
+UNLOCK_STUDY_MILESTONE,Study Specification Updates,study specification updates,STUDY_SPECIFICATION_UPDATES,Milestone for unlocking study for study specification updates,3,,Study Specification Updates
+UNLOCK_STUDY_MILESTONE,Amendment,amendment,AMENDMENT,Milestone for unlocking study for protocol amendment,4,,Amendment
+UNLOCK_STUDY_MILESTONE,Other,other,OTHER,Other milestone for unlocking study,5,,Other

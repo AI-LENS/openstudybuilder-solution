@@ -118,11 +118,7 @@ def get_all(
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
 ) -> CustomPage[study_epoch.StudyEpoch]:
-    service = StudyEpochService(
-        study_uid=study_uid, study_value_version=study_value_version
-    )
-
-    all_items = service.get_all_epochs(
+    all_items = StudyEpochService.get_all_epochs(
         study_uid=study_uid,
         page_number=page_number,
         page_size=page_size,
@@ -271,10 +267,7 @@ def get_study_epoch(
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
 ) -> study_epoch.StudyEpoch:
-    service = StudyEpochService(
-        study_uid=study_uid, study_value_version=study_value_version
-    )
-    return service.find_by_uid(
+    return StudyEpochService.find_by_uid(
         uid=study_epoch_uid,
         study_uid=study_uid,
         study_value_version=study_value_version,

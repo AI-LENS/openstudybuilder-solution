@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -12,6 +13,7 @@ from pydantic.fields import FieldInfo
 
 from common.config import settings
 from common.exceptions import ValidationException
+from common.telemetry import trace_calls
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ class BaseTimelineAR(Generic[StudyVisit]):
     study_uid: str
     _visits: list[StudyVisit]
 
+    @trace_calls
     def _generate_timeline(self):
         """
         Function creating ordered list of visits based on _visits list
@@ -189,13 +192,14 @@ class BaseTimelineAR(Generic[StudyVisit]):
 
         return ordered_visits
 
+    @trace_calls
     def _assign_subvisit_numbers(
         self,
         ordered_visits: list[StudyVisit],
         subvisit_sets: dict[str, list[Subvisit]],
         amount_of_subvisits_for_visit: dict[str, int],
         special_visits_for_visit_anchor: dict[str, StudyVisit],
-    ):
+    ) -> None:
         for visit in ordered_visits:
             if (
                 visit.visit_subclass
@@ -339,6 +343,10 @@ def validate_page_number_and_page_size(page_number: int, page_size: int):
 
 
 def validate_max_skip_clause(page_number: int, page_size: int) -> None:
+    # Rather check twice to prevent Cypher injection; this function is used by various repositories
+    if not isinstance(page_number, int) or not isinstance(page_size, int):
+        raise TypeError("Expected page_number and page_size to be integers")
+
     # neo4j supports `SKIP {val}` values which fall within unsigned 64-bit integer range
     ValidationException.raise_if(
         max(1, page_number) * max(1, page_size) > settings.max_int_neo4j,
@@ -468,3 +476,9 @@ def get_db_result_as_dict(row: list[Any], columns: list[str]) -> dict[str, Any]:
     for key, value in zip(columns, row):
         item[key] = value
     return item
+
+
+# Filter keys used in ORDER BY and WHERE filter expressions to avoid Cypher injection
+filter_sort_valid_keys_re = re.compile(
+    r"^_?[A-Za-z][A-Za-z0-9_]*(\[[0-9]+])?(?:\.[A-Za-z_][A-Za-z0-9_]*(\[[0-9]+])?)*$"
+)

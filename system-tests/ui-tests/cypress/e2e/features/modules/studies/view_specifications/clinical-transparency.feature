@@ -8,7 +8,7 @@ Feature: Studies - View Specification - Clinical Transparency
         Given A test study is selected
         Given The '/studies' page is opened
         When The 'Clinical Transparency' submenu is clicked in the 'View Specifications' section
-        Then The current URL is '/studies/Study_000001/study_disclosure'
+        Then The current URL is '/study_disclosure'
 
     Scenario: [Table][Columns][Names][Data] User must be able to select Identification Pharma CM Specification
         Given The study disclosure page for CDISC DEV-0 is accessed

@@ -25,7 +25,7 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term import (
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import FilterOperator
 from clinical_mdr_api.services._meta_repository import MetaRepository  # type: ignore
-from clinical_mdr_api.services._utils import is_library_editable
+from clinical_mdr_api.services._utils import ensure_transaction, is_library_editable
 from clinical_mdr_api.utils import normalize_string
 from common.auth.user import user
 from common.exceptions import BusinessLogicException, NotFoundException
@@ -46,7 +46,10 @@ class CTTermService:
         self._repos.close()
 
     def non_transactional_create(
-        self, term_input: CTTermCreateInput, start_date: datetime | None = None
+        self,
+        term_input: CTTermCreateInput,
+        start_date: datetime | None = None,
+        approve: bool = False,
     ) -> CTTerm:
         """
         Method creates CTTermAttributesAR and saves that object to the database.
@@ -126,6 +129,9 @@ class CTTermService:
             generate_uid_callback=self._repos.ct_term_attributes_repository.generate_uid,
         )
 
+        if approve is True:
+            ct_term_attributes_ar.approve(author_id=self.author_id)
+
         self._repos.ct_term_attributes_repository.save(ct_term_attributes_ar)
 
         ct_term_name_ar = CTTermNameAR.from_input_values(
@@ -150,15 +156,23 @@ class CTTermService:
             generate_uid_callback=lambda: ct_term_attributes_ar.uid,
         )
 
+        if approve is True:
+            ct_term_name_ar.approve(author_id=self.author_id)
+
         self._repos.ct_term_name_repository.save(ct_term_name_ar)
 
         return CTTerm.from_ct_term_ars(ct_term_name_ar, ct_term_attributes_ar)
 
-    @db.transaction
+    @ensure_transaction(db)
     def create(
-        self, term_input: CTTermCreateInput, start_date: datetime | None = None
+        self,
+        term_input: CTTermCreateInput,
+        start_date: datetime | None = None,
+        approve: bool = False,
     ) -> CTTerm:
-        return self.non_transactional_create(term_input, start_date=start_date)
+        return self.non_transactional_create(
+            term_input, start_date=start_date, approve=approve
+        )
 
     def get_all_terms(
         self,

@@ -15,6 +15,7 @@ from clinical_mdr_api.domains.study_selections.study_activity_schedule import (
 )
 from common.config import settings
 from common.exceptions import BusinessLogicException, NotFoundException
+from common.telemetry import trace_calls
 from common.utils import convert_to_datetime
 
 
@@ -211,6 +212,7 @@ class StudyActivityScheduleRepository(base.StudySelectionRepository):
             )
         return result
 
+    @trace_calls
     def _get_all_schedules_in_study(
         self,
         study_uid: str,

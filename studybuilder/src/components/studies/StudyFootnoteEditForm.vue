@@ -5,7 +5,7 @@
     :title="$t('StudyFootnoteEditForm.title')"
     :study-selection="editedObject"
     :template="template"
-    :library-name="library.name"
+    :library-name="library"
     object-type="footnote"
     :open="open"
     :get-object-from-selection="(selection) => selection.footnote"
@@ -115,13 +115,16 @@ export default {
   computed: {
     template() {
       return this.editedObject.footnote
-        ? this.editedObject.footnote.template
+        ? {
+            uid: this.editedObject.footnote.template_uid,
+            name: this.editedObject.footnote.template_name,
+          }
         : this.editedObject.template
     },
     library() {
       return this.studyFootnote.footnote
-        ? this.studyFootnote.footnote.library
-        : this.studyFootnote.template.library
+        ? this.studyFootnote.footnote.library_name
+        : this.studyFootnote.template.library_name
     },
   },
   watch: {

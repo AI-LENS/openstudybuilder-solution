@@ -25,6 +25,7 @@ from clinical_mdr_api.models.study_selections.study import (
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import FilterOperator
 from common import exceptions
+from common.telemetry import trace_calls
 from common.utils import convert_to_datetime
 
 
@@ -84,6 +85,7 @@ class StudyDefinitionRepository(ABC):
         """
         return self.__audit_info
 
+    @trace_calls
     def find_by_uid(
         self,
         uid: str,
@@ -269,14 +271,14 @@ RETURN
             and "StudyVisit" not in list_of_items_to_copy
         ):
             exclusions += """
-            AND NOT EXISTS((selection_src:StudySoAFootnote)--(:StudyVisit))
+            AND NOT ((selection_src:StudySoAFootnote)--(:StudyVisit) AND NOT (selection_src:StudySoAFootnote)--(:StudyVisit)--(:Delete))
         """
         if (
             "StudySoAFootnote" in list_of_items_to_copy
             and "StudyEpoch" not in list_of_items_to_copy
         ):
             exclusions += """
-            AND NOT EXISTS((selection_src:StudySoAFootnote)--(:StudyEpoch))
+            AND NOT ((selection_src:StudySoAFootnote)--(:StudyEpoch) AND NOT (selection_src:StudySoAFootnote)--(:StudyEpoch)--(:Delete))
         """
 
         # COPY NODES AND OUTBOUND RELATIONSHIPS
@@ -613,6 +615,7 @@ return *
             for row in rs[0]
         ]
 
+    @trace_calls
     def find_all(
         self,
         has_study_footnote: bool | None = None,

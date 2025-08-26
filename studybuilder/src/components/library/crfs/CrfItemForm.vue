@@ -856,7 +856,7 @@ export default {
     terms.getAttributesByCodelist('dataType').then((resp) => {
       this.dataTypes = resp.data.items
     })
-    crfs.getAliases().then((resp) => {
+    crfs.getAllAliases({ page_size: 0 }).then((resp) => {
       this.aliases = resp.data.items
     })
     this.fetchUnits({ page_size: 0 })
@@ -1214,7 +1214,7 @@ export default {
       this.alias.library_name = constants.LIBRARY_SPONSOR
       await crfs.createAlias(this.alias).then((resp) => {
         this.form.alias_uids.push(resp.data.uid)
-        crfs.getAliases().then((resp) => {
+        crfs.getAllAliases({ page_size: 0 }).then((resp) => {
           this.aliases = resp.data.items
           this.alias = {}
           this.eventBusEmit('notification', {

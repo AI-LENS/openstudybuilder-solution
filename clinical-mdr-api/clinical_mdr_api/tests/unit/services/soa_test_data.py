@@ -103,7 +103,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=22,
         change_type=None,
     ),
     StudyVisit(
@@ -177,7 +176,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=9,
         change_type=None,
     ),
     StudyVisit(
@@ -251,7 +249,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=7,
         change_type=None,
     ),
     StudyVisit(
@@ -325,7 +322,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=7,
         change_type=None,
     ),
     StudyVisit(
@@ -399,7 +395,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=8,
         change_type=None,
     ),
     StudyVisit(
@@ -473,7 +468,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=8,
         change_type=None,
     ),
     StudyVisit(
@@ -547,7 +541,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=8,
         change_type=None,
     ),
     StudyVisit(
@@ -621,7 +614,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=6,
         change_type=None,
     ),
     StudyVisit(
@@ -695,7 +687,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=7,
         change_type=None,
     ),
     StudyVisit(
@@ -769,7 +760,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=10,
         change_type=None,
     ),
     StudyVisit(
@@ -843,7 +833,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=12,
         change_type=None,
     ),
     StudyVisit(
@@ -915,7 +904,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
         change_type=None,
     ),
     StudyVisit(
@@ -987,7 +975,6 @@ STUDY_VISITS = [
         end_date=None,
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
         change_type=None,
     ),
 ]

@@ -17,10 +17,7 @@ from clinical_mdr_api.domain_repositories.models.generic import (
     VersionValue,
 )
 from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
-from clinical_mdr_api.domains.libraries.parameter_term import (
-    ComplexParameterTerm,
-    SimpleParameterTermVO,
-)
+from clinical_mdr_api.domains.libraries.parameter_term import SimpleParameterTermVO
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
 from clinical_mdr_api.models.controlled_terminologies.ct_term import (
     SimpleCTTermNameAndAttributes,
@@ -82,40 +79,19 @@ class GenericSyntaxInstanceRepository(
         value.has_conjunction.disconnect_all()
         params = versioned_object.get_parameters()
         for position, parameter_config in enumerate(params):
-            if isinstance(parameter_config, ComplexParameterTerm):
-                root_id = self._maintain_complex_parameter(
-                    parameter_config=parameter_config
+            conjunction_string: str = parameter_config.conjunction
+            if len(conjunction_string) != 0:
+                result = Conjunction.nodes.get_or_none(string=conjunction_string)
+                if result is None:
+                    conjunction = Conjunction(string=conjunction_string)
+                    conjunction.save()
+                else:
+                    conjunction = result
+                value.has_conjunction.connect(conjunction, {"position": position + 1})
+            for index, value_config in enumerate(parameter_config.parameters):
+                self._add_value_parameter_relation(
+                    value, value_config.uid, position + 1, index + 1
                 )
-                cypher_query = f"""
-                    MATCH (siv:SyntaxInstanceValue), (pt:TemplateParameterTermRoot)
-                    WHERE elementId(siv) = $value_id and elementId(pt) = $root_id
-                    CREATE (siv)-[r:{value.PARAMETERS_LABEL} {{position: $position, index: $index}}]->(pt)
-                    """
-                db.cypher_query(
-                    cypher_query,
-                    {
-                        "root_id": root_id,
-                        "position": position,
-                        "index": 1,
-                        "value_id": value.element_id,
-                    },
-                )
-            else:
-                conjunction_string: str = parameter_config.conjunction
-                if len(conjunction_string) != 0:
-                    result = Conjunction.nodes.get_or_none(string=conjunction_string)
-                    if result is None:
-                        conjunction = Conjunction(string=conjunction_string)
-                        conjunction.save()
-                    else:
-                        conjunction = result
-                    value.has_conjunction.connect(
-                        conjunction, {"position": position + 1}
-                    )
-                for index, value_config in enumerate(parameter_config.parameters):
-                    self._add_value_parameter_relation(
-                        value, value_config.uid, position + 1, index + 1
-                    )
         template = self.template_class.nodes.get(uid=versioned_object.template_uid)
 
         if self.is_pre_instance(root):

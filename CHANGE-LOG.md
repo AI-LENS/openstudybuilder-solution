@@ -1,5 +1,114 @@
 # OpenStudyBuilder (OSB) Commits changelog
 
+## V 0.19
+
+New Features and Enhancements
+============
+
+### Fixes and Enhancements
+
+- The CRF View was updated:
+     - Stylesheets options:
+         - Radio buttons replaced with dropdown
+         - "Blank" option removed
+         - "SDTM Annotation" renamed to "CRF with annotations"
+         - New option "Downloadable Falcon (word)" added
+- Renamed buttons on the "CRF with annotations" view:
+     - "CRF implementation guidelines" is named "Implementation guidelines"
+     - "CRF completion guidelines" is named "Completion guidelines" 
+     - "Sdtm" is named "SDTM"
+- Addition of toggle button for viewing the underlying ODM XML of the CRF report
+- The activity instances can be updated to add relevant activity items. The activity items can be seen in Activity instance overview page in OSB UI.
+- For the Activities pages in the library new filtering options have been added over the tables to provide a more readily available way to filter activities, instances, groups and subgroups between the states "All", "Final", "Retired" and "Draft"
+- The logic behind, when red bells appear in the 'Study Activities' tab and 'Study Activity Instance' tabs have been updated to only appear when an action is needed by the user. The updates ensure that:
+     - Red bells will only appear in the 'Study Activities' tab, if changes are made in the library to the fields: Activity group, Activity subgroup or Activity name 
+     - Red bells will only appear in the 'Study Activities Instances' tab, if changes are made in the library to to the fields: Instance name, Instance Class or TOPICCD
+- IT Security updates are done part of Operations and Maintenance.
+### Performance improvements
+
+- Performance improvements in back-end when listing study visits, epochs and footnotes which also improved the performance of SoA Faster API endpoints for viewing and creating SoA footnotes, which result in improved end-user experience of handling SoA
+
+### Consumer API updates
+
+- The following changes are introduced to the OpenStudyBuilder Cosumer API, refer below:
+   - New endpoints added
+      - GET /v1/studies/{uid}/study-activity-instances
+      - GET /v1/library/activities
+      - GET /v1/library/activity-instances
+   - Changes to existing endpoints: Additional fields are included in the following endpoints' responses.
+      - GET /v1/studies/{uid}/study-activities 
+          Added fields: 
+          - activity_nci_concept_id
+          - activity_nci_concept_name
+      - GET /v1/studies/{uid}/detailed-soa
+         Added fields:
+          - study_activity_uid
+          - activity_uid
+          - activity_nci_concept_id
+          - activity_nci_concept_name
+      - GET /v1/studies/{uid}/operational-soa
+         Added fields:
+         - study_activity_uid
+         - activity_nci_concept_id
+         - activity_nci_concept_name
+         - activity_instance_nci_concept_id
+         - activity_instance_nci_concept_name
+
+Solved Bugs
+============
+
+### Library
+
+ **Concepts -> Activities -> Activities** 
+
+- Missing definitions and synonyms to Activity views in Library
+
+ **Concepts -> Activities -> Activities Instances** 
+
+- Error shown when clicks on Hyperlink of 'Chloride Excretion Rate Urine' (one of the Activity Instance)
+
+ **Concepts -> Activities -> Activity Instances** 
+
+- Activity Instance table shows only a single group and subgroup combination for each instance
+- Activity Instances can't be filtered by name column
+
+ **Concepts > Activities > Activity Subgroups** 
+
+- Rows per page not showing correct number of rows
+
+### Reports
+
+ **Neodash** 
+
+- The Landing page is not shown when starting the NeoDash Report module
+
+### Studies
+
+ **Define Study -> Study Activities -> Schedule of Activities** 
+
+- Missing definitions, synonyms and abbreviations to SoA activity selection interface
+
+ **Define Study -> Study Activities -> Schedule of Activities -> Protocol** 
+
+- Download of Protocol SOA in excel or csv doesn't contain the protocol SOA
+
+ **Define Study -> Study Activities -> Study Activities** 
+
+- Misaligned Activity Status returned by study-activities endpoint
+
+ **Define Study -> Study Activities -> Study Visits** 
+
+- History for manually defined visits not working
+
+ **Define Study-> Study Structure -> Study Elements** 
+
+- API Request not triggered on hitting save button
+
+ **Manage Study -> Study** 
+
+- User with Read-only permissions allowing to delete the Study in the Application
+
+
 ## V 0.18
 
 New Features and Enhancements
@@ -15,8 +124,9 @@ New Features and Enhancements
 ### End-to-End Automated test enhancements
  
 - Various code improvements to ensure easier maintenance and overall tests stability.
-- Library > Concepts > Activity > Overview Pages: Added Gherkins specification for table Filtering.
-- Library > Concepts > Activity > Activity Instance > Overview Page: Enabled tests verifing linked items.
+- Library > Concepts > CRFs > CRF View: Added Gherkins specifications for CRF View page.
+- Library > Concepts > Activities: Added tests for new way of filtering by Status.
+- Studies > Define Study > Study Activities > Study Activities Placeholder: Added tests for red bell.
 
 Solved Bugs
 ============

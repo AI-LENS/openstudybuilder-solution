@@ -17,7 +17,7 @@ module.exports = defineConfig({
   video: false,
   screenshotOnRunFailure: true,
   // numtestskeptinmemory: 1,
-  // experimentalMemoryManagement: true,
+  experimentalMemoryManagement: false,
   defaultCommandTimeout: 10000,
   viewportWidth: 1920,
   viewportHeight: 1080,

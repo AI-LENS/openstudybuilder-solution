@@ -34,7 +34,7 @@ def test_data():
 
 
 def test_random_test_name_37(api_client):
-    response = api_client.get("/studies/Study_000001/study-epochs")
+    response = api_client.get("/studies/study_root/study-epochs")
 
     assert_response_status_code(response, 200)
 

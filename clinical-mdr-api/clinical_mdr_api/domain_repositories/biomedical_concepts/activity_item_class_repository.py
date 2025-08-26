@@ -278,31 +278,99 @@ RETURN collect(DISTINCT m.uid)
         # So we use pass to skip implementation
         pass
 
-    def get_related_codelist_uid(
-        self, activity_item_class_uid: str, dataset_uid: str
-    ) -> list[str] | None:
+    def get_referenced_codelist_and_term_uids(
+        self, activity_item_class_uid: str, dataset_uid: str, use_sponsor_model: bool
+    ) -> tuple[list[str], list[str]]:
 
-        codelist_uids = (
+        uids_for_standard_model = (
             ActivityItemClassRoot.nodes.filter(
                 uid=activity_item_class_uid,
-                maps_variable_class__has_instance__implements_variable__has_dataset_variable__is_instance_of__uid=dataset_uid,
+                maps_variable_class__has_instance__implemented_by_variable__has_dataset_variable__is_instance_of__uid=dataset_uid,
             )
             .traverse(
-                "maps_variable_class__has_instance__implements_variable__references_codelist"
+                "maps_variable_class__has_instance__implemented_by_variable__references_codelist",
+                Path(
+                    value="maps_variable_class__has_instance__implemented_by_variable__references_term",
+                    optional=True,
+                    include_rels_in_return=False,
+                ),
             )
-            .unique_variables("maps_variable_class__has_instance__implements_variable")
+            .unique_variables(
+                "maps_variable_class__has_instance__implemented_by_variable"
+            )
             .intermediate_transform(
                 {
-                    "rel": {
+                    "codelist_uid": {
                         "source": NodeNameResolver(
-                            "maps_variable_class__has_instance__implements_variable__references_codelist"
+                            "maps_variable_class__has_instance__implemented_by_variable__references_codelist"
                         ),
                         "source_prop": "uid",
                         "include_in_return": True,
-                    }
+                    },
+                    "term_uid": {
+                        "source": NodeNameResolver(
+                            "maps_variable_class__has_instance__implemented_by_variable__references_term"
+                        ),
+                        "source_prop": "uid",
+                        "include_in_return": True,
+                    },
                 },
                 distinct=True,
             )
             .all()
         )
-        return codelist_uids
+        codelist_uids_for_standard_model = list(
+            {el[0] for el in uids_for_standard_model}
+        )
+        term_uids_for_standard_model = list(
+            {el[1] for el in uids_for_standard_model if el[1] is not None}
+        )
+
+        if use_sponsor_model:
+            uids_for_sponsor_model = (
+                ActivityItemClassRoot.nodes.filter(
+                    uid=activity_item_class_uid,
+                    maps_variable_class__has_instance__implemented_by_sponsor_variable__has_variable__is_instance_of__uid=dataset_uid,
+                )
+                .traverse(
+                    "maps_variable_class__has_instance__implemented_by_sponsor_variable__references_codelist",
+                    Path(
+                        value="maps_variable_class__has_instance__implemented_by_sponsor_variable__references_term",
+                        optional=True,
+                        include_rels_in_return=False,
+                    ),
+                )
+                .unique_variables(
+                    "maps_variable_class__has_instance__implemented_by_sponsor_variable"
+                )
+                .intermediate_transform(
+                    {
+                        "codelist_uid": {
+                            "source": NodeNameResolver(
+                                "maps_variable_class__has_instance__implemented_by_sponsor_variable__references_codelist"
+                            ),
+                            "source_prop": "uid",
+                            "include_in_return": True,
+                        },
+                        "term_uid": {
+                            "source": NodeNameResolver(
+                                "maps_variable_class__has_instance__implemented_by_sponsor_variable__references_term"
+                            ),
+                            "source_prop": "uid",
+                            "include_in_return": True,
+                        },
+                    },
+                    distinct=True,
+                )
+                .all()
+            )
+            codelist_uids_for_sponsor_model = list(
+                {el[0] for el in uids_for_sponsor_model}
+            )
+            term_uids_for_sponsor_model = list(
+                {el[1] for el in uids_for_sponsor_model if el[1] is not None}
+            )
+            return list(
+                set(codelist_uids_for_standard_model + codelist_uids_for_sponsor_model)
+            ), list(set(term_uids_for_standard_model + term_uids_for_sponsor_model))
+        return codelist_uids_for_standard_model, term_uids_for_standard_model

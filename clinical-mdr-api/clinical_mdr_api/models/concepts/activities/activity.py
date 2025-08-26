@@ -133,6 +133,15 @@ class ActivityBase(Concept):
 class CompactActivity(BaseModel):
     uid: Annotated[str, Field()]
     name: Annotated[str, Field()]
+    definition: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+    synonyms: Annotated[
+        list[str] | None, Field(json_schema_extra={"nullable": True})
+    ] = []
+    abbreviation: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
     is_data_collected: Annotated[bool, Field()]
     is_used_by_legacy_instances: Annotated[bool, Field()]
     activity_group_uid: Annotated[str, Field()]
@@ -147,6 +156,9 @@ class CompactActivity(BaseModel):
         return cls(
             uid=data["uid"],
             name=data["name"],
+            definition=data.get("definition"),
+            synonyms=data.get("synonyms") or [],
+            abbreviation=data.get("abbreviation"),
             is_data_collected=data["is_data_collected"],
             is_used_by_legacy_instances=data["is_used_by_legacy_instances"],
             activity_group_uid=data["activity_group_uid"],

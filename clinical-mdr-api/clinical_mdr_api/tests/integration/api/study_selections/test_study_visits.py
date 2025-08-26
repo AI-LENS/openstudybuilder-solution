@@ -636,6 +636,7 @@ def test_non_manually_defined_visit(api_client):
         f"/studies/{study_for_i_visit.uid}/study-visits",
         json=datadict,
     )
+    assert_response_status_code(response, 201)
 
     # Create Manually defined Visit
     manually_defined_name = "Visit 2"
@@ -670,6 +671,13 @@ def test_non_manually_defined_visit(api_client):
     assert res["visit_number"] == manually_defined_number
     assert res["unique_visit_number"] == manually_defined_unique_number
     manual_visit_uid = res["uid"]
+
+    response = api_client.get(
+        f"/studies/{study_for_i_visit.uid}/study-visits/{manual_visit_uid}/audit-trail/",
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert len(res) == 1
 
     # failed post on the uniqueness check for non_manually defined visit
 
@@ -717,6 +725,7 @@ def test_non_manually_defined_visit(api_client):
             "visit_number": manually_defined_number,
             "unique_visit_number": manually_defined_unique_number,
             "visit_class": "MANUALLY_DEFINED_VISIT",
+            "uid": manual_visit_uid,
         }
     )
 
@@ -2257,3 +2266,32 @@ def test_editing_special_visit(api_client):
     assert_response_status_code(response, 200)
     special_visit_after_update = response.json()
     assert special_visit_after_update["show_visit"] is False
+
+
+@pytest.mark.parametrize(
+    ("study_uid", "study_value_version"),
+    [
+        ("Study_000492", "57"),
+        ("Study_000787", None),
+        (
+            None,
+            "99",
+        ),  # None as study_uid will get replaced with study.uid provided by test_data fixture
+    ],
+)
+def test_get_all_visits_invalid_study_uid_or_version(
+    api_client, test_data, study_uid: str, study_value_version: str
+):
+    if study_uid is None:
+        # study global was not available at parametrizing time
+        study_uid = study.uid
+        response = api_client.get(f"/studies/{study_uid}/study-visits")
+        assert_response_status_code(response, 200)
+
+    if study_value_version is not None:
+        params = {"study_value_version": study_value_version}
+    else:
+        params = None
+
+    response = api_client.get(f"/studies/{study_uid}/study-visits", params=params)
+    assert_response_status_code(response, 404)

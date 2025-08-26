@@ -1,4 +1,4 @@
-@REQ_ID:1741028
+@REQ_ID:1741028 @development_only
 Feature: Studies - Browse released or locked study definitions
 
         # Initially the E2E test will cover one study field for each relevant sub section in the menu.

@@ -1276,3 +1276,26 @@ def test_create_multiple_objective_templates(api_client):
     assert_response_status_code(response, 201)
     res = response.json()
     assert res["uid"] == uid1 and res["name"] == data1["name"]
+
+
+def test_get_all_parameters_of_objective_template_with_study_endpoint(api_client):
+    TestUtils.create_template_parameter("Compound")
+    TestUtils.create_template_parameter("StudyEndpoint")
+    TestUtils.create_template_parameter("DiseaseDisorder")
+
+    obj_template = TestUtils.create_objective_template(
+        name="To evaluate [Compound] and [Compound] as measured by [StudyEndpoint] in previous treated [DiseaseDisorder]",
+        library_name="Sponsor",
+        is_confirmatory_testing=False,
+        indication_uids=[dictionary_term_indication.term_uid],
+        category_uids=[ct_term_category.term_uid],
+    )
+    response = api_client.get(f"{URL}/{obj_template.uid}/parameters")
+    res = response.json()
+
+    assert_response_status_code(response, 200)
+    assert len(res) == 4
+    assert res[0]["name"] == "Compound"
+    assert res[1]["name"] == "Compound"
+    assert res[2]["name"] == "StudyEndpoint"
+    assert res[3]["name"] == "DiseaseDisorder"

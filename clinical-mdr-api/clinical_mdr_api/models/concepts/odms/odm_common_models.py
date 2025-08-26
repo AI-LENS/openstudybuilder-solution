@@ -15,12 +15,12 @@ class OdmElementWithParentUid(BaseModel):
 
 class OdmVendorRelationPostInput(PostInputModel):
     uid: Annotated[str, Field(min_length=1)]
-    value: Annotated[str, Field(min_length=1)]
+    value: Annotated[str | None, Field(min_length=1)] = None
 
 
 class OdmVendorElementRelationPostInput(PostInputModel):
     uid: Annotated[str, Field(min_length=1)]
-    value: Annotated[str | None, Field(min_length=1)]
+    value: Annotated[str | None, Field(min_length=1)] = None
 
 
 class OdmVendorsPostInput(PostInputModel):

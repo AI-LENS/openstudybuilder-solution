@@ -9,10 +9,10 @@ Feature: Studies - Define Study - Study Properties - Study Attributes
         Given The '/studies' page is opened
         When The 'Study Properties' submenu is clicked in the 'Define Study' section
         And The 'Study Attributes' tab is selected
-        Then The current URL is '/studies/Study_000001/study_properties/attributes'
+        Then The current URL is '/study_properties/attributes'
 
     Scenario: [Table][Columns][Names] User must be able to see the page table with correct columns and options
-        Given The '/studies/Study_000001/study_properties/attributes' page is opened
+        Given The test study '/study_properties/attributes' page is opened
         Then A table is visible with following headers
             | headers                             |
             | Study intervention type information |
@@ -32,19 +32,19 @@ Feature: Studies - Define Study - Study Properties - Study Attributes
             | 8   | Study intervention type information  | Planned study length           |
 
     Scenario: [Actions][Edit] User must be able to edit the Study Intervention Type
-        Given The '/studies/Study_000001/study_properties/attributes' page is opened
+        Given The test study '/study_properties/attributes' page is opened
         When The study intervention type is edited
         Then The study intervention type data is reflected in the table
 
     @manual_test
     Scenario: User must be able to read change history of output
-        Given The '/studies/Study_000001/study_properties/attributes' page is opened
+        Given The test study '/study_properties/attributes' page is opened
         When The user opens version history
         Then The user is presented with version history of the output containing timestamp and username
 
     @manual_test    
     Scenario: User must be able to read change history of selected element
-        Given The '/studies/Study_000001/study_properties/attributes' page is opened
+        Given The test study '/study_properties/attributes' page is opened
         And The 'Show history' option is clicked from the three dot menu list
         When The user clicks on History for particular element
         Then The user is presented with history of changes for that element

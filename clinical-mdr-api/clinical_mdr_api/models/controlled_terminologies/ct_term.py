@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Annotated, Any, Callable, Self, Sequence
 
-from pydantic import Field
+import neo4j.time
+from pydantic import Field, field_validator
 
 from clinical_mdr_api.domains.controlled_terminologies.ct_term_attributes import (
     CTTermAttributesAR,
@@ -20,6 +21,44 @@ from common.config import settings
 
 
 class CTTerm(BaseModel):
+
+    term_uid: Annotated[str, Field()]
+
+    catalogue_name: Annotated[str, Field()]
+
+    codelists: list[CTTermCodelist] = Field(default_factory=list)
+
+    concept_id: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+
+    code_submission_value: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    name_submission_value: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    nci_preferred_name: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    definition: Annotated[str, Field(json_schema_extra={"remove_from_wildcard": True})]
+
+    sponsor_preferred_name: Annotated[str, Field()]
+
+    sponsor_preferred_name_sentence_case: Annotated[str, Field()]
+
+    library_name: Annotated[str, Field()]
+    possible_actions: list[str] = Field(
+        description=(
+            "Holds those actions that can be performed on the CTTerm. "
+            "Actions are: 'approve', 'edit', 'new_version'."
+        ),
+        default_factory=list,
+    )
+
     @classmethod
     def from_ct_term_ars(
         cls, ct_term_name_ar: CTTermNameAR, ct_term_attributes_ar: CTTermAttributesAR
@@ -67,43 +106,6 @@ class CTTerm(BaseModel):
             possible_actions=ct_term_name_and_attributes.attributes.possible_actions,
         )
 
-    term_uid: Annotated[str, Field()]
-
-    catalogue_name: Annotated[str, Field()]
-
-    codelists: list[CTTermCodelist] = Field(default_factory=list)
-
-    concept_id: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
-
-    code_submission_value: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-
-    name_submission_value: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-
-    nci_preferred_name: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-
-    definition: Annotated[str, Field(json_schema_extra={"remove_from_wildcard": True})]
-
-    sponsor_preferred_name: Annotated[str, Field()]
-
-    sponsor_preferred_name_sentence_case: Annotated[str, Field()]
-
-    library_name: Annotated[str, Field()]
-    possible_actions: list[str] = Field(
-        description=(
-            "Holds those actions that can be performed on the CTTerm. "
-            "Actions are: 'approve', 'edit', 'new_version'."
-        ),
-        default_factory=list,
-    )
-
 
 class CTTermCreateInput(PostInputModel):
     catalogue_name: Annotated[str, Field(min_length=1)]
@@ -131,6 +133,19 @@ class CTTermCreateInput(PostInputModel):
 
 
 class CTTermNameAndAttributes(BaseModel):
+
+    term_uid: Annotated[str, Field()]
+    catalogue_name: Annotated[str, Field()]
+    codelists: list[CTTermCodelist] = Field(default_factory=list)
+
+    library_name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+
+    name: Annotated[CTTermName, Field()]
+
+    attributes: Annotated[CTTermAttributes, Field()]
+
     @classmethod
     def from_ct_term_ars(
         cls, ct_term_name_ar: CTTermNameAR, ct_term_attributes_ar: CTTermAttributesAR
@@ -161,18 +176,6 @@ class CTTermNameAndAttributes(BaseModel):
 
         return term_name_and_attributes
 
-    term_uid: Annotated[str, Field()]
-    catalogue_name: Annotated[str, Field()]
-    codelists: list[CTTermCodelist] = Field(default_factory=list)
-
-    library_name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
-
-    name: Annotated[CTTermName, Field()]
-
-    attributes: Annotated[CTTermAttributes, Field()]
-
 
 class CTTermNewOrder(BaseModel):
     codelist_uid: Annotated[str, Field(min_length=1)]
@@ -180,6 +183,15 @@ class CTTermNewOrder(BaseModel):
 
 
 class SimpleCTTermAttributes(BaseModel):
+
+    uid: Annotated[str, Field()]
+    code_submission_value: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    preferred_term: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
     @classmethod
     def from_term_uid(
         cls, uid: str, find_term_by_uid: Callable[[str], Any | None]
@@ -201,16 +213,27 @@ class SimpleCTTermAttributes(BaseModel):
             term_model = None
         return term_model
 
-    uid: Annotated[str, Field()]
-    code_submission_value: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    preferred_term: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-
 
 class SimpleCTTermNameWithConflictFlag(BaseModel):
+
+    term_uid: Annotated[str, Field()]
+    sponsor_preferred_name: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    queried_effective_date: Annotated[
+        datetime | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    date_conflict: Annotated[
+        bool | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    @field_validator("queried_effective_date", mode="before")
+    @staticmethod
+    def convert_datetime(value: neo4j.time.DateTime | None) -> datetime | None:
+        if isinstance(value, neo4j.time.DateTime):
+            return value.to_native()
+        return value
+
     @classmethod
     def from_ct_code(
         cls,
@@ -272,17 +295,6 @@ class SimpleCTTermNameWithConflictFlag(BaseModel):
             date_conflict=ct_term_name_ar.ct_term_vo.date_conflict,
         )
 
-    term_uid: Annotated[str, Field()]
-    sponsor_preferred_name: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    queried_effective_date: Annotated[
-        datetime | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    date_conflict: Annotated[
-        bool | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-
 
 class TermWithCodelistMetadata(BaseModel):
     term_uid: Annotated[str, Field()]
@@ -302,6 +314,10 @@ class TermWithCodelistMetadata(BaseModel):
 
 
 class SimpleTermModel(BaseModel):
+
+    term_uid: Annotated[str, Field()]
+    name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+
     @classmethod
     def from_ct_code(
         cls,
@@ -332,9 +348,6 @@ class SimpleTermModel(BaseModel):
         else:
             simple_term_model = None
         return simple_term_model
-
-    term_uid: Annotated[str, Field()]
-    name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
 
 
 class SimpleDictionaryTermModel(SimpleTermModel):

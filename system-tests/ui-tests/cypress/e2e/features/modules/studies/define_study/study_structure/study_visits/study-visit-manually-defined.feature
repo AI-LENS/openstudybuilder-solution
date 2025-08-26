@@ -31,7 +31,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
       Then the unique visit number must support an integer data type
 
    Scenario Outline: Visit name, short name, number and unique number for manually defined study visits must be unique
-      Given the '/studies/Study_000001/study_structure/visits' page is opened
+      Given The test study '/study_structure/visits' page is opened
       When a study visit is created or updated
       And the study visit is defined as a "Manually defined visit"
       And the <study visit field> is defined with a test value that already exist for the study
@@ -46,7 +46,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
          | Unique visit number |
 
    Scenario Outline: Visit name, short name, number and unique number for non-manually defined study visits must be unique
-      Given the '/studies/Study_000001/study_structure/visits' page is opened
+      Given The test study '/study_structure/visits' page is opened
       When a study visit is created or updated
       And the study visit is not defined as a "Manually defined visit"
       And the <study visit field> is defined with a derived or preset test value that already exist for a manually defined study visit
@@ -61,7 +61,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
          | Unique visit number |
 
    Scenario: Visit number for manually defined study visits must be in cronological order by study visit timing
-      Given the '/studies/Study_000001/study_structure/visits' page is opened
+      Given The test study '/study_structure/visits' page is opened
       When a study visit is created or updated
       And the study visit is defined as a "Manually defined visit"
       And the test visit number is not defined in cronological order by study visit timing
@@ -70,7 +70,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
       And The form is not closed
 
    Scenario: Unique visit number for manually defined study visits must be in cronological order by study visit timing
-      Given the '/studies/Study_000001/study_structure/visits' page is opened
+      Given The test study '/study_structure/visits' page is opened
       When a study visit is created or updated
       And the study visit is defined as a "Manually defined visit"
       And the test unique visit number is not defined in cronological order by study visit timing

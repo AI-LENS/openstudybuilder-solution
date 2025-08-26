@@ -14,8 +14,8 @@ Given('A study without Study Arms has been selected', () => {
 })
 
 Given('A study with Study Arms has been selected', () => {
-    cy.selectTestStudy('Study_000001')
-    cy.createTestArm('Study_000001')
+    cy.selectTestStudy(Cypress.env('TEST_STUDY_UID'))
+    cy.createTestArm(Cypress.env('TEST_STUDY_UID'))
     cy.reload()
 })
 

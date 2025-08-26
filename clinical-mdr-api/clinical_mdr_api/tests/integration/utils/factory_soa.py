@@ -2,10 +2,6 @@ import logging
 from collections import defaultdict
 from typing import Any, Iterable
 
-from clinical_mdr_api.domain_repositories.models.study_selections import (
-    StudyActivitySchedule,
-    StudySoAFootnote,
-)
 from clinical_mdr_api.domain_repositories.study_selections.study_soa_repository import (
     SoALayout,
 )
@@ -33,9 +29,11 @@ from clinical_mdr_api.models.study_selections.study import Study, StudySoaPrefer
 from clinical_mdr_api.models.study_selections.study_epoch import StudyEpoch
 from clinical_mdr_api.models.study_selections.study_selection import (
     ReferencedItem,
+    StudyActivitySchedule,
     StudySelectionActivity,
     StudySelectionActivityInstance,
 )
+from clinical_mdr_api.models.study_selections.study_soa_footnote import StudySoAFootnote
 from clinical_mdr_api.models.study_selections.study_visit import StudyVisit
 from clinical_mdr_api.models.syntax_instances.footnote import Footnote
 from clinical_mdr_api.models.syntax_templates.footnote_template import FootnoteTemplate

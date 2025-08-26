@@ -358,11 +358,9 @@ class TestStudyListing(unittest.TestCase):
                 ),
             ),
             epochs=StudyEpochListingModel.from_all_study_epochs(
-                all_study_epochs=StudyEpochService()
-                .get_all_epochs(
+                all_study_epochs=StudyEpochService.get_all_epochs(
                     study_uid=self.study_uid,
-                )
-                .items,
+                ).items,
                 find_term_by_uid=study_listing_service.ct_attr_repo.find_by_uid,
             ),
             elements=StudyElementListingModel.from_study_element_ar(

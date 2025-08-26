@@ -229,7 +229,8 @@ Feature: Library - Concepts - Activities - Requested Activities
 
     Scenario: [Table][Search][Filtering] User must be able to combine search and filters to narrow table results
         Given The '/library/activities/requested-activities' page is opened
-        When The user filters table by status 'Final'
+        And User adds column 'Status' to filters
+        When The user changes status filter value to 'Final'
         And The existing item is searched for by partial name
         And The item is not found and table is correctly filtered
         And The user changes status filter value to 'Draft'
@@ -256,5 +257,4 @@ Feature: Library - Concepts - Activities - Requested Activities
         | Definition                     |
         | Rationale for activity request |
         | Modified by                    |
-        | Status                         |
         | Version                        |

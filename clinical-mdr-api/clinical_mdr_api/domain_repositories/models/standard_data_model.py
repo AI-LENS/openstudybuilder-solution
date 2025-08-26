@@ -285,9 +285,15 @@ class VariableClassInstance(VersionValue):
         model=HasVariableClassRel,
         cardinality=One,
     )
-    implements_variable = RelationshipFrom(
+    implemented_by_variable = RelationshipFrom(
         "DatasetVariableInstance",
         "IMPLEMENTS_VARIABLE",
+        model=ClinicalMdrRel,
+        cardinality=One,
+    )
+    implemented_by_sponsor_variable = RelationshipFrom(
+        "SponsorModelDatasetVariableInstance",
+        "IMPLEMENTS_VARIABLE_CLASS",
         model=ClinicalMdrRel,
         cardinality=One,
     )

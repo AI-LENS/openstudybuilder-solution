@@ -1,13 +1,27 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field
 
-from clinical_mdr_api.domains.study_selections.study_visit import VisitGroupFormat
+from clinical_mdr_api.domains.study_selections.study_epoch import StudyEpochEpoch
+from clinical_mdr_api.domains.study_selections.study_visit import (
+    StudyVisitContactMode,
+    StudyVisitEpochAllocation,
+    StudyVisitRepeatingFrequency,
+    StudyVisitTimeReference,
+    StudyVisitType,
+    StudyVisitVO,
+    VisitGroupFormat,
+)
 from clinical_mdr_api.models.controlled_terminologies.ct_term import (
     SimpleCTTermNameWithConflictFlag,
 )
-from clinical_mdr_api.models.utils import BaseModel, PatchInputModel, PostInputModel
+from clinical_mdr_api.models.utils import (
+    BaseModel,
+    PatchInputModel,
+    PostInputModel,
+    get_latest_on_datetime_str,
+)
 from common.config import settings
 
 
@@ -154,7 +168,7 @@ class SimpleStudyVisit(BaseModel):
     ]
 
 
-class StudyVisit(BaseModel):
+class StudyVisitBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     uid: Annotated[str, Field(description="Uid of the Visit")]
@@ -204,7 +218,6 @@ class StudyVisit(BaseModel):
     # study_epoch_name can be calculated from uid
     epoch_uid: Annotated[str, Field(description="The uid of the study epoch")]
 
-    order: Annotated[int, Field()]
     visit_type: Annotated[SimpleCTTermNameWithConflictFlag, Field()]
     visit_type_name: Annotated[str, Field()]
 
@@ -318,20 +331,142 @@ class StudyVisit(BaseModel):
         list[str],
         Field(description="List of actions to perform on item"),
     ]
-    study_activity_count: Annotated[
-        int | None,
-        Field(
-            description="Count of Study Activities assigned to Study Visit",
-            json_schema_extra={"nullable": True},
-        ),
-    ] = None
     change_type: Annotated[
         str | None,
         Field(description="Type of Action", json_schema_extra={"nullable": True}),
     ] = None
 
+    @classmethod
+    def transform_to_response_model(
+        cls,
+        visit: StudyVisitVO,
+        study_value_version: str | None = None,
+        derive_props_based_on_timeline: bool = True,
+        use_global_mappings: bool = True,
+    ) -> Self:
+        timepoint = visit.timepoint
+        if use_global_mappings:
+            if timepoint:
+                visit_timereference = StudyVisitTimeReference.get(
+                    timepoint.visit_timereference.term_uid
+                )
+                timepoint.visit_timereference = visit_timereference
+            visit.epoch_connector.epoch = StudyEpochEpoch.get(
+                visit.epoch.epoch.term_uid
+            )
+            visit.visit_type = StudyVisitType.get(visit.visit_type.term_uid)
+            visit.visit_contact_mode = StudyVisitContactMode.get(
+                visit.visit_contact_mode.term_uid
+            )
+            epoch_allocation_uid = getattr(visit.epoch_allocation, "term_uid", None)
+            if epoch_allocation_uid:
+                visit.epoch_allocation = StudyVisitEpochAllocation.get(
+                    epoch_allocation_uid
+                )
+            repeating_frequency_uid = getattr(
+                visit.repeating_frequency, "term_uid", None
+            )
+            if repeating_frequency_uid:
+                visit.repeating_frequency = StudyVisitRepeatingFrequency.get(
+                    repeating_frequency_uid
+                )
+        return cls(
+            visit_type_name=visit.visit_type.sponsor_preferred_name,
+            uid=visit.uid,
+            study_uid=visit.study_uid,
+            study_id=(
+                f"{visit.study_id_prefix}-{visit.study_number}"
+                if visit.study_id_prefix and visit.study_number
+                else None
+            ),
+            study_version=study_value_version or get_latest_on_datetime_str(),
+            study_epoch_uid=visit.epoch_uid,
+            study_epoch=visit.epoch.epoch,
+            epoch_uid=visit.epoch.epoch.term_uid,
+            order=visit.visit_order,
+            visit_type_uid=visit.visit_type.term_uid,
+            visit_type=visit.visit_type,
+            time_reference_uid=(
+                timepoint.visit_timereference.term_uid if timepoint else None
+            ),
+            time_reference_name=(
+                timepoint.visit_timereference.sponsor_preferred_name
+                if timepoint
+                else None
+            ),
+            time_reference=getattr(timepoint, "visit_timereference", None),
+            time_value=getattr(timepoint, "visit_value", None),
+            time_unit_uid=getattr(timepoint, "time_unit_uid", None),
+            time_unit_name=getattr(visit.time_unit_object, "name", None),
+            duration_time=visit.get_absolute_duration() if timepoint else None,
+            duration_time_unit=getattr(timepoint, "time_unit_uid", None),
+            study_day_number=getattr(visit, "study_day_number", None),
+            study_day_label=getattr(visit, "study_day_label", None),
+            study_duration_days=getattr(visit.study_duration_days, "value", None),
+            study_duration_days_label=getattr(visit, "study_duration_days_label", None),
+            study_week_number=getattr(visit, "study_week_number", None),
+            study_week_label=getattr(visit, "study_week_label", None),
+            study_duration_weeks=getattr(visit.study_duration_weeks, "value", None),
+            study_duration_weeks_label=getattr(
+                visit, "study_duration_weeks_label", None
+            ),
+            week_in_study_label=getattr(visit, "week_in_study_label", None),
+            visit_number=visit.visit_number,
+            visit_subnumber=visit.visit_subnumber,
+            unique_visit_number=(
+                visit.unique_visit_number
+                if derive_props_based_on_timeline
+                else visit.vis_unique_number
+            ),
+            visit_subname=visit.visit_subname,
+            visit_sublabel_reference=visit.visit_sublabel_reference,
+            visit_name=visit.visit_name,
+            visit_short_name=(
+                str(visit.visit_short_name)
+                if derive_props_based_on_timeline
+                else visit.vis_short_name
+            ),
+            consecutive_visit_group=(
+                visit.study_visit_group.group_name if visit.study_visit_group else None
+            ),
+            show_visit=visit.show_visit,
+            min_visit_window_value=visit.visit_window_min,
+            max_visit_window_value=visit.visit_window_max,
+            visit_window_unit_uid=visit.window_unit_uid,
+            visit_window_unit_name=(
+                visit.window_unit_object.name if visit.window_unit_object else None
+            ),
+            description=visit.description,
+            start_rule=visit.start_rule,
+            end_rule=visit.end_rule,
+            visit_contact_mode_uid=visit.visit_contact_mode.term_uid,
+            visit_contact_mode=visit.visit_contact_mode,
+            epoch_allocation_uid=(
+                visit.epoch_allocation.term_uid if visit.epoch_allocation else None
+            ),
+            epoch_allocation=visit.epoch_allocation,
+            status=visit.status.value,
+            start_date=visit.start_date.strftime(settings.date_time_format),
+            author_username=visit.author_username or visit.author_id,
+            possible_actions=visit.possible_actions,
+            visit_class=visit.visit_class.name,
+            visit_subclass=visit.visit_subclass.name if visit.visit_subclass else None,
+            is_global_anchor_visit=visit.is_global_anchor_visit,
+            is_soa_milestone=visit.is_soa_milestone,
+            repeating_frequency_uid=(
+                visit.repeating_frequency.term_uid
+                if visit.repeating_frequency
+                else None
+            ),
+            repeating_frequency=visit.repeating_frequency,
+        )
 
-class StudyVisitVersion(StudyVisit):
+
+class StudyVisit(StudyVisitBase):
+    order: Annotated[int, Field()]
+
+
+class StudyVisitVersion(StudyVisitBase):
     changes: Annotated[list[str], Field()]
 
 

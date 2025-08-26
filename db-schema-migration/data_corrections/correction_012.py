@@ -96,3 +96,7 @@ MERGE (activity_item_class_node)<-[:HAS_ITEM_CLASS]-(pr)
         contains_updates.append(counters.contains_updates)
 
     return any(contains_updates)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,8 +1,8 @@
 import { apiActivityName } from "./api_library_steps";
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
-let activityInstance, apiTopicCode
-let nciconceptid = "NCI-ID", nciname = 'NCI-name', adamcode = "Adam-code", topicCode = `Topic${Date.now()}`
+let activityInstance, topicCode = `Topic${Date.now()}`
+let nciconceptid = "NCI-ID", nciname = 'NCI-name', adamcode = "Adam-code"
 
 When('The Add Activity Instance button is clicked', () => startActivityCreation())
 
@@ -12,11 +12,11 @@ When('The activity instance mandatory data is filled in and custom activity is s
 
 When('The activity instance mandatory data is filled in', () => addInstanceMandatoryData())
 
-When('Second activity instance data is created with the same topic code', () => addInstanceMandatoryData(apiTopicCode))
+When('Second activity instance data is created with the same topic code', () => addInstanceMandatoryData(topicCode))
 
-Then('The activity instance is not found', () => cy.searchAndCheckPresence(activityInstance, false))
+Then('Activity Instance is searched for and not found', () => cy.searchAndCheckPresence(activityInstance, false))
 
-Then('Activity Instance is found', () => cy.searchAndCheckPresence(activityInstance, true))
+Then('Activity Instance is searched for and found', () => cy.searchAndCheckPresence(activityInstance, true))
 
 Then('The newly added Activity Instance item is added in the table by default', () => {
     cy.checkRowByIndex(0, 'Activity Instance', activityInstance)
@@ -88,6 +88,8 @@ When('[API] Activity Instance is approved', () => cy.approveActivityInstance())
 
 When('[API] Activity Instance is inactivated', () => cy.inactivateActivityInstance())
 
+When('[API] Activity Instance new version is created', () => cy.activityInstanceNewVersion())
+
 Given('[API] First activity instance for search test is created', () => createActivityInstanceViaApi(`SearchTest${Date.now()}`))
 
 Given('[API] Second activity instance for search test is created', () => cy.createActivityInstance(`SearchTest${Date.now()}`))
@@ -148,7 +150,7 @@ function createActivityInstanceViaApi(customName = '') {
     cy.approveActivity()
     cy.createActivityInstance(customName)
     cy.getActivityInstanceNameByUid().then(name => activityInstance = name)
-    cy.getActivityInstanceTopicCodeByUid().then(code => apiTopicCode = code)
+    cy.getActivityInstanceTopicCodeByUid().then(code => topicCode = code)
 }
 
 function createAndApproveActivityInstanceViaApi() {

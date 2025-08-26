@@ -15,10 +15,10 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
         Given The '/studies' page is opened
         When The 'Study Activities' submenu is clicked in the 'Define Study' section
         And The 'SoA Footnotes' tab is selected
-        Then The current URL is '/studies/Study_000001/activities/footnotes'
+        Then The current URL is '/activities/footnotes'
 
     Scenario: [Table][Options] User must be able to see the SoA Footnotes table with listed options
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         Then A table is visible with following options
             | options                                                         |
             | Add SoA footnote                                                |
@@ -29,7 +29,7 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
             | Add select boxes to table to allow selection of rows for export |
 
     Scenario: [Table][Columns][Names] User must be able to see the SoA Footnotes table with listed columns
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         And A table is visible with following headers
             | headers           |
             | #                 |
@@ -57,35 +57,35 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
 
     Scenario: [Create][From Standards] User must be able to add a new Study SoA Footnote from standards
         # From standards := from parent or preinstantiated syntax templates
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The new Footnote is added for the study from standards
         Then The new Footnote is visible in the Study Footnote Table
 
     Scenario: [Create][From Studies][By Id] User must be able to add a new Study SoA Footnote from studies by study id
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The new Footnote is added for the study from other studies by study id
         Then The new Footnote is visible in the Study Footnote Table
 
     @pending_implementation
     Scenario: User must be able to add a new Study SoA Footnote from studies by study acronym
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The new Footnote is added for the study from other studies by study acronym
         Then The new Footnote is visible in the Study Footnote Table
 
     Scenario: [Create][From Scratch] User must be able to add a new Study SoA Footnote from scratch
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The new Footnote is added for the study from scratch
         Then The new Footnote is visible in the Study Footnote Table
 
     Scenario: [Actions][Edit][Template parameters] User must be able to edit template parameters for a Study SoA Footnote
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         And a Study SoA Footnote exist
         When The 'Edit' action is clicked for the Study SoA Footnote
         And the Study SoA Footnote template parameters is updated
         Then The updated SoA Footnote is visible in the Study SoA Footnote Table
 
     Scenario: [Actions][Edit][Template text] User must be able to edit the Study SoA Footnote template text
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         And a Study SoA Footnote exist
         When The 'Edit' action is clicked for the Study SoA Footnote
         And the Study SoA Footnote template text is updated
@@ -93,7 +93,7 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
         And The updated SoA Footnote is visible in the Study SoA Footnote Table
 
     Scenario: [Actions][Delete] User must be able to delete a Study Footnote
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         And a Study Footnote exist
         When The 'Delete' action is clicked for the Study Footnote
         Then The pop-up displays "Footnote deleted"
@@ -102,7 +102,7 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
     ### Footnote selection for SoA items
 
     Scenario: [Reletation][Add] User must be able to select a Study SoA Footnote and relate it to SoA items
-        Given The '/studies/Study_000001/activities/detailed' page is opened
+        Given The test study '/activities/detailed' page is opened
         And a Study SoA Footnote is selected from the Detailed SoA footnote list for editing
         And the 'SoA Footnote selection' view is selected
         And SoA items are selected
@@ -111,7 +111,7 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
         And all related Study SoA Footnotes get automatically numbered
 
     Scenario: [Reletation][Remove] User must be able to remove relationship of a Study SoA Footnote from SoA item
-        Given The '/studies/Study_000001/activities/detailed' page is opened
+        Given The test study '/activities/detailed' page is opened
         And a Study SoA Footnote is selected from the Detailed SoA footnote list for editing
         And the 'SoA Footnote selection' view is selected
         And SoA items are de-selected
@@ -160,21 +160,21 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
     ### Footnote constraints
 
     Scenario: [Create][Mandatory fields] User must not be able to create a Study SoA Footnote without a footnote text
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The footnote text field is not populated
         And The 'save-button' button is clicked
         Then The required field validation appears for the empty footnote text field
         And The form is not closed
 
     Scenario: [Create][Mandatory fields] User must not be able to create two Study SoA Footnote within one study using the same footnote text
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The footnote text field is not populated
         And Another Study SoA Footnote is created with the same footnote text
         Then The system displays the message "Value \"footnote text\" is not unique for the study"
         And The form is not closed
 
     Scenario: [Create][Mandatory fields] User must not be able to use text longer than 400 characters for the Study SoA Footnote text
-        Given The '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         When The Study SoA Footnote text entered exceed 400 characters
         Then The message "Study SoA Footnotes must not exceed 400 characters" is displayed
 
@@ -188,7 +188,7 @@ Feature: Studies - Define Study - Study Activities - Schedule of Activities - Fo
     #? - this we should add on the Detailed SoA page in some way, as an outbound relationship from a SoA item.
 
     Scenario: [History] User must be able to view history of changes for Study Footnotes
-        Given the '/studies/Study_000001/activities/footnotes' page is opened
+        Given The test study '/activities/footnotes' page is opened
         And the 'List of Study SoA Footnotes'  tab is selected
         When The 'View Page History' is clicked
         Then The 'History for Study SoA Footnote' window is displayed with the following column list with values

@@ -1,4 +1,4 @@
-@REQ_ID:987736
+@REQ_ID:987736 @development_only
 Feature: Studies - Study List - Study List - Copy Study
 
     As a user, I want to verify that I can create a new study from an existing study in the Study List page and the data is copied correctly.

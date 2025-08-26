@@ -147,10 +147,7 @@ def get_all(
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
 ) -> CustomPage[StudyVisit]:
-    service = StudyVisitService(
-        study_uid=study_uid, study_value_version=study_value_version
-    )
-    results = service.get_all_visits(
+    results = StudyVisitService.get_all_visits(
         study_uid=study_uid,
         sort_by=sort_by,
         page_number=page_number,
@@ -205,9 +202,7 @@ def get_distinct_values_for_header(
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
 ) -> list[Any]:
-    return StudyVisitService(
-        study_uid=study_uid, study_value_version=study_value_version
-    ).get_distinct_values_for_header(
+    return StudyVisitService.get_distinct_values_for_header(
         study_uid=study_uid,
         field_name=field_name,
         search_string=search_string,
@@ -559,10 +554,7 @@ def get_study_visit(
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
 ) -> StudyVisit:
-    service = StudyVisitService(
-        study_uid=study_uid, study_value_version=study_value_version
-    )
-    return service.find_by_uid(
+    return StudyVisitService.find_by_uid(
         study_uid=study_uid,
         uid=study_visit_uid,
         study_value_version=study_value_version,

@@ -132,7 +132,6 @@ class StudyVisitVO:
     study_id: str | None = None
     study_id_prefix: str | None = None
     study_number: str | None = None
-    number_of_assigned_activities: int | None = None
 
     @property
     def visit_name(self):
@@ -413,8 +412,6 @@ class StudyVisitVO:
             self.visit_type == other_visit.visit_type
             and self.epoch_uid == other_visit.epoch_uid
             and self.visit_contact_mode == other_visit.visit_contact_mode
-            and self.timepoint.visit_timereference
-            == other_visit.timepoint.visit_timereference
             and self.visit_window_min == other_visit.visit_window_min
             and self.visit_window_max == other_visit.visit_window_max
         )

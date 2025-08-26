@@ -257,6 +257,7 @@ class StudyActivitySelectionBaseService(StudySelectionMixin):
         finally:
             repos.close()
 
+    @trace_calls
     def get_all_selection_audit_trail(self, study_uid: str) -> list[BaseModel]:
         repos = self._repos
         try:
@@ -271,6 +272,7 @@ class StudyActivitySelectionBaseService(StudySelectionMixin):
         finally:
             repos.close()
 
+    @trace_calls
     def get_specific_selection_audit_trail(
         self, study_uid: str, study_selection_uid: str
     ) -> list[BaseModel]:
@@ -289,6 +291,7 @@ class StudyActivitySelectionBaseService(StudySelectionMixin):
         finally:
             repos.close()
 
+    @trace_calls
     def get_specific_selection(
         self,
         study_uid: str,

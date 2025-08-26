@@ -42,11 +42,11 @@ Feature: Studies - Protocol Process
 
         Examples:
             | link           | url                                                |
-            | Study Arms     | studies/Study_000001/study_structure/arms          |
-            | Study Epochs   | studies/Study_000001/study_structure/epochs        |
-            | Study Elements | studies/Study_000001/study_structure/elements      |
-            | Study Visits   | studies/Study_000001/study_structure/visits        |
-            | Design Matrix  | studies/Study_000001/study_structure/design_matrix |
+            | Study Arms     | /study_structure/arms          |
+            | Study Epochs   | /study_structure/epochs        |
+            | Study Elements | /study_structure/elements      |
+            | Study Visits   | /study_structure/visits        |
+            | Design Matrix  | /study_structure/design_matrix |
 
     Scenario Outline: [Navifation][Study Purpose] User must be able to use the Study Purpose button
         Given A test study is selected
@@ -57,9 +57,9 @@ Feature: Studies - Protocol Process
 
         Examples:
             | link        | url                                           |
-            | Study Title | studies/Study_000001/study_title              |
-            | Objectives  | studies/Study_000001/study_purpose/objectives |
-            | Endpoints   | studies/Study_000001/study_purpose/endpoints  |
+            | Study Title | /study_title              |
+            | Objectives  | /study_purpose/objectives |
+            | Endpoints   | /study_purpose/endpoints  |
 
     Scenario Outline: [Navigation][Study Population] User must be able to use the Study Population button
         Given A test study is selected
@@ -70,13 +70,13 @@ Feature: Studies - Protocol Process
 
         Examples:
             | link                   | url                                                              |
-            | Study Population       | studies/Study_000001/population                                  |
-            | Inclusion Criteria     | studies/Study_000001/selection_criteria/Inclusion%20Criteria     |
-            | Exclusion Criteria     | studies/Study_000001/selection_criteria/Exclusion%20Criteria     |
-            | Run-in Criteria        | studies/Study_000001/selection_criteria/Run-in%20Criteria        |
-            | Randomisation Criteria | studies/Study_000001/selection_criteria/Randomisation%20Criteria |
-            | Dosing Criteria        | studies/Study_000001/selection_criteria/Dosing%20Criteria        |
-            | Withdrawal Criteria    | studies/Study_000001/selection_criteria/Withdrawal%20Criteria    |
+            | Study Population       | /population                                  |
+            | Inclusion Criteria     | /selection_criteria/Inclusion%20Criteria     |
+            | Exclusion Criteria     | /selection_criteria/Exclusion%20Criteria     |
+            | Run-in Criteria        | /selection_criteria/Run-in%20Criteria        |
+            | Randomisation Criteria | /selection_criteria/Randomisation%20Criteria |
+            | Dosing Criteria        | /selection_criteria/Dosing%20Criteria        |
+            | Withdrawal Criteria    | /selection_criteria/Withdrawal%20Criteria    |
 
 
     Scenario Outline: [Navigation][Study Activities] User must be able to use the Study Activites button
@@ -88,5 +88,5 @@ Feature: Studies - Protocol Process
 
         Examples:
             | link             | url                                      |
-            | Study Activities | studies/Study_000001/activities/list     |
-            | Detailed SoA     | studies/Study_000001/activities/soa |
+            | Study Activities | /activities/list     |
+            | Detailed SoA     | /activities/soa |

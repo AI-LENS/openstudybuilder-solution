@@ -2,6 +2,10 @@ const clickLastElement = () => cy.get('.v-list-item').last().click()
 const clickFirstElement = () => cy.get('.v-list-item').first().click()
 const clickElementByValue = (value) => cy.contains('.v-list-item', value).click()
 
+Cypress.Commands.add('checkNoDataAvailable', () => {
+    cy.get('.v-overlay__content .v-list-item-title').should('have.text', 'No data available')
+})
+
 Cypress.Commands.add('selectAutoComplete', (dropdownName, value) => {
     selectFromDropdown(dropdownName, '.v-field__input', () => clickElementByValue(value), false)
 })

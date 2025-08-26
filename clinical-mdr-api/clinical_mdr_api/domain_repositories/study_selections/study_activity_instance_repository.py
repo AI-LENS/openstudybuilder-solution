@@ -78,6 +78,7 @@ class StudySelectionActivityInstanceRepository(
             show_activity_instance_in_protocol_flowchart=selection[
                 "show_activity_instance_in_protocol_flowchart"
             ],
+            keep_old_version=selection["keep_old_version"],
             start_date=convert_to_datetime(value=selection["start_date"]),
             author_id=selection["author_id"],
             author_username=selection["author_username"],
@@ -160,6 +161,7 @@ class StudySelectionActivityInstanceRepository(
                 sr.uid AS study_uid,
                 sa.uid AS study_selection_uid,
                 coalesce(sa.show_activity_instance_in_protocol_flowchart, false) AS show_activity_instance_in_protocol_flowchart,
+                coalesce(sa.keep_old_version, false) AS keep_old_version,
                 study_activity.uid AS study_activity_uid,
                 head(apoc.coll.sortMulti([(study_activity)-[:HAS_SELECTED_ACTIVITY]->(activity_value:ActivityValue)<-[has_version:HAS_VERSION]
                 -(activity_root:ActivityRoot) WHERE has_version.status IN ['Final', 'Retired'] | 
@@ -305,6 +307,7 @@ class StudySelectionActivityInstanceRepository(
         # Create new activity selection
         study_activity_instance_selection_node = StudyActivityInstance(
             show_activity_instance_in_protocol_flowchart=selection.show_activity_instance_in_protocol_flowchart,
+            keep_old_version=selection.keep_old_version,
         )
         study_activity_instance_selection_node.uid = selection.study_selection_uid
         study_activity_instance_selection_node.accepted_version = (

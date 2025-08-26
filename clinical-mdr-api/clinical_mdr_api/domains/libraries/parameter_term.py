@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable, Self
 
-from clinical_mdr_api.utils import extract_parameters
 from common.exceptions import ValidationException
 
 
@@ -59,20 +58,6 @@ class NumericParameterTermVO(SimpleParameterTermVO):
     @classmethod
     def from_input_values(cls, *, uid: str, value: float) -> Self:
         return cls(uid=uid, value=value)
-
-
-@dataclass(frozen=True)
-class ComplexParameterTerm(ParameterTermVO):
-    parameters: list[SimpleParameterTermVO]
-    parameter_template: str
-    conjunction: str = ""
-
-    @property
-    def value(self):
-        val = self.parameter_template
-        for i, param in enumerate(extract_parameters(self.parameter_template)):
-            val = val.replace(f"[{param}]", str(self.parameters[i].value))
-        return val
 
 
 @dataclass(frozen=True)

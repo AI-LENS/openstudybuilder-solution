@@ -160,13 +160,17 @@ class GenericSyntaxTemplateRepository(
         template_uid: str,
         study_uid: str | None = None,
         include_study_endpoints: bool | None = False,
+        parameter_term_uids_to_fetch: list[str] | None = None,
     ):
+        parameter_term_uids_to_fetch_query = (
+            " AND pr.uid IN $parameter_term_uids_to_fetch"
+            if parameter_term_uids_to_fetch and len(parameter_term_uids_to_fetch) > 0
+            else ""
+        )
         cypher_query = f"""
             MATCH (otr:{self.root_class.__label__} {{uid: $uid}})-[uses_parameter:{self.root_class.PARAMETERS_LABEL}]->(pt)
             WHERE NOT pt.name=$name
-            OPTIONAL MATCH (pt)-[:HAS_DEFINITION]->(tpd:ParameterTemplateRoot)-
-                [:LATEST_FINAL]->(tpv:ParameterTemplateValue)
-            WITH uses_parameter, pt, tpd, tpv
+            WITH uses_parameter, pt
             ORDER BY
                 uses_parameter.position ASC
             CALL {{
@@ -180,6 +184,7 @@ class GenericSyntaxTemplateRepository(
                                 // Also filter out the values that are part of the Requested library.
                                 AND (pt=pt_parents OR NOT ((pt_parents)-[:HAS_PARAMETER_TERM]->(pr) AND (pt)-[:HAS_PARAMETER_TERM]->(pr)))
                                 AND NOT (pr)<-[:CONTAINS_CONCEPT]-(:Library {{name: "Requested"}})
+                                {parameter_term_uids_to_fetch_query}
                             CALL apoc.case(
                             [
                                 pv.name_sentence_case IS NOT NULL, 'RETURN pv.name_sentence_case AS name',
@@ -212,18 +217,23 @@ class GenericSyntaxTemplateRepository(
                     RETURN collect({{uid: uid, name: value, type: data_type, labels: labels}}) AS terms
             }}
             RETURN
-                pt.name AS name, tpd.uid as definition, tpv.template_string as template,
-                terms
+                pt.name AS name,
+                terms,
+                uses_parameter.position
             """
         dataset, _ = db.cypher_query(
-            cypher_query, {"uid": template_uid, "name": settings.study_endpoint_tp_name}
+            cypher_query,
+            {
+                "uid": template_uid,
+                "name": settings.study_endpoint_tp_name,
+                "parameter_term_uids_to_fetch": parameter_term_uids_to_fetch,
+            },
         )
         data = [
             {
                 "name": item[0],
-                "definition": item[1],
-                "template": item[2],
-                "terms": item[3],
+                "terms": item[1],
+                "position": item[2],
             }
             for item in dataset
         ]
@@ -263,8 +273,9 @@ class GenericSyntaxTemplateRepository(
                 }}
 
                 RETURN
-                    pt.name AS name, null as definition, null as template,
-                    terms
+                    pt.name AS name,
+                    terms,
+                    uses_parameter.position
                 """
             dataset, _ = db.cypher_query(
                 cypher_query,
@@ -277,14 +288,12 @@ class GenericSyntaxTemplateRepository(
             data += [
                 {
                     "name": item[0],
-                    "definition": item[1],
-                    "template": item[2],
-                    "terms": item[3],
+                    "terms": item[1],
+                    "position": item[2],
                 }
                 for item in dataset
             ]
-
-        return data
+        return sorted(data, key=lambda item: item["position"])
 
     def simple_concept_template(self, rel_type: str):
         query_to_subset = f"""

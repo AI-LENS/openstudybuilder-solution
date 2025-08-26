@@ -126,6 +126,7 @@ class ActivityItemClassService(NeomodelExtGenericService[ActivityItemClassAR]):
         self,
         activity_item_class_uid: str,
         dataset_uid: str,
+        use_sponsor_model: bool | None = True,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
@@ -133,10 +134,11 @@ class ActivityItemClassService(NeomodelExtGenericService[ActivityItemClassAR]):
         filter_operator: FilterOperator | None = FilterOperator.AND,
         total_count: bool = False,
     ) -> list[TermWithCodelistMetadata]:
-        codelist_uids = (
-            self._repos.activity_item_class_repository.get_related_codelist_uid(
-                activity_item_class_uid,
-                dataset_uid,
+        codelist_uids, term_uids = (
+            self._repos.activity_item_class_repository.get_referenced_codelist_and_term_uids(
+                activity_item_class_uid=activity_item_class_uid,
+                dataset_uid=dataset_uid,
+                use_sponsor_model=use_sponsor_model,
             )
         )
 
@@ -145,6 +147,8 @@ class ActivityItemClassService(NeomodelExtGenericService[ActivityItemClassAR]):
         if not filter_by:
             filter_by = {}
         filter_by |= {"codelist_uid": {"v": codelist_uids}}
+        if term_uids:
+            filter_by |= {"term_uid": {"v": term_uids}}
 
         all_aggregated_terms = (
             CTTermService()._repos.ct_term_name_repository.find_all_name_simple_result(

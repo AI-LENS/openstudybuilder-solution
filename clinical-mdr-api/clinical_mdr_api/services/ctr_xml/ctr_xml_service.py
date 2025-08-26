@@ -100,9 +100,7 @@ class ODMBuilder:
 
     @cached_property
     def study_visits(self) -> list[StudyVisit]:
-        result = StudyVisitService(study_uid=self.study_uid).get_all_visits(
-            self.study_uid
-        )
+        result = StudyVisitService.get_all_visits(self.study_uid)
         return result.items
 
     @property

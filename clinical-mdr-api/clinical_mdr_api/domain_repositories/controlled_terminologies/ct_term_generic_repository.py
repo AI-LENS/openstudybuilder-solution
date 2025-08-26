@@ -574,12 +574,25 @@ class CTTermGenericRepository(
         raise NotImplementedError
 
     def find_uid_by_name(self, name: str) -> str | None:
-        cypher_query = f"""
-            MATCH (term_root:CTTermRoot)-[:{cast(str, self.relationship_from_root).upper()}]->(or:{self.root_class.__label__})-
-            [:LATEST_FINAL|LATEST_DRAFT|LATEST_RETIRED]->(ov:{self.value_class.__label__} {{name: $name}})
+        return self.find_uid_by_field(value=name, field="name")
+
+    def find_uid_by_field(
+        self, value: str, field: str = "name", codelist_uid: str | None = None
+    ) -> str | None:
+        params = {"field": value}
+
+        if not codelist_uid:
+            cypher_query = "MATCH"
+        else:
+            cypher_query = "MATCH (ct_codelist_root:CTCodelistRoot {uid: $codelist_uid})-[:HAS_TERM]->"
+            params["codelist_uid"] = codelist_uid
+
+        cypher_query += f"""
+            (term_root:CTTermRoot)-[:{cast(str, self.relationship_from_root).upper()}]->(:{self.root_class.__label__})-
+            [:LATEST_FINAL|LATEST_DRAFT|LATEST_RETIRED]->(:{self.value_class.__label__} {{{field}: $field}})
             RETURN term_root.uid
         """
-        items, _ = db.cypher_query(cypher_query, {"name": name})
+        items, _ = db.cypher_query(cypher_query, params)
         if len(items) > 0:
             return items[0][0]
         return None

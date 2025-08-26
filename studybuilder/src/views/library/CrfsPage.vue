@@ -22,14 +22,12 @@
         <CrfTemplateTable
           :key="`templates-${tabKeys['templates']}`"
           :element-prop="{ uid: uid, type: type, tab: tab }"
-          @clear-uid="clearUid"
         />
       </v-window-item>
       <v-window-item value="forms">
         <CrfFormTable
           :key="`forms-${tabKeys['forms']}`"
           :element-prop="{ uid: uid, type: type, tab: tab }"
-          @clear-uid="clearUid"
           @update-form="updateElement"
         />
       </v-window-item>
@@ -37,7 +35,6 @@
         <CrfItemGroupTable
           :key="`item-groups-${tabKeys['item-groups']}`"
           :element-prop="{ uid: uid, type: type, tab: tab }"
-          @clear-uid="clearUid"
           @update-item-group="updateElement"
         />
       </v-window-item>
@@ -45,7 +42,6 @@
         <CrfItemTable
           :key="`items-${tabKeys['items']}`"
           :element-prop="{ uid: uid, type: type, tab: tab }"
-          @clear-uid="clearUid"
           @update-item="updateElement"
         />
       </v-window-item>
@@ -53,7 +49,7 @@
         <CrfTreeMain :key="`crf-tree-${tabKeys['crf-tree']}`" />
       </v-window-item>
       <v-window-item value="odm-viewer">
-        <OdmViewer :element-prop="uid" :refresh="tab" @clear-uid="clearUid" />
+        <OdmViewer :element-prop="uid" :refresh="tab" />
       </v-window-item>
       <v-window-item value="alias">
         <CrfAliasTable :key="`alias-${tabKeys['alias']}`" />
@@ -157,11 +153,6 @@ onMounted(() => {
   type.value = route.params.type
   uid.value = route.params.uid
 })
-
-function clearUid() {
-  uid.value = null
-  type.value = null
-}
 
 function updateElement(element) {
   updatedElement.value = element

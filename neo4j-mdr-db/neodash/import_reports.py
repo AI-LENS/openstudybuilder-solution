@@ -17,7 +17,7 @@ uri = f"{NEO4J_PROTOCOL}://{HOST}:{PORT}"
 def load_reports(driver: Driver, directory: str):
     # Loop over all.json files in the given relative directory
     counter = 0
-    for filename in os.listdir(directory):
+    for filename in sorted(os.listdir(directory), reverse=True):
         if filename.endswith(".json"):
             filepath = os.path.join(directory, filename)
             with open(filepath, "r") as file:

@@ -91,7 +91,6 @@ from clinical_mdr_api.services.studies.study_activity_selection_base import (
 from clinical_mdr_api.services.studies.study_activity_subgroup import (
     StudyActivitySubGroupService,
 )
-from clinical_mdr_api.services.studies.study_soa_footnote import StudySoAFootnoteService
 from clinical_mdr_api.services.studies.study_soa_group import StudySoAGroupService
 from common.auth.user import user
 from common.config import settings
@@ -1677,14 +1676,6 @@ class StudyActivitySelectionService(StudyActivitySelectionBaseService):
                         content=BatchErrorResponse(message=str(error)),
                     )
                 )
-        all_soa_footnotes = (
-            self._repos.study_soa_footnote_repository.find_all_footnotes(
-                study_uids=study_uid
-            )
-        )
-        StudySoAFootnoteService().synchronize_footnotes(
-            study_uid=study_uid, all_soa_footnotes=all_soa_footnotes
-        )
         return results
 
     @ensure_transaction(db)
@@ -1739,14 +1730,6 @@ class StudyActivitySelectionService(StudyActivitySelectionBaseService):
                         content=BatchErrorResponse(message=str(error)),
                     )
                 )
-        all_soa_footnotes = (
-            self._repos.study_soa_footnote_repository.find_all_footnotes(
-                study_uids=study_uid
-            )
-        )
-        StudySoAFootnoteService().synchronize_footnotes(
-            study_uid=study_uid, all_soa_footnotes=all_soa_footnotes
-        )
         return results
 
     @db.transaction

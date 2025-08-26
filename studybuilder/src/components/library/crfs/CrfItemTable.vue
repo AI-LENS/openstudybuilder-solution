@@ -155,7 +155,7 @@ export default {
       default: null,
     },
   },
-  emits: ['updateItem', 'clearUid'],
+  emits: ['updateItem'],
   setup() {
     const crfsStore = useCrfsStore()
 
@@ -420,7 +420,6 @@ export default {
       crfs.getItem(item.uid).then((resp) => {
         this.selectedItem = resp.data
         this.showForm = true
-        this.$emit('clearUid')
       })
     },
     view(item) {

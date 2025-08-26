@@ -418,6 +418,12 @@ def get_activities_for_activity_subgroup(
         str | None,
         Query(description="Select specific version, omit to view latest version"),
     ] = None,
+    search_string: Annotated[
+        str | None,
+        Query(
+            description="Search string to filter activities by name or other fields. Case-insensitive partial match."
+        ),
+    ] = "",
     page_number: Annotated[
         int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
@@ -438,6 +444,7 @@ def get_activities_for_activity_subgroup(
     results = service.get_activities_for_subgroup(
         subgroup_uid=activity_subgroup_uid,
         version=version,
+        search_string=search_string,
         page_number=page_number,
         page_size=page_size,
         total_count=total_count,

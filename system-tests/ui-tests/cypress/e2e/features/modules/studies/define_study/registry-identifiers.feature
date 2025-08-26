@@ -6,12 +6,12 @@ Feature: Studies - Define Study - Registry Identifiers
       And A test study is selected
 
    Scenario: [Navigation] User must be able to navigate to the Registry Identifiers page
-      Given The '/studies' page is opened
+      Given The studies page is opened
       When The 'Registry Identifiers' submenu is clicked in the 'Define Study' section
-      Then The current URL is '/studies/Study_000001/registry_identifiers'
+      Then The current URL is '/registry_identifiers'
 
    Scenario: [Table][Data] User must be able to see the page table with correct columns
-      Given The '/studies/Study_000001/registry_identifiers' page is opened
+      Given The test study '/registry_identifiers' page is opened
       Then The table display following predefined data
          | row | column                | value                                             |
          | 0   | Registry identifiers  | ClinicalTrials.gov ID                             |
@@ -29,7 +29,7 @@ Feature: Studies - Define Study - Registry Identifiers
 
 
    Scenario: [Actions][Edit] User must be able to provide informations for Registry Identifiers
-      Given The '/studies/Study_000001/registry_identifiers' page is opened
+      Given The test study '/registry_identifiers' page is opened
       When The identifiers are set with following data
          | identifier                                        | value      |
          | ClinicalTrials.gov ID                             | Azerty1234 |
@@ -62,7 +62,7 @@ Feature: Studies - Define Study - Registry Identifiers
 
 
    Scenario: [Actions][Edit][N/A] User must be able to select not applicable for Registry Identifiers
-      Given The '/studies/Study_000001/registry_identifiers' page is opened
+      Given The test study '/registry_identifiers' page is opened
       When The not applicable is checked for all identifiers
          | identifier                                        |
          | ClinicalTrials.gov ID                             |
@@ -96,13 +96,13 @@ Feature: Studies - Define Study - Registry Identifiers
 
    @manual_test
    Scenario: User must be able to read change history of output
-      Given The '/studies/Study_000001/registry_identifiers' page is opened
+      Given The '/registry_identifiers' page is opened
       When The user opens version history
       Then The user is presented with version history of the output containing timestamp and username
 
    @manual_test
    Scenario: User must be able to read change history of selected element
-      Given The '/studies/Study_000001/registry_identifiers' page is opened
+      Given The '/registry_identifiers' page is opened
       And The 'Show history' option is clicked from the three dot menu list
       When The user clicks on History for particular element
       Then The user is presented with history of changes for that element

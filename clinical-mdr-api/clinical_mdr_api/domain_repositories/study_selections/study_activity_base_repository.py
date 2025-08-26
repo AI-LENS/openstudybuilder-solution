@@ -20,6 +20,7 @@ from clinical_mdr_api.domains.study_selections.study_selection_base import (
     StudySelectionBaseAR,
     StudySelectionBaseVO,
 )
+from common.telemetry import trace_calls
 from common.utils import convert_to_datetime, validate_max_skip_clause
 
 _AggregateRootType = TypeVar("_AggregateRootType")
@@ -108,6 +109,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
             MATCH (sa)<-[:AFTER]-(sac:StudyAction)
         """
 
+    @trace_calls
     def _retrieves_all_data(
         self,
         study_uids: str | list[str] | None = None,
@@ -173,6 +175,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
             all_selections.append(selection_vo)
         return tuple(all_selections)
 
+    @trace_calls
     def find_all(
         self,
         project_name: str | None = None,
@@ -195,6 +198,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         )
         return selection_aggregate
 
+    @trace_calls
     def find_by_study(
         self,
         study_uid: str,
@@ -261,6 +265,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         )
         return audit_node, last_study_selection_node
 
+    @trace_calls
     def save(
         self,
         study_selection: StudySelectionBaseAR,
@@ -401,6 +406,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         study_root_node.audit_trail.connect(audit_node)
         return audit_node
 
+    @trace_calls
     def _get_selection_with_history(
         self, study_uid: str, study_selection_uid: str = None
     ):
@@ -445,6 +451,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         # But nothing needs to be done in this one
         pass
 
+    @trace_calls
     def get_detailed_soa_history(
         self, study_uid: str, page_number: int, page_size: int, total_count: bool
     ) -> tuple[list[dict[Any, Any]], int]:

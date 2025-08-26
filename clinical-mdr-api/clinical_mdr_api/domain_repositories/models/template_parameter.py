@@ -3,7 +3,6 @@ from neomodel import RelationshipFrom, RelationshipTo, StringProperty, db
 from clinical_mdr_api.domain_repositories.models.generic import (
     ClinicalMdrNode,
     ClinicalMdrRel,
-    TemplateUsesParameterRelation,
     VersionRelationship,
     VersionRoot,
     VersionValue,
@@ -99,46 +98,4 @@ class ParameterTemplateRoot(TemplateParameterTermRoot):
 
     has_parameter_term = RelationshipFrom(
         TemplateParameter, "HAS_PARAMETER_TERM", model=ClinicalMdrRel
-    )
-    has_definition = RelationshipFrom(
-        TemplateParameter, "HAS_DEFINITION", model=ClinicalMdrRel
-    )
-
-
-class TemplateParameterComplexValue(TemplateParameterTermValue):
-    uses_parameter = RelationshipTo(
-        TemplateParameterTermRoot, "TPCV_USES_TPV", model=TemplateUsesParameterRelation
-    )
-
-    def get_all(self):
-        cypher_query = """
-            MATCH (otv:TemplateParameterTermValue)<-[:LATEST_FINAL]-(ot:TemplateParameterTermRoot)<-[rel:TPCV_USES_TPV]-(pt)
-            WHERE elementId(pt) = $element_id
-            RETURN
-                pt.name AS name, ot.uid AS uid, rel.position as position, otv.value as value, otv.name as param_value
-                         
-            """
-        dataset, _ = db.cypher_query(cypher_query, {"element_id": self.element_id})
-        return dataset
-
-
-class TemplateParameterComplexRoot(TemplateParameterTermRoot):
-    has_version = RelationshipTo(
-        TemplateParameterComplexValue, "HAS_VERSION", model=VersionRelationship
-    )
-    has_latest_value = RelationshipTo(
-        TemplateParameterComplexValue, "LATEST", model=ClinicalMdrRel
-    )
-    latest_draft = RelationshipTo(
-        TemplateParameterComplexValue, "LATEST_DRAFT", model=ClinicalMdrRel
-    )
-    latest_final = RelationshipTo(
-        TemplateParameterComplexValue, "LATEST_FINAL", model=ClinicalMdrRel
-    )
-    latest_retired = RelationshipTo(
-        TemplateParameterComplexValue, "LATEST_RETIRED", model=ClinicalMdrRel
-    )
-
-    has_complex_value = RelationshipFrom(
-        ParameterTemplateRoot, "HAS_COMPLEX_VALUE", model=ClinicalMdrRel
     )

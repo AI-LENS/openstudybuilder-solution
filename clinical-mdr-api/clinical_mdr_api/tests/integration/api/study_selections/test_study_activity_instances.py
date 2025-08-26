@@ -880,6 +880,7 @@ def test_sync_to_latest_version_activity_instance(api_client):
         == new_test_activity_instance.uid
     )
     assert study_activity_instances[0]["latest_activity_instance"] is None
+    assert study_activity_instances[0]["keep_old_version"] is False
 
     response = api_client.post(
         f"/concepts/activities/activity-instances/{new_test_activity_instance.uid}/versions",
@@ -917,10 +918,30 @@ def test_sync_to_latest_version_activity_instance(api_client):
         == new_test_activity_instance.uid
     )
 
+    # Check the ActivityInstance update, decide to keep old version
+    response = api_client.patch(
+        f"/studies/{test_study.uid}/study-activity-instances/{study_activity_instance_uid}",
+        json={
+            "keep_old_version": True,
+        },
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert res["keep_old_version"] is True
+
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-activity-instances/{study_activity_instance_uid}"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert res["keep_old_version"] is True
+
     response = api_client.post(
         f"/studies/{test_study.uid}/study-activity-instances/{study_activity_instance_uid}/sync-latest-version",
     )
     assert_response_status_code(response, 201)
+    res = response.json()
+    assert res["keep_old_version"] is False
 
     # Fetch StudyActivityInstance after underlying ActivityInstance is synced to latest version
     response = api_client.get(

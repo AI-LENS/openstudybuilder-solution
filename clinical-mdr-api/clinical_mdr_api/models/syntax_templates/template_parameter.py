@@ -21,13 +21,3 @@ class TemplateParameter(BaseModel):
         description="The possible terms of the template parameter.",
         default_factory=list,
     )
-
-
-class ComplexTemplateParameter(BaseModel):
-    name: Annotated[str | None, Field()] = None
-    format: Annotated[str | None, Field()] = None
-    parameters: list[TemplateParameter] = Field(default_factory=list)
-    terms: list[TemplateParameterTerm] = Field(
-        description="The possible terms of the template parameter.",
-        default_factory=list,
-    )

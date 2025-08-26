@@ -61,6 +61,7 @@
             :disable-filtering="true"
             :hide-search-field="false"
             :modifiable-table="true"
+            :use-cached-filtering="false"
             :no-padding="true"
             elevation="0"
             class="groups-table"
@@ -91,7 +92,7 @@
             <template #no-data>
               <div class="text-center py-4">
                 <span class="text-body-1 text-grey-darken-1">
-                  {{ $t('ActivityOverview.no_groups') }}
+                  {{ $t('SubgroupOverview.noItemsAvailable') }}
                 </span>
               </div>
             </template>
@@ -118,6 +119,7 @@
             :items="activitiesList"
             :items-length="activitiesTotal"
             :items-per-page="activitiesPagination.itemsPerPage"
+            :page="activitiesPagination.page"
             :hide-export-button="false"
             :export-data-url="`concepts/activities/activity-sub-groups/${props.itemUid}/activities`"
             export-object-label="Activities"
@@ -227,11 +229,12 @@ const groupFormRef = ref()
 // Table data and loading states
 const groups = ref([])
 const activitiesList = ref([])
-const originalActivitiesList = ref([]) // Store original list for restoring after search
 const groupsTotal = ref(0)
 const activitiesTotal = ref(0)
 const isLoadingGroups = ref(true)
 const isLoadingActivities = ref(true)
+const isFetchingActivities = ref(false)
+let fetchRequestId = 0
 const tableOptions = ref({
   search: '',
   sortBy: [],
@@ -245,6 +248,9 @@ const activitiesPagination = ref({
   page: 1,
   itemsPerPage: 10,
 })
+
+// Track search term for activities
+let lastActivitiesSearchTerm = ''
 
 // Initial sort order for tables
 const initialSort = ref([{ key: 'name', order: 'asc' }])
@@ -304,13 +310,9 @@ function itemMatchesSearch(item, searchTerm) {
   const term = searchTerm.toLowerCase()
 
   if (item.name?.toLowerCase().includes(term)) return true
-  if (item.description?.toLowerCase().includes(term)) return true
-  if (item.definition?.toLowerCase().includes(term)) return true
   if (item.version && item.version.toString().toLowerCase().includes(term))
     return true
   if (item.status?.toLowerCase().includes(term)) return true
-  if (item.abbreviation?.toLowerCase().includes(term)) return true
-  if (item.author?.toLowerCase().includes(term)) return true
 
   return false
 }
@@ -339,23 +341,18 @@ function handleFilter(filters, options, targetTable) {
         props.itemOverview.activity_subgroup.activity_groups.length
     }
   } else if (targetTable === 'activities') {
-    if (searchTerm) {
-      const filteredActivities = originalActivitiesList.value.filter(
-        (activity) => {
-          return itemMatchesSearch(activity, searchTerm)
-        }
-      )
-      activitiesList.value = filteredActivities
-      activitiesTotal.value = filteredActivities.length
-    } else {
-      if (originalActivitiesList.value.length > 0) {
-        activitiesList.value = [...originalActivitiesList.value]
-        activitiesTotal.value = originalActivitiesList.value.length
-      } else {
-        activitiesList.value = []
-        activitiesTotal.value = 0
-      }
+    // Skip if search hasn't changed
+    if (searchTerm === lastActivitiesSearchTerm) {
+      return
     }
+
+    lastActivitiesSearchTerm = searchTerm
+
+    // Reset to page 1 when search changes
+    activitiesPagination.value.page = 1
+
+    // Fetch with new search term
+    fetchActivities()
   }
 }
 
@@ -373,16 +370,11 @@ function updateTableOptions(options) {
   tableOptions.value.itemsPerPage = options.itemsPerPage
 }
 
-// Separate handler for activities pagination
+// Handles pagination for activities table
 function updateActivitiesOptions(options) {
   if (!options) return
 
-  // Store sort options
-  if (options.sortBy && options.sortBy.length > 0) {
-    tableOptions.value.sortBy = [...options.sortBy] // Still use main table options for sort
-  }
-
-  // Only fetch new data if page or items per page has changed
+  // Only handle pagination changes
   if (
     options.page !== activitiesPagination.value.page ||
     options.itemsPerPage !== activitiesPagination.value.itemsPerPage
@@ -390,7 +382,7 @@ function updateActivitiesOptions(options) {
     activitiesPagination.value.page = options.page
     activitiesPagination.value.itemsPerPage = options.itemsPerPage
 
-    // Only fetch activities if we have a valid subgroup ID
+    // Fetch with new pagination
     if (props.itemUid) {
       fetchActivities()
     }
@@ -398,14 +390,27 @@ function updateActivitiesOptions(options) {
 }
 
 async function fetchActivities() {
+  // Prevent concurrent fetches
+  if (isFetchingActivities.value) {
+    return
+  }
+
+  const currentRequestId = ++fetchRequestId
+
+  isFetchingActivities.value = true
   isLoadingActivities.value = true
 
   try {
     const options = {
       version: props.itemOverview?.activity_subgroup?.version,
+      total_count: true,
       page_number: activitiesPagination.value.page,
       page_size: activitiesPagination.value.itemsPerPage,
-      total_count: true,
+    }
+
+    // Add search parameter if there's a search term
+    if (lastActivitiesSearchTerm) {
+      options.search_string = lastActivitiesSearchTerm
     }
 
     const response = await activitiesApi.getSubgroupActivities(
@@ -416,28 +421,35 @@ async function fetchActivities() {
     if (response && response.data) {
       // Check if response has new paginated structure
       if (response.data.items) {
-        // New paginated structure
+        // Check if this is still the latest request
+        if (currentRequestId !== fetchRequestId) {
+          return
+        }
+
+        // Use server-paginated results directly
+        // Use server response directly
         activitiesList.value = response.data.items
-        originalActivitiesList.value = [...response.data.items]
-        activitiesTotal.value = response.data.total || 0
+        activitiesTotal.value =
+          response.data.total || response.data.items.length
       } else {
         // Handle legacy non-paginated response
+        if (currentRequestId !== fetchRequestId) {
+          return
+        }
+        // Use server response directly
         activitiesList.value = response.data
-        originalActivitiesList.value = [...response.data]
         activitiesTotal.value = response.data.length
       }
     } else {
       activitiesList.value = []
-      originalActivitiesList.value = []
       activitiesTotal.value = 0
     }
   } catch (error) {
-    console.error('Error fetching activities:', error)
     activitiesList.value = []
-    originalActivitiesList.value = []
     activitiesTotal.value = 0
   } finally {
     isLoadingActivities.value = false
+    isFetchingActivities.value = false
   }
 }
 
@@ -459,6 +471,8 @@ watch(
       const currentVersion = newSubgroup.version
       if (lastFetchedVersion !== currentVersion) {
         lastFetchedVersion = currentVersion
+        // Reset to page 1 when version changes
+        activitiesPagination.value.page = 1
         fetchActivities()
       }
     } else {

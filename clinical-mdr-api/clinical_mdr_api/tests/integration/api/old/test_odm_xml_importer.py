@@ -172,8 +172,7 @@ def test_throw_exception_if_measurementunits_dont_exist(api_client):
 
     assert res["type"] == "BusinessLogicException"
     assert (
-        res["message"]
-        == "MeasurementUnits with OIDs '{'wrong name'}' don't match any Unit Definition."
+        res["message"] == "MeasurementUnit with Name 'non-existing unit' doesn't exist."
     )
 
 
@@ -190,7 +189,4 @@ def test_throw_exception_if_measurementunitref_refers_to_non_present_measurement
     res = response.json()
 
     assert res["type"] == "BusinessLogicException"
-    assert (
-        res["message"]
-        == """ODM Item tried to connect to non-existent concepts [('Concept Name: Unit Definition', "uids: {'name1'}")]."""
-    )
+    assert res["message"] == "MeasurementUnit with OID 'unitOID' was not provided."

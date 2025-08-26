@@ -2,7 +2,7 @@ const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor")
 import { stringToBoolean } from '../../support/helper_functions'
 
 When('The study type is fully defined', () => {
-    cy.nullStudyType('Study_000001')
+    cy.nullStudyType(Cypress.env('TEST_STUDY_UID'))
     cy.wait(5000)
     cy.reload()
     cy.wait(3000)
@@ -33,7 +33,7 @@ Then('The study type data is reflected in the table', () => {
 })
 
 When('The Study Stop Rule NONE option is selected', () => {
-    cy.nullStudyType('Study_000001')
+    cy.nullStudyType(Cypress.env('TEST_STUDY_UID'))
     cy.wait(1000)
     cy.reload()
     cy.wait(1000)
@@ -48,7 +48,7 @@ Then('The Study Stop Rule field is disabled', () => {
 })
 
 When('The Confirmed response minimum duration NA option is selected', () => {
-    cy.nullStudyType('Study_000001')
+    cy.nullStudyType(Cypress.env('TEST_STUDY_UID'))
     cy.wait(5000)
     cy.reload()
     startEdition()
@@ -69,7 +69,7 @@ Given('Another study with study type defined exists', () => {
 })
 
 When('The study type is partially defined', () => {
-    cy.nullStudyType('Study_000001')
+    cy.nullStudyType(Cypress.env('TEST_STUDY_UID'))
     cy.wait(5000)
     cy.reload()
     cy.fixture('studyType').then((type) => {

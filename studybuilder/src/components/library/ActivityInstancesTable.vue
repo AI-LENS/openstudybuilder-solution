@@ -11,6 +11,7 @@
             :hide-export-button="false"
             :hide-default-switches="true"
             :export-data-url="exportDataUrl"
+            :export-data-url-params="exportDataUrlParams"
             item-value="item_key"
             :sub-tables="true"
             :disable-filtering="false"
@@ -267,8 +268,13 @@ const instanceHeaders = [
 
 const exportDataUrl = computed(() => {
   if (!props.activityId || !currentVersion.value) return ''
-  return `/concepts/activities/activities/${props.activityId}/versions/${currentVersion.value}/instances`
+  return `/concepts/activities/activities/${props.activityId}/versions/${currentVersion.value}/instances/export`
 })
+
+// Add flatten parameter for exports
+const exportDataUrlParams = computed(() => ({
+  flatten: true,
+}))
 // Computed property to translate header titles
 const translatedHeaders = computed(() => {
   return instanceHeaders.map((header) => ({

@@ -114,16 +114,12 @@ def test_build_flowchart_table(
         service = StudyFlowchartService()
         time_unit = service.get_preferred_time_unit(study_uid=soa_test_data.study.uid)
 
-    study_epochs: list[StudyEpoch] = (
-        StudyEpochService()
-        .get_all_epochs(study_uid=soa_test_data.study.uid, sort_by={"order": True})
-        .items
-    )
-    study_visits: list[StudyVisit] = (
-        StudyVisitService(study_uid=soa_test_data.study.uid)
-        .get_all_visits(study_uid=soa_test_data.study.uid, sort_by={"order": True})
-        .items
-    )
+    study_epochs: list[StudyEpoch] = StudyEpochService.get_all_epochs(
+        study_uid=soa_test_data.study.uid, sort_by={"order": True}
+    ).items
+    study_visits: list[StudyVisit] = StudyVisitService.get_all_visits(
+        study_uid=soa_test_data.study.uid, sort_by={"order": True}
+    ).items
     study_activities_map: dict[str, StudySelectionActivity] = {
         ssa.study_activity_uid: ssa
         for ssa in StudyActivitySelectionService()
@@ -454,22 +450,18 @@ def test_get_flowchart_item_uid_coordinates(soa_test_data: SoATestData):
 
     # THEN all StudyEpochs have coordinates
     study_epoch: StudyEpoch
-    for study_epoch in (
-        StudyEpochService()
-        .get_all_epochs(study_uid=soa_test_data.study.uid, sort_by={"order": True})
-        .items
-    ):
+    for study_epoch in StudyEpochService.get_all_epochs(
+        study_uid=soa_test_data.study.uid, sort_by={"order": True}
+    ).items:
         assert results.pop(
             study_epoch.uid, None
         ), f"Missing coordinates of StudyEpoch[{study_epoch.uid}]"
 
     # THEN all StudyVisits have coordinates
     study_visit: StudyVisit
-    for study_visit in (
-        StudyVisitService(study_uid=soa_test_data.study.uid)
-        .get_all_visits(study_uid=soa_test_data.study.uid, sort_by={"order": True})
-        .items
-    ):
+    for study_visit in StudyVisitService.get_all_visits(
+        study_uid=soa_test_data.study.uid, sort_by={"order": True}
+    ).items:
         assert results.pop(
             study_visit.uid, None
         ), f"Missing coordinates of StudyVisit[{study_visit.uid}]"
@@ -575,9 +567,9 @@ def test_download_detailed_soa_content(
     )
     study_visits_map: dict[str, StudyVisit] = {
         svis.uid: svis
-        for svis in StudyVisitService(study_uid=soa_test_data.study.uid)
-        .get_all_visits(study_uid=study_uid, sort_by={"order": True})
-        .items
+        for svis in StudyVisitService.get_all_visits(
+            study_uid=study_uid, sort_by={"order": True}
+        ).items
     }
     study_activities_map: dict[str, StudySelectionActivity] = {
         ssa.study_activity_uid: ssa
@@ -653,9 +645,9 @@ def test_download_operational_soa_content(
 
     study_visits_map: dict[str, StudyVisit] = {
         svis.uid: svis
-        for svis in StudyVisitService(study_uid=soa_test_data.study.uid)
-        .get_all_visits(study_uid=study_uid, sort_by={"order": True})
-        .items
+        for svis in StudyVisitService.get_all_visits(
+            study_uid=study_uid, sort_by={"order": True}
+        ).items
     }
     study_activities_map: dict[str, StudySelectionActivity] = {
         ssa.study_activity_uid: ssa
@@ -1462,9 +1454,9 @@ def test_operational_soa(soa_test_data: SoATestData):
     )
     log.info(soa_test_data.VISITS)
     log.info(
-        StudyVisitService(study_uid=soa_test_data.study.uid, study_value_version=None)
-        .get_all_visits(study_uid=soa_test_data.study.uid, study_value_version=None)
-        .items
+        StudyVisitService.get_all_visits(
+            study_uid=soa_test_data.study.uid, study_value_version=None
+        ).items
     )
     check_operational_soa_table(soa_test_data, soa_table)
 

@@ -30,7 +30,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Create][Sequence number] System must generate sequence number for Exclusion Criteria Templates when they are created
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The latest sequence number is saved
     And [API] 'Exclusion' Criteria in status Draft exists
     And The criteria is found
@@ -41,8 +43,10 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     And The Add template button is clicked
     When The criteria template form is filled with base data
     And Template indexes are set for 'criterion'
+    And User intercept getCriteria request
     And Form save button is clicked
-    And Wait for criteria to be created and search for it
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     Then The Criteria is visible in the Criteria Templates Table
     And The item has status 'Draft' and version '0.1'
 
@@ -51,22 +55,28 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     And The Add template button is clicked
     When The criteria template form is filled with base data
     And Indexes are set as not applicable
+    And User intercept getCriteria request
     And Form save button is clicked
-    And Wait for criteria to be created and search for it
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     Then The Criteria is visible in the Criteria Templates Table
     And The item has status 'Draft' and version '0.1'
 
   Scenario: [Actions][Edit][0.1 version] User must be able to edit initial version of the Exclusion Criteria template
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Edit' option is clicked from the three dot menu list
     And The criteria metadata update is initiated
     And Template indexes are cleared and updated for 'criterion'
     And Form continue button is clicked
     And Template change description is provided
+    And User intercept getCriteria request
     And Form save button is clicked
-    And Wait for criteria to be created and search for it
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     Then The Criteria is visible in the Criteria Templates Table
     And The item has status 'Draft' and version '0.2'
 
@@ -133,7 +143,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Actions][Delete] User must be able to delete the Draft Exclusion Criteria template in version below 1.0
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Delete' option is clicked from the three dot menu list
     Then The pop up displays "Template deleted"
     And The criteria is not found
@@ -141,7 +153,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Actions][Approve] User must be able to approve the Draft Exclusion Criteria template
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Approve' option is clicked from the three dot menu list
     Then The pop up displays 'Template is now in Final state'
     And The item has status 'Final' and version '1.0'
@@ -150,7 +164,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     Given [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Edit indexing' option is clicked from the three dot menu list
     When Template indexes are cleared and updated for 'criterion'
     And Form save button is clicked
@@ -161,7 +177,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Actions][Edit][Mandatory fields] User must not be able to save changes to Exclusion Criteria template without: Change description
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Edit' option is clicked from the three dot menu list
     And User goes to Change description step
     And The template change description is cleared
@@ -173,7 +191,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     Given [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'New version' option is clicked from the three dot menu list
     Then The pop up displays 'New version created'
     And The item has status 'Draft' and version '1.1'
@@ -182,7 +202,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     And [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'New version' option is clicked from the three dot menu list
     Then The item has status 'Draft' and version '1.1'
     When The 'Edit' option is clicked from the three dot menu list
@@ -190,6 +212,7 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     And Template indexes are cleared and updated for 'criterion'
     And Form continue button is clicked
     And Template change description is provided
+    And User intercept getCriteria request
     And Form save button is clicked
     And The criteria is found
     Then The item has status 'Draft' and version '1.2'
@@ -200,7 +223,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     Given [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Inactivate' option is clicked from the three dot menu list
     Then The pop up displays 'Template inactivated'
     And The item has status 'Retired' and version '1.0'
@@ -210,7 +235,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] Criteria is approved
     And [API] Criteria is inactivated
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Reactivate' option is clicked from the three dot menu list
     Then The pop up displays 'Template is now in Final state'
     And The item has status 'Final' and version '1.0'
@@ -221,7 +248,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] Criteria is approved
     And [API] Criteria is inactivated
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Reactivate' option is clicked from the three dot menu list
     Then The 'History for template' window is displayed with the following column list with values
       | Column | Header                 |
@@ -250,7 +279,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Cancel][Edition] User must be able to Cancel edition of the Exclusion Criteria template
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Edit' option is clicked from the three dot menu list
     And The criteria template edition form is filled with data
     And Indexes are set as not applicable
@@ -263,7 +294,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     And [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The 'Edit indexing' option is clicked from the three dot menu list
     When The indication indexes edition is initiated
     And Modal window form is closed by clicking cancel button
@@ -274,7 +307,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
   Scenario: [Actions][Availability][Draft item] User must only have access to aprove, edit, delete, history actions for Drafted version of the Exclusion Criteria template
     Given [API] 'Exclusion' Criteria in status Draft exists
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The item actions button is clicked
     Then Only actions that should be avaiable for the Draft item are displayed
 
@@ -282,7 +317,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     And [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The item actions button is clicked
     Then Only actions that should be avaiable for the Final item are displayed
 
@@ -290,7 +327,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     Given [API] 'Exclusion' Criteria in status Draft exists
     And [API] Criteria is approved
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     When The item actions button is clicked
     Then 'Edit indexing' action is available
     And 'Create pre-instantiation' action is available
@@ -300,7 +339,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     And [API] Criteria is approved
     And [API] Criteria is inactivated
     And The 'library/criteria_templates/Exclusion/parent' page is opened
-    And Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     And The item actions button is clicked
     Then Only actions that should be avaiable for the Retired item are displayed
 
@@ -308,7 +349,9 @@ Feature: Library - Syntax Templates - Criteria - Exclusion - Parent
     When [API] Search Test - Create first 'Exclusion' criteria template
     And [API] Search Test - Create second 'Exclusion' criteria template
     Given The 'library/criteria_templates/Exclusion/parent' page is opened
-    Then Criteria created via API is searched for
+    And User intercept getCriteria request
+    And User awaits for the getCriteria request to finish
+    And The criteria is found
     And The existing item is searched for by partial name
     Then More than one result is found
 

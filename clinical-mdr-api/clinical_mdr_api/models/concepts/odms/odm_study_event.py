@@ -92,9 +92,7 @@ class OdmStudyEventFormPostInput(PostInputModel):
     order_number: Annotated[int, Field(lt=settings.max_int_neo4j)]
     mandatory: Annotated[str, Field(min_length=1)]
     locked: Annotated[str, Field(min_length=1)] = "No"
-    collection_exception_condition_oid: Annotated[str | None, Field(min_length=1)] = (
-        None
-    )
+    collection_exception_condition_oid: Annotated[str | None, Field()] = None
 
 
 class OdmStudyEventVersion(OdmStudyEvent):

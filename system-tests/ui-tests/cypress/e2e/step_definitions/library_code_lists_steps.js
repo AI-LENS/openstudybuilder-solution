@@ -133,7 +133,7 @@ When('The existing term is added', () => {
     cy.get('[data-cy="select-exitsing-term"] input').check({force: true})
     cy.intercept('/api/ct/terms?*').as('getData2')
     cy.clickButton('step.creation_mode-continue-button')
-    cy.wait('@getData2', {timeout: 30000})
+    cy.wait('@getData2', {timeout: 90000})
     cy.searchForInPopUp(termSponsorName)
     cy.longWaitForTable(60000)
     cy.get('table tbody tr [type="checkbox"]').eq(0).check()

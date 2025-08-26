@@ -5,9 +5,11 @@
 
 The OpenStudyBuilder solution introduces a new approach for working with studies that once fully implemented will drive end-to-end consistency and more efficient processes - all the way from protocol development and CRF design - to creation of datasets, analysis, reporting, submission to health authorities and public disclosure of study information.
 
-OpenStudyBuilder is the first MVP of the solution covering the foundational capabilities for the front-end application, the data standards and study definition repository as well as the initial integrations.
+OpenStudyBuilder is a next generation end-to-end clinical data standards and study specification solution, enabling clinical study data solutions to use linked metadata for higher degree of automation, limiting manual document driven work processes, enabling a Digital Data Flow approach.
 
 OpenStudyBuilder is the open source version of the internal StudyBuilder solution at Novo Nordisk. Not all titles or logos in the application are yet changed to be 'OpenStudyBuilder' - when the term 'StudyBuilder' is used, it is therefore a synonym for 'OpenStudyBuilder'. This will be changed in coming updates.
+
+For further information on the OpenStudyBuilder solution, please refer to the [OpenStudyBuilder homepage](https://openstudybuilder.com).
 
 
 # Introduction
@@ -18,11 +20,17 @@ StudyBuilder consists of a few main components, that are all included as subdire
 - mdr-standards-import: Scripts for populating the database with clinical standards.
 - clinical-mdr-api: The Python/FastAPI backend.
 - studybuilder-import: Python scripts for populating the database with sponsor standards and codelists.
+- studybuilder-export: Python scripts for exporting the database.
 - studybuilder: The Vue.js frontend.
-- documentation-portal: Project documentation.
+- documentation-portal: Solution documentation.
+- system-tests/ui-tests: End-to-end tests for the OpenStudyBuilder solution with Gherkin and Cypress.
+- osb-neodash: Configuration for NeoDash in OpenStudyBuilder style.
 
 Each directory contains a more detailed ReadMe for that component.
 
+The OpenStudyBuilder landscape has connected tools available. You can find the following:
+
+- [OpenStudyBuilder Word-Addin](https://github.com/NovoNordisk-OpenSource/openstudybuilder-word-addin) - a Microsoft Word Add-in to support the creation of clinical protocols, using the OpenStudyBuilder study definitions.
 
 # System Requirements
 
@@ -95,16 +103,19 @@ There have been reports of issues when running the Dockerfiles on ARM64 architec
 # Using the preview environment
 
 Your folder structure should look like this:
+
 ```
 ─ OpenStudyBuilder-Solution
   ├─ clinical-mdr-api
-  ├─ studybuilder-import
-  ├─ documentationfiles
+  ├─ db-schema-migration
   ├─ documentation-portal
-  ├─ frontendfiles
   ├─ mdr-standards-import
   ├─ neo4j-mdr-db
-  └─ studybuilder
+  ├─ osb-neodash
+  ├─ studybuilder
+  ├─ studybuilder-export
+  ├─ studybuilder-import
+  └─ system-tests
 ```
 
 The Docker Compose configuration is `compose.yaml` for the preview 
@@ -114,6 +125,8 @@ The following services are part of this Docker Compose environment.
 
 - _database_ (A Neo4j graph database container including initial data)
 - _api_ (A FastAPI container hosting the clinical-mdr-api backend application)
+- _consumerapi_ (A FastAPI container hosting API for additional integrations)
+- _neodash_ (Container for NeoDash, holding dashboards for OpenStudyBuilder)
 - _frontend_ (A Nginx container hosting Vue.js StudyBuilder UI application)
 - _documentation_ (A Nginx container hosting Vue.js Study Builder documentation portal)
 
@@ -151,11 +164,13 @@ docker compose ps
 The output should look like this:
 
 ```
-NAME                          IMAGE                       COMMAND                  SERVICE             CREATED            STATUS                   PORTS
-OpenStudyBuilder-Solution-api-1             build-tools-api             "/bin/sh -c 'pipenv …"   api                 4 minutes ago      Up 3 minutes (healthy)   5003/tcp
-OpenStudyBuilder-Solution-database-1        build-tools-database        "tini -g -- /startup…"   database            4 minutes ago      Up 4 minutes (healthy)   7473/tcp, 127.0.0.1:5001->7474/tcp, 127.0.0.1:5002->7687/tcp
-OpenStudyBuilder-Solution-documentation-1   build-tools-documentation   "/docker-entrypoint.…"   documentation       4 minutes ago      Up 4 minutes (healthy)   80/tcp, 5006/tcp
-OpenStudyBuilder-Solution-frontend-1        build-tools-frontend        "/docker-entrypoint.…"   frontend            4 minutes ago      Up 3 minutes (healthy)   80/tcp, 127.0.0.1:5005->5005/tcp
+NAME                          IMAGE                       COMMAND                  SERVICE         CREATED        STATUS                            PORTS
+OpenStudyBuilder-Solution-api-1             build-tools-api             "pipenv run uvicorn"     api             21 hours ago   Up 38 seconds (healthy)           8000/tcp
+OpenStudyBuilder-Solution-consumerapi-1     build-tools-consumerapi     "pipenv run uvicorn"     consumerapi     21 hours ago   Up 38 seconds (healthy)           8000/tcp
+OpenStudyBuilder-Solution-database-1        build-tools-database        "tini -g -- /startup…"   database        21 hours ago   Up 59 seconds (healthy)           7473/tcp, 127.0.0.1:5001->7474/tcp, 127.0.0.1:5002->7687/tcp
+OpenStudyBuilder-Solution-documentation-1   build-tools-documentation   "/docker-entrypoint.…"   documentation   21 hours ago   Up 59 seconds (healthy)           80/tcp, 5006/tcp
+OpenStudyBuilder-Solution-frontend-1        build-tools-frontend        "/docker-entrypoint.…"   frontend        21 hours ago   Up 7 seconds (health: starting)   80/tcp, 127.0.0.1:5005->5005/tcp
+OpenStudyBuilder-Solution-neodash-1         build-tools-neodash         "/docker-entrypoint.…"   neodash         21 hours ago   Up 38 seconds (healthy)           80/tcp, 5005/tcp, 127.0.0.1:5007->5007/tcp
 ```
 
 
@@ -168,6 +183,10 @@ OpenStudyBuilder-Solution-frontend-1        build-tools-frontend        "/docker
   It can also be accessed from main web application from the ? sign in top right corner.
 
 - StudyBuilder API (backend application): <http://localhost:5005/api/docs>
+
+- StudyBuilder Consumer API (backend application): <http://localhost:5005/consumer-api/docs/>
+
+- Neo4j dashboard web client: <http://localhost:5005/neodash/>
 
 - Neo4j database web client: <http://localhost:5001/browser/>
 

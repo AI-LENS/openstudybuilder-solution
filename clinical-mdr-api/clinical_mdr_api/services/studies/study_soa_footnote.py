@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import status
 from neomodel import db
@@ -14,7 +14,6 @@ from clinical_mdr_api.domains.study_selections.study_soa_footnote import (
     StudySoAFootnoteVO,
     StudySoAFootnoteVOHistory,
 )
-from clinical_mdr_api.domains.syntax_instances.footnote import FootnoteAR
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
 from clinical_mdr_api.models.error import BatchErrorResponse
 from clinical_mdr_api.models.study_selections.study_selection import ReferencedItem
@@ -65,18 +64,13 @@ class StudySoAFootnoteService:
     def _transform_vo_to_pydantic_model(
         self,
         study_soa_footnote_vo: StudySoAFootnoteVO,
-        find_footnote_by_uid: Callable[[str], FootnoteAR | None] | None = None,
         study_value_version: str | None = None,
+        order: int | None = None,
     ) -> StudySoAFootnote:
         return StudySoAFootnote.from_study_soa_footnote_vo(
             study_soa_footnote_vo=study_soa_footnote_vo,
-            find_footnote_by_uid=(
-                self._repos.footnote_repository.find_by_uid
-                if not find_footnote_by_uid
-                else find_footnote_by_uid
-            ),
-            find_footnote_template_by_uid=self._repos.footnote_template_repository.find_by_uid,
             study_value_version=study_value_version,
+            order=order,
         )
 
     def _transform_vo_to_pydantic_history_model(
@@ -84,8 +78,6 @@ class StudySoAFootnoteService:
     ) -> StudySoAFootnote:
         return StudySoAFootnoteHistory.from_study_soa_footnote_vo_history(
             study_soa_footnote_vo=study_soa_footnote_vo,
-            find_footnote_by_uid=self._repos.footnote_repository.find_by_uid,
-            find_footnote_template_by_uid=self._repos.footnote_template_repository.find_by_uid,
         )
 
     def get_all(
@@ -144,9 +136,11 @@ class StudySoAFootnoteService:
         )
         items = [
             self._transform_vo_to_pydantic_model(
-                study_soa_footnote_vo=item, study_value_version=study_value_version
+                study_soa_footnote_vo=item,
+                study_value_version=study_value_version,
+                order=idx,
             )
-            for item in items
+            for idx, item in enumerate(items, start=1)
         ]
         filtered_items = service_level_generic_filtering(
             items=items,
@@ -195,124 +189,27 @@ class StudySoAFootnoteService:
 
     def get_by_uid(
         self,
+        study_uid: str,
         uid: str,
         study_value_version: str | None = None,
-    ):
-        item = self.repository.find_by_uid(
-            uid=uid, study_value_version=study_value_version
-        )
-        return self._transform_vo_to_pydantic_model(study_soa_footnote_vo=item)
-
-    def derive_footnote_number(
-        self,
-        study_uid: str,
-        referenced_items: list[ReferencedItem],
-        all_soa_footnotes: list[StudySoAFootnoteVO],
-    ):
-        # local import to avoid circular import
-        from clinical_mdr_api.services.studies.study_flowchart import (
-            StudyFlowchartService,
+    ) -> StudySoAFootnote:
+        items = self.repository.find_all_footnotes(
+            study_uids=study_uid, study_value_version=study_value_version
         )
 
-        # substitute for uid of current footnote
-        current_footnote_uid = "_CURRENT_FOOTNOTE_"
-
-        # shortcuts
-        if not all_soa_footnotes:
-            return 1
-        if not referenced_items:
-            return len(all_soa_footnotes) + 1
-
-        # get coordinates mapping uid -> [row, column] position of items in protocol SoA flowchart table
-        uid_coordinates_in_flowchart = (
-            StudyFlowchartService().get_flowchart_item_uid_coordinates(
-                study_uid=study_uid
-            )
+        study_soa_footnote_to_ret: StudySoAFootnote = None
+        for idx, item in enumerate(items, start=1):
+            if item.uid == uid:
+                study_soa_footnote_to_ret = self._transform_vo_to_pydantic_model(
+                    study_soa_footnote_vo=item,
+                    study_value_version=study_value_version,
+                    order=idx,
+                )
+        NotFoundException.raise_if(
+            study_soa_footnote_to_ret is None, "Study SoA Footnote", uid
         )
 
-        # collect coordinates of items referenced by existing footnotes
-        footnote_coordinates = []
-        for footnote in all_soa_footnotes:
-            for item in footnote.referenced_items:
-                if coordinates := uid_coordinates_in_flowchart.get(item.item_uid):
-                    footnote_coordinates.append((footnote.uid, coordinates))
-
-        # add coordinates of items referenced by the current footnote
-        for item in referenced_items:
-            if coordinates := uid_coordinates_in_flowchart.get(item.item_uid):
-                footnote_coordinates.append((current_footnote_uid, coordinates))
-
-        # sort by coordinates
-        footnote_coordinates.sort(key=lambda uid_coordinates: uid_coordinates[1])
-
-        # find the current footnotes order
-        unique_footnote_uids = set()
-        for uid, _ in footnote_coordinates:
-            # add uid to a set, so practically the length of the set is the order of the current footnote of the loop
-            unique_footnote_uids.add(uid)
-
-            # If current edited footnote, length of set is the order
-            if uid == current_footnote_uid:
-                return len(unique_footnote_uids)
-
-        return len(all_soa_footnotes) + 1
-
-    def get_footnotes_order_in_soa(
-        self,
-        study_uid: str,
-        all_soa_footnotes: list[StudySoAFootnoteVO],
-    ) -> dict[str, int]:
-        """Returns mapping of StudySoAFootnote uids to order (int) based on the position of referenced items in SoA"""
-
-        # local import to avoid circular import
-        from clinical_mdr_api.services.studies.study_flowchart import (
-            StudyFlowchartService,
-        )
-
-        # get coordinates mapping uid -> [row, column] by position of referenced items in Protocol SoA flowchart
-        referenced_item_coordinates = (
-            StudyFlowchartService().get_flowchart_item_uid_coordinates(
-                study_uid=study_uid, hide_soa_groups=True
-            )
-        )
-
-        # find the lowest coordinates among the items referenced by a footnote (lowest is top right, row then column)
-        footnote_coordinates = {}
-        footnote_uids_without_coordinates = []
-        for footnote in all_soa_footnotes:
-            # pylint: disable=unsubscriptable-object
-            lowest_coordinates: tuple[int, int] | None = None
-
-            for item in footnote.referenced_items:
-                if coordinates := referenced_item_coordinates.get(item.item_uid):
-                    if (
-                        not lowest_coordinates
-                        or coordinates[0] < lowest_coordinates[0]
-                        or (
-                            coordinates[0] == lowest_coordinates[0]
-                            and coordinates[1] < lowest_coordinates[1]
-                        )
-                    ):
-                        lowest_coordinates = coordinates
-
-            if lowest_coordinates:
-                footnote_coordinates[footnote.uid] = lowest_coordinates
-            else:
-                footnote_uids_without_coordinates.append(footnote.uid)
-
-        # order footnotes by lowest coordinates
-        footnotes_ordered = sorted(
-            footnote_coordinates.keys(), key=lambda uid: footnote_coordinates[uid]
-        )
-
-        # append footnotes without coordinates
-        footnotes_ordered += footnote_uids_without_coordinates
-
-        footnotes_ordered = {
-            uid: order for order, uid in enumerate(footnotes_ordered, start=1)
-        }
-
-        return footnotes_ordered
+        return study_soa_footnote_to_ret
 
     def instantiate_study_soa_vo(
         self,
@@ -320,16 +217,34 @@ class StudySoAFootnoteService:
         footnote_uid: str,
         footnote_template_uid: str,
         referenced_items: list[ReferencedItem],
-        footnote_number: int,
         uid: str | None = None,
         accepted_version: bool = False,
         footnote_version: str | None = None,
+        footnote_name_plain: str | None = None,
+        footnote_name: str | None = None,
+        latest_footnote_version: str | None = None,
+        latest_footnote_name_plain: str | None = None,
+        footnote_library_name: str | None = None,
         footnote_template_version: str | None = None,
+        footnote_template_name: str | None = None,
+        footnote_template_name_plain: str | None = None,
+        footnote_template_library_name: str | None = None,
     ):
         footnote_vo = StudySoAFootnoteVO.from_input_values(
             study_uid=study_uid,
             footnote_uid=footnote_uid,
+            footnote_version=footnote_version,
+            footnote_name=footnote_name,
+            footnote_name_plain=footnote_name_plain,
+            footnote_library_name=footnote_library_name,
+            latest_footnote_name_plain=latest_footnote_name_plain,
+            latest_footnote_version=latest_footnote_version,
             footnote_template_uid=footnote_template_uid,
+            footnote_template_version=footnote_template_version,
+            footnote_template_name=footnote_template_name,
+            footnote_template_name_plain=footnote_template_name_plain,
+            footnote_template_library_name=footnote_template_library_name,
+            footnote_template_parameters=[],
             referenced_items=[
                 ReferencedItemVO(
                     item_type=ref_item.item_type,
@@ -338,29 +253,14 @@ class StudySoAFootnoteService:
                 )
                 for ref_item in referenced_items
             ],
-            footnote_number=footnote_number,
             generate_uid_callback=(
                 self.repository.generate_soa_footnote_uid if not uid else lambda: uid
             ),
             status=StudyStatus.DRAFT,
             author_id=self.author_id,
             accepted_version=accepted_version,
-            footnote_version=footnote_version,
-            footnote_template_version=footnote_template_version,
         )
         return footnote_vo
-
-    def synchronize_footnotes(
-        self, study_uid: str, all_soa_footnotes: list[StudySoAFootnoteVO]
-    ):
-        footnotes_order = self.get_footnotes_order_in_soa(
-            study_uid=study_uid, all_soa_footnotes=all_soa_footnotes
-        )
-        for footnote_to_fix in all_soa_footnotes:
-            real_order = footnotes_order[footnote_to_fix.uid]
-            if footnote_to_fix.footnote_number != real_order:
-                footnote_to_fix.footnote_number = real_order
-                self.repository.save(footnote_to_fix, create=False)
 
     def create_with_underlying_footnote(
         self, study_uid: str, footnote_input: StudySoAFootnoteCreateFootnoteInput
@@ -368,7 +268,6 @@ class StudySoAFootnoteService:
         footnote_template = self._repos.footnote_template_repository.find_by_uid(
             uid=footnote_input.footnote_data.footnote_template_uid
         )
-
         NotFoundException.raise_if(
             footnote_template is None,
             "Footnote Template",
@@ -407,19 +306,19 @@ class StudySoAFootnoteService:
                 study_uid=study_uid,
             )
             footnote_uid = footnote_ar.uid
-            if not footnote_service.repository.check_exists_by_name(footnote_ar.name):
+            existing_footnote = footnote_service.repository.find_uid_by_name(
+                name=footnote_ar.name
+            )
+            if existing_footnote:
+                footnote_uid = existing_footnote
+            if not existing_footnote:
                 footnote_ar.approve(author_id=self.author_id)
                 footnote_service.repository.save(footnote_ar)
             else:
-                footnote_uid = footnote_service.repository.find_uid_by_name(
-                    name=footnote_ar.name
-                )
+                footnote_ar = footnote_service.repository.find_by_uid(footnote_uid)
                 NotFoundException.raise_if(
                     footnote_uid is None, "Footnote Value", footnote_ar.name, "Name"
                 )
-            footnote_ar = footnote_service.repository.find_by_uid(
-                footnote_uid, for_update=True
-            )
             soa_footnote = self.manage_create(
                 study_uid=study_uid,
                 footnote_input=StudySoAFootnoteCreateInput(
@@ -432,8 +331,6 @@ class StudySoAFootnoteService:
     def manage_create(
         self, study_uid: str, footnote_input: StudySoAFootnoteCreateInput
     ) -> StudySoAFootnote:
-        all_soa_footnotes = self.repository.find_all_footnotes(study_uids=study_uid)
-
         footnote_vo = self.instantiate_study_soa_vo(
             study_uid=study_uid,
             footnote_uid=getattr(footnote_input, "footnote_uid", None),
@@ -441,21 +338,19 @@ class StudySoAFootnoteService:
                 footnote_input, "footnote_template_uid", None
             ),
             referenced_items=footnote_input.referenced_items,
-            footnote_number=len(all_soa_footnotes) + 1,
         )
         self.validate(
+            study_uid=study_uid,
             footnote_uid=getattr(footnote_input, "footnote_uid", None),
             footnote_template_uid=getattr(
                 footnote_input, "footnote_template_uid", None
             ),
-            all_soa_footnotes=all_soa_footnotes,
             soa_footnote_uid=footnote_vo.uid,
         )
         self.repository.save(footnote_vo)
-        all_soa_footnotes.append(footnote_vo)
-        self.synchronize_footnotes(
-            study_uid=study_uid,
-            all_soa_footnotes=all_soa_footnotes,
+
+        footnote_vo = self.repository.find_by_uid(
+            study_uid=study_uid, uid=footnote_vo.uid
         )
         return self._transform_vo_to_pydantic_model(footnote_vo)
 
@@ -492,20 +387,17 @@ class StudySoAFootnoteService:
 
     @db.transaction
     def delete(self, study_uid: str, study_soa_footnote_uid: str):
-        soa_footnote_vo = self.repository.find_by_uid(uid=study_soa_footnote_uid)
+        soa_footnote_vo = self.repository.find_by_uid(
+            study_uid=study_uid, uid=study_soa_footnote_uid
+        )
         soa_footnote_vo.is_deleted = True
         self.repository.save(soa_footnote_vo, create=False)
 
-        all_soa_footnotes = self.repository.find_all_footnotes(study_uids=study_uid)
-        self.synchronize_footnotes(
-            study_uid=study_uid, all_soa_footnotes=all_soa_footnotes
-        )
-
     def validate(
         self,
+        study_uid: str,
         footnote_uid: str | None,
         footnote_template_uid: str | None,
-        all_soa_footnotes: list[Any],
         soa_footnote_uid: str,
     ):
         NotFoundException.raise_if(
@@ -523,15 +415,15 @@ class StudySoAFootnoteService:
             msg=f"There is no Final Footnote with UID '{footnote_uid}'.",
         )
         if footnote_uid:
-            footnote_service: FootnoteService = FootnoteService()
-            footnote_ar = footnote_service.repository.find_by_uid(footnote_uid)
-            for soa_footnote in all_soa_footnotes:
-                AlreadyExistsException.raise_if(
-                    soa_footnote.footnote_uid
-                    and soa_footnote_uid != soa_footnote.uid
-                    and footnote_ar.uid == soa_footnote.footnote_uid,
-                    msg=f"The SoaFootnote already exists for the Footnote with Name '{footnote_ar.name_plain}'.",
-                )
+            existing_footnote = self._repos.study_soa_footnote_repository.check_exists_soa_footnotes_for_footnote_and_study_uid(
+                study_uid=study_uid,
+                footnote_uid=footnote_uid,
+                soa_footnote_uid_to_exclude=soa_footnote_uid,
+            )
+            AlreadyExistsException.raise_if(
+                existing_footnote,
+                msg=f"The SoaFootnote already exists for the Footnote with Name '{existing_footnote}'.",
+            )
 
     def non_transactional_edit(
         self,
@@ -541,7 +433,9 @@ class StudySoAFootnoteService:
         accept_version: bool = False,
         sync_latest_version: bool = False,
     ):
-        soa_footnote = self.repository.find_by_uid(uid=study_soa_footnote_uid)
+        soa_footnote = self.repository.find_by_uid(
+            study_uid=study_uid, uid=study_soa_footnote_uid
+        )
         all_soa_footnotes = self.repository.find_all_footnotes(study_uids=study_uid)
         # remove footnote that is being edited from calculations as it will be added in the end
         all_soa_footnotes = [
@@ -576,8 +470,8 @@ class StudySoAFootnoteService:
                     ),
                     msg="Nothing is changed",
                 )
-        footnote_uid = None
-        footnote_version = None
+        footnote_uid: str = None
+        footnote_version: str = None
         if footnote_edit_input.footnote_uid:
             footnote_uid = footnote_edit_input.footnote_uid
         elif soa_footnote.footnote_uid:
@@ -623,21 +517,17 @@ class StudySoAFootnoteService:
                 if footnote_edit_input.referenced_items is not None
                 else soa_footnote.referenced_items
             ),
-            footnote_number=soa_footnote.footnote_number,
             uid=study_soa_footnote_uid,
             accepted_version=soa_footnote.accepted_version,
         )
         self.validate(
+            study_uid=study_uid,
             footnote_uid=footnote_uid,
             footnote_template_uid=footnote_template_uid,
-            all_soa_footnotes=all_soa_footnotes,
             soa_footnote_uid=new_footnote_vo.uid,
         )
         self.repository.save(new_footnote_vo, create=False)
-        all_soa_footnotes.insert(new_footnote_vo.footnote_number - 1, new_footnote_vo)
-        self.synchronize_footnotes(
-            study_uid=study_uid, all_soa_footnotes=all_soa_footnotes
-        )
+
         return self._transform_vo_to_pydantic_model(new_footnote_vo)
 
     @db.transaction
@@ -696,28 +586,19 @@ class StudySoAFootnoteService:
             study_uid=study_uid,
         )
         footnote_ar.approve(self.author_id)
-        all_soa_footnotes = self.repository.find_all_footnotes(study_uids=study_uid)
-        footnote_number = self.derive_footnote_number(
-            study_uid=study_uid,
-            referenced_items=footnote_create_input.referenced_items,
-            all_soa_footnotes=all_soa_footnotes,
-        )
-        footnote_input = StudySoAFootnoteCreateInput(
-            footnote_uid=footnote_ar.uid,
-            referenced_items=footnote_create_input.referenced_items,
-        )
+
         footnote_vo = self.instantiate_study_soa_vo(
             study_uid=study_uid,
-            footnote_uid=footnote_input.footnote_uid,
-            footnote_template_uid=footnote_input.footnote_template_uid,
-            referenced_items=footnote_input.referenced_items,
-            footnote_number=footnote_number,
+            footnote_uid=footnote_ar.uid,
+            footnote_name=footnote_ar.name,
+            footnote_name_plain=footnote_ar.name_plain,
+            footnote_template_uid=footnote_ar.template_uid,
+            footnote_template_name=footnote_ar.template_name,
+            footnote_template_name_plain=footnote_ar.template_name_plain,
+            referenced_items=footnote_create_input.referenced_items,
         )
 
-        # pass footnote_ar as parameter as it doesn't really exist in db and we are calling find_by_uid later on
-        return self._transform_vo_to_pydantic_model(
-            footnote_vo, find_footnote_by_uid=lambda _: footnote_ar
-        )
+        return self._transform_vo_to_pydantic_model(footnote_vo)
 
     def audit_trail_specific_soa_footnote(
         self,

@@ -7,7 +7,7 @@ When('The Study Arm is found', () => cy.searchAndCheckPresence(armName, true))
 When('The Study Arm is no longer available', () => cy.searchAndCheckPresence(armName, false))
 
 Given('The Study Arm exists within the study', () => {
-    cy.createTestArm('Study_000001')
+    cy.createTestArm(Cypress.env('TEST_STUDY_UID'))
     cy.reload()
 })
 

@@ -45,7 +45,8 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term_name import (
 )
 from clinical_mdr_api.models.utils import BaseModel
 from clinical_mdr_api.services.user_info import UserInfoService
-from common.utils import convert_to_datetime, get_field_type
+from common.exceptions import ValidationException
+from common.utils import convert_to_datetime, filter_sort_valid_keys_re, get_field_type
 
 # Properties always on root level, even in aggregated mode (names + attributes)
 term_root_level_properties = [
@@ -543,6 +544,10 @@ def format_codelist_filter_sort_keys(key: str, prefix: str | None = None) -> str
     :param prefix: In the case of nested properties, name of nested object
     :return str:
     """
+
+    if key != "*" and not filter_sort_valid_keys_re.fullmatch(key):
+        raise ValidationException(msg=f"Invalid filter or sorting key: {key}")
+
     # Always root level properties
     if key in codelist_root_level_properties:
         return key

@@ -4,7 +4,7 @@ from typing import Optional
 
 from ..utils.metrics import Metrics
 
-loglevel = environ.get("LOG_LEVEL", "INFO")
+loglevel = environ.get("LOG_LEVEL", "WARNING")
 numeric_level = getattr(logging, loglevel.upper(), None)
 if not isinstance(numeric_level, int):
     raise ValueError("Invalid log level: %s" % loglevel)
@@ -63,7 +63,7 @@ def camel_case_data(datadict):
 
 
 def create_logger(name):
-    loglevel = environ.get("LOG_LEVEL", "INFO")
+    loglevel = environ.get("LOG_LEVEL", "WARNING")
     numeric_level = getattr(logging, loglevel.upper(), None)
     if not isinstance(numeric_level, int):
         raise ValueError("Invalid log level: %s" % loglevel)
