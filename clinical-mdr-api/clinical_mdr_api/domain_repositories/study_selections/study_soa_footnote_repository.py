@@ -36,6 +36,7 @@ from common.exceptions import (
     NotFoundException,
     ValidationException,
 )
+from common.telemetry import trace_calls
 from common.utils import convert_to_datetime
 
 
@@ -56,23 +57,47 @@ class StudySoAFootnoteRepository:
                 {
                     uid:study_activity.uid, 
                     name:head([(study_activity)-[:HAS_SELECTED_ACTIVITY]->(activity_value:ActivityValue) | activity_value.name]),
-                    visible_in_protocol_soa: study_activity.show_activity_in_protocol_flowchart
+                    visible_in_protocol_soa: study_activity.show_activity_in_protocol_flowchart,
+                    epoch_order: 999999,
+                    visit_order: 999999,
+                    study_soa_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_SOA_GROUP]->(study_soa_group) WHERE NOT (study_soa_group)-[:BEFORE]-() | study_soa_group.order]), 
+                    study_activity_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_GROUP]->(study_activity_group) WHERE NOT (study_activity_group)-[:BEFORE]-() | study_activity_group.order]), 
+                    study_activity_subgroup_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_SUBGROUP]->(study_activity_subgroup) WHERE NOT (study_activity_subgroup)-[:BEFORE]-() | study_activity_subgroup.order]), 
+                    study_activity_order: study_activity.order, 
+                    study_activity_schedule_order: 0, // 0 as schedule order, because StudyActivity appears in the same row in SoA as schedule but it should take priority in footnote number assignment
+                    type: 'StudyActivity'
                 }] AS referenced_study_activities,
             [(sf)-[:REFERENCES_STUDY_ACTIVITY_SUBGROUP]->(study_activity_subgroup:StudyActivitySubGroup)
-                <-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_SUBGROUP]-(:StudyActivity)<-[:HAS_STUDY_ACTIVITY]-(sv) 
+                <-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_SUBGROUP]-(study_activity:StudyActivity)<-[:HAS_STUDY_ACTIVITY]-(sv) 
                 WHERE NOT (study_activity_subgroup)-[:BEFORE]-() | 
                 {
                     uid:study_activity_subgroup.uid, 
                     name:head([(study_activity_subgroup)-[:HAS_SELECTED_ACTIVITY_SUBGROUP]->(activity_subgroup_value:ActivitySubGroupValue) | activity_subgroup_value.name]),
-                    visible_in_protocol_soa: study_activity_subgroup.show_activity_subgroup_in_protocol_flowchart
+                    visible_in_protocol_soa: study_activity_subgroup.show_activity_subgroup_in_protocol_flowchart,
+                    epoch_order: 999999,
+                    visit_order: 999999,
+                    study_soa_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_SOA_GROUP]->(study_soa_group) WHERE NOT (study_soa_group)-[:BEFORE]-() | study_soa_group.order]),
+                    study_activity_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_GROUP]->(study_activity_group) WHERE NOT (study_activity_group)-[:BEFORE]-() | study_activity_group.order]), 
+                    study_activity_subgroup_order:study_activity_subgroup.order, 
+                    study_activity_order: 0,
+                    study_activity_schedule_order: 0,
+                    type: 'StudyActivitySubGroup'
                 }] AS referenced_study_activity_subgroups,
             [(sf)-[:REFERENCES_STUDY_ACTIVITY_GROUP]->(study_activity_group:StudyActivityGroup)
-                <-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_GROUP]-(:StudyActivity)<-[:HAS_STUDY_ACTIVITY]-(sv)
+                <-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_GROUP]-(study_activity:StudyActivity)<-[:HAS_STUDY_ACTIVITY]-(sv)
                 WHERE NOT (study_activity_group)-[:BEFORE]-() | 
                 {
                     uid:study_activity_group.uid, 
                     name:head([(study_activity_group)-[:HAS_SELECTED_ACTIVITY_GROUP]->(activity_group_value:ActivityGroupValue) | activity_group_value.name]),
-                    visible_in_protocol_soa: study_activity_group.show_activity_group_in_protocol_flowchart
+                    visible_in_protocol_soa: study_activity_group.show_activity_group_in_protocol_flowchart,
+                    epoch_order: 999999,
+                    visit_order: 999999,
+                    study_soa_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_SOA_GROUP]->(study_soa_group) WHERE NOT (study_soa_group)-[:BEFORE]-() | study_soa_group.order]),
+                    study_activity_group_order:study_activity_group.order, 
+                    study_activity_subgroup_order:0, 
+                    study_activity_order: 0, 
+                    study_activity_schedule_order: 0,
+                    type: 'StudyActivityGroup'
                 }] AS referenced_study_activity_groups,
             [(sf)-[:REFERENCES_STUDY_SOA_GROUP]->(study_soa_group:StudySoAGroup)<-[:STUDY_ACTIVITY_HAS_STUDY_SOA_GROUP]-(:StudyActivity)<-[:HAS_STUDY_ACTIVITY]-(sv)
                 WHERE NOT (study_soa_group)-[:BEFORE]-() |
@@ -80,19 +105,43 @@ class StudySoAFootnoteRepository:
                     uid:study_soa_group.uid, 
                     name:head([(study_soa_group)-[:HAS_FLOWCHART_GROUP]->(:CTTermRoot)-[:HAS_NAME_ROOT]->(:CTTermNameRoot)-
                         [:LATEST]->(term_name_value:CTTermNameValue) | term_name_value.name]),
-                    visible_in_protocol_soa: study_soa_group.show_soa_group_in_protocol_flowchart
+                    visible_in_protocol_soa: study_soa_group.show_soa_group_in_protocol_flowchart,
+                    epoch_order: 999999,
+                    visit_order: 999999,
+                    study_soa_group_order:study_soa_group.order,
+                    study_activity_group_order:0, 
+                    study_activity_subgroup_order:0, 
+                    study_activity_order: 0, 
+                    study_activity_schedule_order: 0,
+                    type: 'StudySoAGroup'
                 }] AS referenced_study_soa_groups,
             [(sf)-[:REFERENCES_STUDY_EPOCH]->(study_epoch:StudyEpoch)<-[:HAS_STUDY_EPOCH]-(sv) | 
                 {
                     uid:study_epoch.uid, 
                     name:head([(study_epoch)-[:HAS_EPOCH]-(:CTTermRoot)-[:HAS_NAME_ROOT]->(:CTTermNameRoot)-[:LATEST]->(term_value:CTTermNameValue) | term_value.name]),
-                    visible_in_protocol_soa: true
+                    visible_in_protocol_soa: true,
+                    epoch_order: study_epoch.order,
+                    visit_order: 0,
+                    study_soa_group_order:0,
+                    study_activity_group_order:0, 
+                    study_activity_subgroup_order:0, 
+                    study_activity_order: 0, 
+                    study_activity_schedule_order: 0,
+                    type: 'StudyEpoch'
                 }] AS referenced_study_epochs,
             [(sf)-[:REFERENCES_STUDY_VISIT]->(study_visit:StudyVisit)<-[:HAS_STUDY_VISIT]-(sv) | 
                 {
                     uid:study_visit.uid, 
                     name:study_visit.short_visit_label,
-                    visible_in_protocol_soa: study_visit.show_visit
+                    visible_in_protocol_soa: study_visit.show_visit,
+                    epoch_order: 999999,
+                    visit_order: toInteger(study_visit.unique_visit_number),
+                    study_soa_group_order:0,
+                    study_activity_group_order:0, 
+                    study_activity_subgroup_order:0, 
+                    study_activity_order: 0, 
+                    study_activity_schedule_order: 0,
+                    type: 'StudyVisit'
                 }] AS referenced_study_visits,
             [(sf)-[:REFERENCES_STUDY_ACTIVITY_SCHEDULE]->(study_activity_schedule:StudyActivitySchedule)<-[:HAS_STUDY_ACTIVITY_SCHEDULE]-(sv)
               -[:HAS_STUDY_VISIT]->(study_visit:StudyVisit)-[:STUDY_VISIT_HAS_SCHEDULE]->(study_activity_schedule)
@@ -101,131 +150,101 @@ class StudySoAFootnoteRepository:
                 {
                     uid:study_activity_schedule.uid, 
                     name: activity_value.name + ' ' + study_visit.short_visit_label,
-                    visible_in_protocol_soa: study_activity.show_activity_in_protocol_flowchart AND study_visit.show_visit
+                    visible_in_protocol_soa: study_activity.show_activity_in_protocol_flowchart AND study_visit.show_visit,
+                    epoch_order: 999999,
+                    visit_order: 999999,
+                    study_soa_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_SOA_GROUP]->(study_soa_group) WHERE NOT (study_soa_group)-[:BEFORE]-() | study_soa_group.order]),
+                    study_activity_group_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_GROUP]->(study_activity_group) WHERE NOT (study_activity_group)-[:BEFORE]-() | study_activity_group.order]), 
+                    study_activity_subgroup_order:head([(study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_SUBGROUP]->(study_activity_subgroup) WHERE NOT (study_activity_subgroup)-[:BEFORE]-() | study_activity_subgroup.order]), 
+                    study_activity_order: study_activity.order, 
+                    study_activity_schedule_order: toInteger(study_visit.unique_visit_number),
+                    type: 'StudyActivitySchedule'
                 }] AS referenced_study_activity_schedules,
             head([(sf)<-[:BEFORE]-(before_action:StudyAction) | before_action.date]) AS end_date
             CALL {
                 WITH sf
-                OPTIONAL MATCH (sf)-[:HAS_SELECTED_FOOTNOTE]->(:FootnoteValue)<-[ver:HAS_VERSION]-(fr:FootnoteRoot)
+                OPTIONAL MATCH (sf)-[:HAS_SELECTED_FOOTNOTE]->(fv:FootnoteValue)<-[ver:HAS_VERSION]-(fr:FootnoteRoot)<-[:CONTAINS_SYNTAX_INSTANCE]-(library:Library)
+                OPTIONAL MATCH (ftr:FootnoteTemplateRoot)-[:HAS_FOOTNOTE]->(fr)
                 WHERE ver.status = 'Final'
-                RETURN {uid:fr.uid, version: ver.version} as footnote
+                RETURN 
+                    {
+                        uid:fr.uid, version: ver.version, name: fv.name, name_plain:fv.name_plain, library_name: library.name,
+                        template_uid: ftr.uid, template_name: fv.name
+                    } as footnote,
+                    fr as fr, 
+                    fv as fv
+                ORDER BY ver.start_date DESC
+                LIMIT 1
+            }
+            CALL {
+                WITH fr, fv
+                OPTIONAL MATCH (latest_footnote_value:FootnoteValue)<-[ver:HAS_VERSION]-(fr:FootnoteRoot)<-[:CONTAINS_SYNTAX_INSTANCE]-(library:Library)
+                OPTIONAL MATCH (ftr:FootnoteTemplateRoot)-[:HAS_FOOTNOTE]->(fr)
+                WHERE ver.status = 'Final' AND (fr)-[:LATEST]->(latest_footnote_value) and latest_footnote_value<>fv
+                RETURN 
+                    {uid:fr.uid, version: ver.version, name_plain:fv.name_plain, library_name: library.name, template_uid: ftr.uid} as latest_footnote
                 ORDER BY ver.start_date DESC
                 LIMIT 1
             }
             CALL{
                 WITH sf
-                OPTIONAL MATCH (sf)-[:HAS_SELECTED_FOOTNOTE_TEMPLATE]->(:FootnoteTemplateValue)<-[ver:HAS_VERSION]-(ftv:FootnoteTemplateRoot)
+                OPTIONAL MATCH (sf)-[:HAS_SELECTED_FOOTNOTE_TEMPLATE]->(ftv:FootnoteTemplateValue)<-[ver:HAS_VERSION]-(ftr:FootnoteTemplateRoot)<-[:CONTAINS_SYNTAX_TEMPLATE]-(library:Library)
                 WHERE ver.status = 'Final'
-                RETURN {uid:ftv.uid, version: ver.version} as footnote_template
+                RETURN {
+                    uid:ftr.uid, version: ver.version, name: ftv.name, name_plain: ftv.name_plain, library_name: library.name,
+                    parameters: [(ftr)-[:USES_PARAMETER]->(template_parameter:TemplateParameter) | template_parameter.name]
+                    } as footnote_template
                 ORDER BY ver.start_date DESC
                 LIMIT 1
             }
             RETURN DISTINCT
                 sr.uid AS study_uid,
                 sf.uid AS uid,
-                sf.footnote_number AS footnote_number,
                 sf.accepted_version as accepted_version,
-                footnote.uid as footnote_uid, 
-                footnote.version as footnote_version,
-                footnote_template.uid as footnote_template_uid, 
-                footnote_template.version as footnote_template_version,
+                footnote,
+                latest_footnote,
+                footnote_template,
                 sa.date AS modified_date,
                 end_date,
                 sa.author_id AS author_id,
                 sa.status AS status,
                 labels(sa) AS change_type,
-                apoc.coll.toSet(referenced_study_activities) AS referenced_study_activities,
-                apoc.coll.toSet(referenced_study_activity_subgroups) AS referenced_study_activity_subgroups,
-                apoc.coll.toSet(referenced_study_activity_groups) AS referenced_study_activity_groups,
-                apoc.coll.toSet(referenced_study_soa_groups) AS referenced_study_soa_groups,
-                apoc.coll.toSet(referenced_study_epochs) AS referenced_study_epochs,
-                apoc.coll.toSet(referenced_study_visits) AS referenced_study_visits,
-                apoc.coll.toSet(referenced_study_activity_schedules) AS referenced_study_activity_schedules,
+                apoc.coll.sortMulti(apoc.coll.toSet(referenced_study_activities) +
+                apoc.coll.toSet(referenced_study_activity_subgroups) +
+                apoc.coll.toSet(referenced_study_activity_groups) +
+                apoc.coll.toSet(referenced_study_soa_groups) +
+                apoc.coll.toSet(referenced_study_epochs) +
+                apoc.coll.toSet(referenced_study_visits) +
+                apoc.coll.toSet(referenced_study_activity_schedules),  ['^epoch_order', '^visit_order', '^study_soa_group_order', '^study_activity_group_order', '^study_activity_subgroup_order', '^study_activity_order', '^study_activity_schedule_order'])  AS referenced_items,
                 coalesce(head([(user:User)-[*0]-() WHERE user.user_id=sa.author_id | user.username]), sa.author_id) AS author_username
             """
 
-    def order_by_footnote_number(self):
-        return " ORDER BY footnote_number"
+    def order_by_soa_order(self):
+        # The referenced_items array of each SoAFootnote is pre-sorted so that always first item of referenced_items array is the first item that appears in SoA.
+        # In this ordering section we can sort SoAFootnotes based on the first item in the referenced_items array as this array was already pre sorted.
+        return """ORDER BY
+                referenced_items[0].epoch_order, 
+                referenced_items[0].visit_order, 
+                referenced_items[0].study_soa_group_order, 
+                referenced_items[0].study_activity_group_order, 
+                referenced_items[0].study_activity_subgroup_order, 
+                referenced_items[0].study_activity_order, 
+                referenced_items[0].study_activity_schedule_order"""
 
     def order_by_date(self):
         return "ORDER BY modified_date DESC"
 
     def get_referenced_items_from_selection(self, selection: dict[Any, Any]):
         referenced_items = []
-
-        for activity in selection.get("referenced_study_activities", []):
+        for item in selection.get("referenced_items", []):
+            item_type = SoAItemType(item.get("type"))
             referenced_items.append(
                 ReferencedItemVO(
-                    item_uid=activity.get("uid"),
-                    item_type=SoAItemType.STUDY_ACTIVITY,
-                    item_name=activity.get("name"),
-                    visible_in_protocol_soa=activity.get("visible_in_protocol_soa"),
-                )
-            )
-
-        for activity_subgroup in selection.get(
-            "referenced_study_activity_subgroups", []
-        ):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=activity_subgroup.get("uid"),
-                    item_type=SoAItemType.STUDY_ACTIVITY_SUBGROUP,
-                    item_name=activity_subgroup.get("name"),
-                    visible_in_protocol_soa=activity_subgroup.get(
-                        "visible_in_protocol_soa"
-                    ),
-                )
-            )
-
-        for activity_group in selection.get("referenced_study_activity_groups", []):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=activity_group.get("uid"),
-                    item_type=SoAItemType.STUDY_ACTIVITY_GROUP,
-                    item_name=activity_group.get("name"),
-                    visible_in_protocol_soa=activity_group.get(
-                        "visible_in_protocol_soa"
-                    ),
-                )
-            )
-
-        for soa_group in selection.get("referenced_study_soa_groups", []):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=soa_group.get("uid"),
-                    item_type=SoAItemType.STUDY_SOA_GROUP,
-                    item_name=soa_group.get("name"),
-                    visible_in_protocol_soa=soa_group.get("visible_in_protocol_soa"),
-                )
-            )
-
-        for study_epoch in selection.get("referenced_study_epochs", []):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=study_epoch.get("uid"),
-                    item_type=SoAItemType.STUDY_EPOCH,
-                    item_name=study_epoch.get("name"),
-                    visible_in_protocol_soa=study_epoch.get("visible_in_protocol_soa"),
-                )
-            )
-
-        for study_visit in selection.get("referenced_study_visits", []):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=study_visit.get("uid"),
-                    item_type=SoAItemType.STUDY_VISIT,
-                    item_name=study_visit.get("name"),
-                    visible_in_protocol_soa=study_visit.get("visible_in_protocol_soa"),
-                )
-            )
-
-        for sas in selection.get("referenced_study_activity_schedules", []):
-            referenced_items.append(
-                ReferencedItemVO(
-                    item_uid=sas.get("uid"),
-                    item_type=SoAItemType.STUDY_ACTIVITY_SCHEDULE,
-                    item_name=sas.get("name"),
-                    visible_in_protocol_soa=sas.get("visible_in_protocol_soa"),
+                    item_uid=item.get("uid"),
+                    item_type=item_type,
+                    item_name=item.get("name"),
+                    visible_in_protocol_soa=item.get("visible_in_protocol_soa"),
+                    order=item.get("order"),
                 )
             )
 
@@ -237,12 +256,30 @@ class StudySoAFootnoteRepository:
 
         selection_vo = StudySoAFootnoteVO.from_repository_values(
             study_uid=selection.get("study_uid"),
-            footnote_uid=selection.get("footnote_uid"),
-            footnote_version=selection.get("footnote_version"),
-            footnote_template_uid=selection.get("footnote_template_uid"),
-            footnote_template_version=selection.get("footnote_template_version"),
+            footnote_uid=selection.get("footnote").get("uid"),
+            footnote_version=selection.get("footnote").get("version"),
+            footnote_name=selection.get("footnote").get("name"),
+            footnote_name_plain=selection.get("footnote").get("name_plain"),
+            footnote_library_name=selection.get("footnote").get("library_name"),
+            latest_footnote_version=selection.get("latest_footnote").get("version"),
+            latest_footnote_name_plain=selection.get("latest_footnote").get(
+                "name_plain"
+            ),
+            footnote_template_uid=selection.get("footnote_template").get("uid")
+            or selection.get("footnote").get("template_uid"),
+            footnote_template_version=selection.get("footnote_template").get("version"),
+            footnote_template_name=selection.get("footnote_template").get("name")
+            or selection.get("footnote").get("template_name"),
+            footnote_template_name_plain=selection.get("footnote_template").get(
+                "name_plain"
+            ),
+            footnote_template_library_name=selection.get("footnote_template").get(
+                "library_name"
+            ),
+            footnote_template_parameters=selection.get("footnote_template").get(
+                "parameters"
+            ),
             referenced_items=referenced_items,
-            footnote_number=selection.get("footnote_number"),
             uid=selection.get("uid"),
             modified=convert_to_datetime(value=selection.get("modified_date")),
             author_id=selection.get("author_id"),
@@ -262,12 +299,15 @@ class StudySoAFootnoteRepository:
                 change_type = action
         selection_vo = StudySoAFootnoteVOHistory(
             study_uid=selection.get("study_uid"),
-            footnote_uid=selection.get("footnote_uid"),
-            footnote_version=selection.get("footnote_version"),
-            footnote_template_uid=selection.get("footnote_template_uid"),
-            footnote_template_version=selection.get("footnote_template_version"),
+            footnote_uid=selection.get("footnote").get("uid"),
+            footnote_version=selection.get("footnote").get("version"),
+            footnote_name_plain=selection.get("footnote").get("name_plain"),
+            footnote_template_uid=selection.get("footnote_template").get("uid"),
+            footnote_template_version=selection.get("footnote_template").get("version"),
+            footnote_template_name_plain=selection.get("footnote_template").get(
+                "name_plain"
+            ),
             referenced_items=referenced_items,
-            footnote_number=selection.get("footnote_number"),
             uid=selection.get("uid"),
             start_date=convert_to_datetime(value=selection.get("modified_date")),
             end_date=(
@@ -283,6 +323,7 @@ class StudySoAFootnoteRepository:
         )
         return selection_vo
 
+    @trace_calls
     def find_all_footnotes(
         self,
         study_uids: str | list[str] | None = None,
@@ -323,34 +364,37 @@ class StudySoAFootnoteRepository:
         if not study_value_version:
             query += self.where_query()
         query += self.with_query()
-        query += self.order_by_footnote_number()
+        query += self.order_by_soa_order()
         all_study_soa_footnotes = db.cypher_query(query, query_parameters)
-        all_selections = []
+        all_selections: list[StudySoAFootnoteVO] = []
         for selection in utils.db_result_to_list(all_study_soa_footnotes):
-            selection_vo = self.create_vo_from_db_output(selection=selection)
+            selection_vo: StudySoAFootnoteVO = self.create_vo_from_db_output(
+                selection=selection
+            )
             all_selections.append(selection_vo)
+
         return all_selections
 
     def find_by_uid(
-        self, uid: str, study_value_version: str | None = None
+        self, study_uid: str, uid: str, study_value_version: str | None = None
     ) -> StudySoAFootnoteVO:
         query_parameters = {}
         query_parameters["uid"] = uid
+        query_parameters["study_uid"] = study_uid
         if study_value_version:
             query = (
-                "MATCH (sr:StudyRoot)-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)-[:HAS_STUDY_FOOTNOTE]->"
+                "MATCH (sr:StudyRoot {uid: $study_uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)-[:HAS_STUDY_FOOTNOTE]->"
                 "(sf:StudySoAFootnote {uid:$uid})<-[:AFTER]-(sa:StudyAction)"
             )
             query_parameters["study_value_version"] = study_value_version
         else:
             query = (
-                "MATCH (sr:StudyRoot)-[l:LATEST]->(sv:StudyValue)-[:HAS_STUDY_FOOTNOTE]->"
+                "MATCH (sr:StudyRoot {uid: $study_uid})-[l:LATEST]->(sv:StudyValue)-[:HAS_STUDY_FOOTNOTE]->"
                 "(sf:StudySoAFootnote {uid:$uid})<-[:AFTER]-(sa:StudyAction)"
             )
         if not study_value_version:
             query += self.where_query()
         query += self.with_query()
-        query += self.order_by_footnote_number()
 
         db_ret = db.cypher_query(query, query_parameters)
 
@@ -377,7 +421,6 @@ class StudySoAFootnoteRepository:
 
         soa_footnote_node = StudySoAFootnote(
             uid=soa_footnote_vo.uid,
-            footnote_number=soa_footnote_vo.footnote_number,
             accepted_version=soa_footnote_vo.accepted_version,
         )
         soa_footnote_node.save()
@@ -640,3 +683,22 @@ class StudySoAFootnoteRepository:
         action.has_before.connect(previous_node)
         action.has_after.connect(new_node)
         study_root.audit_trail.connect(action)
+
+    def check_exists_soa_footnotes_for_footnote_and_study_uid(
+        self, study_uid: str, footnote_uid: str, soa_footnote_uid_to_exclude: str
+    ) -> str | None:
+        query = """
+            MATCH (study_root:StudyRoot {uid: $study_uid})-[:LATEST]->(study_value:StudyValue)-[:HAS_STUDY_FOOTNOTE]->(study_soa_footnote:StudySoAFootnote)
+                -[:HAS_SELECTED_FOOTNOTE]->(footnote_value:FootnoteValue)<-[:HAS_VERSION]-(footnote_root:FootnoteRoot {uid: $footnote_uid})
+            WHERE study_soa_footnote.uid <> $soa_footnote_uid_to_exclude AND NOT (study_soa_footnote)-[:BEFORE]-() AND NOT (study_soa_footnote)--(:Delete)
+            RETURN DISTINCT footnote_value.name_plain
+        """
+        existing_footnote, _ = db.cypher_query(
+            query,
+            params={
+                "study_uid": study_uid,
+                "footnote_uid": footnote_uid,
+                "soa_footnote_uid_to_exclude": soa_footnote_uid_to_exclude,
+            },
+        )
+        return existing_footnote[0][0] if len(existing_footnote) > 0 else None

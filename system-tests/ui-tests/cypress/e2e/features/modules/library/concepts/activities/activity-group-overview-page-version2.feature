@@ -46,6 +46,7 @@ Feature: Library - Concepts - Activities - Activity Group Overview Page (Version
         When The '/library/activities/activity-subgroups' page is opened
         And I create a new subgroup2 and linked to the test group
         And Form save button is clicked
+        And User sets status filter to 'all'
         And I approve the subgroup2
         When The '/library/activities/activity-groups' page is opened
         And I click on the test activity group name in the activity group page

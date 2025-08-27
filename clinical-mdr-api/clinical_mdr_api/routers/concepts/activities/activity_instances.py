@@ -93,6 +93,13 @@ Possible errors:
 def get_activities(
     request: Request,  # request is actually required by the allow_exports decorator
     library_name: Annotated[str | None, Query()] = None,
+    names: Annotated[
+        list[str] | None,
+        Query(
+            description="A list of activity instance names to use as a specific filter",
+            alias="names[]",
+        ),
+    ] = None,
     activity_names: Annotated[
         list[str] | None,
         Query(
@@ -156,6 +163,7 @@ def get_activities(
         activity_subgroup_names=activity_subgroup_names,
         activity_group_names=activity_group_names,
         activity_instance_class_names=activity_instance_class_names,
+        activity_instance_names=names,
         sort_by=sort_by,
         page_number=page_number,
         page_size=page_size,

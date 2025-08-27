@@ -18,7 +18,9 @@ from clinical_mdr_api.models.biomedical_concepts.activity_item_class import (
     ActivityItemClass,
 )
 from clinical_mdr_api.models.controlled_terminologies.ct_term import CTTerm
+from clinical_mdr_api.models.standard_data_models.data_model_ig import DataModelIG
 from clinical_mdr_api.models.standard_data_models.dataset import Dataset
+from clinical_mdr_api.models.standard_data_models.dataset_class import DatasetClass
 from clinical_mdr_api.models.standard_data_models.dataset_variable import (
     DatasetVariable,
 )
@@ -46,9 +48,12 @@ activity_instance_class: ActivityInstanceClass
 activity_instance_class2: ActivityInstanceClass
 role_term: CTTerm
 data_type_term: CTTerm
+dataset_class: DatasetClass
 variable_class: VariableClass
 dataset: Dataset
 dataset_variable: DatasetVariable
+data_model_catalogue_name: str
+data_model_ig: DataModelIG
 
 
 @pytest.fixture(scope="module")
@@ -70,8 +75,11 @@ def test_data():
     global data_type_term
     global role_term
     global variable_class
+    global dataset_class
     global dataset
     global dataset_variable
+    global data_model_catalogue_name
+    global data_model_ig
 
     activity_instance_class = TestUtils.create_activity_instance_class(
         name="Activity Instance Class name1"
@@ -82,27 +90,29 @@ def test_data():
     data_type_term = TestUtils.create_ct_term(sponsor_preferred_name="Data type")
     role_term = TestUtils.create_ct_term(sponsor_preferred_name="Role")
     data_model = TestUtils.create_data_model()
-    data_model_catalogue = TestUtils.create_data_model_catalogue()
+    data_model_catalogue_name = TestUtils.create_data_model_catalogue()
     dataset_class = TestUtils.create_dataset_class(
         data_model_uid=data_model.uid,
-        data_model_catalogue_name=data_model_catalogue,
+        data_model_catalogue_name=data_model_catalogue_name,
     )
     variable_class = TestUtils.create_variable_class(
         dataset_class_uid=dataset_class.uid,
-        data_model_catalogue_name=data_model_catalogue,
+        data_model_catalogue_name=data_model_catalogue_name,
         data_model_name=data_model.uid,
         data_model_version=data_model.version_number,
     )
-    data_model_ig = TestUtils.create_data_model_ig()
+    data_model_ig = TestUtils.create_data_model_ig(
+        implemented_data_model=data_model.uid
+    )
     dataset = TestUtils.create_dataset(
         data_model_ig_uid=data_model_ig.uid,
         data_model_ig_version_number=data_model_ig.version_number,
         implemented_dataset_class_name=dataset_class.uid,
-        data_model_catalogue_name=data_model_catalogue,
+        data_model_catalogue_name=data_model_catalogue_name,
     )
     dataset_variable = TestUtils.create_dataset_variable(
         dataset_uid=dataset.uid,
-        data_model_catalogue_name=data_model_catalogue,
+        data_model_catalogue_name=data_model_catalogue_name,
         data_model_ig_name=data_model_ig.uid,
         data_model_ig_version=data_model_ig.version_number,
         class_variable_uid=variable_class.uid,
@@ -744,7 +754,7 @@ def test_get_activity_item_class_terms(api_client):
     )
     assert_response_status_code(response, 200)
     res = response.json()
-    assert res["items"] == [
+    expected_items = [
         {
             "code_submission_value": None,
             "codelist_submission_value": "C66737 SUMBVAL",
@@ -826,3 +836,50 @@ def test_get_activity_item_class_terms(api_client):
             "term_uid": "C98737_HLTSUBJI",
         },
     ]
+    assert sorted(expected_items, key=lambda x: x["term_uid"]) == sorted(
+        res["items"], key=lambda x: x["term_uid"]
+    )
+
+    # Now, test that sponsor models are properly used
+    sponsor_model = TestUtils.create_sponsor_model(
+        ig_uid=data_model_ig.uid,
+        ig_version_number=data_model_ig.version_number,
+        version_number="1",
+    )
+    sponsor_dataset = TestUtils.create_sponsor_dataset(
+        dataset_uid=dataset.uid,
+        sponsor_model_name=sponsor_model.name,
+        sponsor_model_version_number=sponsor_model.version,
+        implemented_dataset_class=dataset_class.uid,
+    )
+
+    _ = TestUtils.create_sponsor_dataset_variable(
+        target_data_model_catalogue=data_model_catalogue_name,
+        dataset_uid=sponsor_dataset.uid,
+        dataset_variable_uid=dataset_variable.uid,
+        sponsor_model_name=sponsor_model.name,
+        sponsor_model_version_number=sponsor_model.version,
+        implemented_variable_class=variable_class.uid,
+        implemented_parent_dataset_class=dataset_class.uid,
+        references_codelists=[CT_CODELIST_UIDS.default],
+        references_terms=["C123631_PDPSTIND"],
+    )
+
+    # Fetch terms using sponsor model
+    # Should be filtered down to a single term
+    response = api_client.get(
+        f"/activity-item-classes/{activity_item_classes_all[0].uid}/datasets/{dataset.uid}/terms?use_sponsor_model=True"
+    )
+    res = response.json()
+    assert len(res["items"]) == 1
+    assert res["items"][0]["term_uid"] == "C123631_PDPSTIND"
+
+    # Fetch terms without using sponsor model
+    # Should return all terms
+    response = api_client.get(
+        f"/activity-item-classes/{activity_item_classes_all[0].uid}/datasets/{dataset.uid}/terms?use_sponsor_model=False"
+    )
+    res = response.json()
+    assert sorted(expected_items, key=lambda x: x["term_uid"]) == sorted(
+        res["items"], key=lambda x: x["term_uid"]
+    )

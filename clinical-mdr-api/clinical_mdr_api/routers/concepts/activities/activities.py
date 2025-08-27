@@ -616,8 +616,8 @@ def get_specific_activity_version_groupings(
         version: The specific version of the activity (e.g., "16.0").
         page_number: The page number for pagination (default: 1).
         page_size: The number of items per page (default: 10).
-        roots_only: If true, returns only the highest version of each unique activity instance.
-                   If false, returns all versions of all activity instances.
+        flatten: If true, returns parent and child instances as separate rows (useful for exports).
+                 If false, returns hierarchical structure with children nested (default).
 
     Returns:
         A paginated response containing activity instances relevant to the specified
@@ -639,6 +639,9 @@ def get_specific_activity_version_groupings(
             "version",
             "status",
             "definition",
+            "activity_instance_class.name",
+            "topic_code",
+            "adam_param_code",
         ],
         "formats": [
             "text/csv",
@@ -667,6 +670,12 @@ def get_instances_for_specific_activity_version(
             description=_generic_descriptions.PAGE_SIZE,
         ),
     ] = settings.default_page_size,
+    flatten: Annotated[
+        bool,
+        Query(
+            description="If true, returns parent and child instances as separate rows. If false, returns hierarchical structure.",
+        ),
+    ] = False,
 ) -> GenericFilteringReturn[ActivityInstanceDetail]:
     """
     Get activity instances relevant to a specific activity version's timeframe.
@@ -676,18 +685,29 @@ def get_instances_for_specific_activity_version(
         version: The specific version of the activity.
         page_number: The page number for pagination.
         page_size: The number of items per page.
+        flatten: Whether to flatten the parent-child hierarchy.
 
     Returns:
         A paginated response containing relevant activity instances.
     """
     activity_service = ActivityService()
     try:
-        result = activity_service.get_activity_instances_for_version(
-            activity_uid=activity_uid,
-            version=version,
-            page_number=page_number,
-            page_size=page_size,
-        )
+        if flatten:
+            # Return flattened list for exports
+            result = activity_service.get_flattened_activity_instances_for_version(
+                activity_uid=activity_uid,
+                version=version,
+                page_number=page_number,
+                page_size=page_size,
+            )
+        else:
+            # Return hierarchical structure (default)
+            result = activity_service.get_activity_instances_for_version(
+                activity_uid=activity_uid,
+                version=version,
+                page_number=page_number,
+                page_size=page_size,
+            )
         return result
     except Exception as e:
         raise e

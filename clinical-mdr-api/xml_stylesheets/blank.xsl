@@ -19,7 +19,7 @@
           padding: 0px;
           }
 
-          .h1, .h2, .h3, h1, h2, h3 {
+          h1, h2, h3, h4, h5 {
           margin-top: 5px;
           margin-bottom: 5px;
           }
@@ -61,12 +61,6 @@
 
           .odmform + .odmform {
           margin-top: 20px; /* space between divs */
-          }
-
-          .odmform h2 {
-          text-align: center;
-          margin-top: 0;
-          margin-bottom: 20px;
           }
 
           .odmitemgroup {
@@ -166,8 +160,8 @@
           .row {
           margin-top: 0px;
           margin-right: 0px;
-          margin-left:0px;
-          margin-bottom: 5px;
+          margin-left: 0px;
+          margin-bottom: 0px;
           width: 100%;
           }
 
@@ -199,6 +193,7 @@
           transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
           width: auto;
           white-space: normal;
+          margin: 0.2em;
           }
 
           .badge-ig {
@@ -245,7 +240,7 @@
               <h3><xsl:value-of select="/ODM/Study/GlobalVariables/StudyName"/></h3>
             </div>
             <div class="col-sm-5 text-right">
-              <button type="button" class="btn btn-primary btn-sm floating" data-toggle="collapse" data-target=".help">Show help</button>
+              <button type="button" class="btn btn-primary btn-sm floating" data-toggle="collapse" data-target=".help">Implementation guidelines</button>
             </div>
           </div>
         </div>
@@ -314,6 +309,7 @@
                 <xsl:apply-templates select="Question">
                   <xsl:with-param name="lockItem" select="'No'" />
                   <xsl:with-param name="sdvItem" select="'No'" />
+                  <xsl:with-param name="mandatoryItem" select="$mandatory" />
                 </xsl:apply-templates>
               </xsl:when>
               <xsl:otherwise>
@@ -334,35 +330,20 @@
               <span class="material-symbols-outlined">account_tree</span>
             </xsl:if>
           </div>
-          <div class="col-sm-3 {$labelColor} border text-right"> <!-- Item lable column -->
+          <div class="col-sm-3 {$labelColor} border text-right"> <!-- Item label column -->
             <i aria-hidden="true" class="v-icon notranslate mr-1 mdi mdi-alpha-i-circle theme--light crfItem--text"></i>
             <xsl:choose>
               <xsl:when test="./Question">
-                <xsl:choose>
-                  <xsl:when test="$itemCondition != 'null'">
-                    &#160;&#160;
-                    <xsl:apply-templates select="Question">
-                      <xsl:with-param name="lockItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:locked" />
-                      <xsl:with-param name="sdvItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:sdv" />
-                      <xsl:with-param name="mandatoryItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@Mandatory" />
-                    </xsl:apply-templates>
-                  </xsl:when>
-                  <xsl:otherwise>
-                    <xsl:apply-templates select="Question">
-                      <xsl:with-param name="lockItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:locked" />
-                      <xsl:with-param name="sdvItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:sdv" />
-                      <xsl:with-param name="mandatoryItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@Mandatory" />
-                    </xsl:apply-templates>
-                  </xsl:otherwise>
-                </xsl:choose>
+                <xsl:apply-templates select="Question">
+                  <xsl:with-param name="lockItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:locked" />
+                  <xsl:with-param name="sdvItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:sdv" />
+                  <xsl:with-param name="mandatoryItem" select="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@Mandatory" />
+                </xsl:apply-templates>
               </xsl:when>
               <xsl:otherwise>
                 <xsl:value-of select="@Name" />
               </xsl:otherwise>
             </xsl:choose>
-            <xsl:if test="//ItemGroupDef/ItemRef[@ItemOID = current()/@OID]/@osb:dataEntryRequired = 'Yes'">
-              <em> * </em>
-            </xsl:if>
             <xsl:choose>
               <xsl:when test="./@osb:instruction != 'None'">
                 <div class="alert alert-secondary text-left help collapse {$labelColor}" role="alert">
@@ -371,13 +352,19 @@
               </xsl:when>
             </xsl:choose>
           </div>
+
           <!-- Item field column -->
           <xsl:choose>
             <xsl:when test="MeasurementUnitRef">
               <div class="col-sm-4 {$labelColor} border text-left">
                 <input type="{@DataType}" class="{$labelColor}" id="{@OID}" name="{@Name}" min="4" maxlenght="40" size="{@Length}"/>
+                <xsl:if test="./Alias/@Context = 'wordFormat'">
+                  <xsl:for-each select="./Alias[@Context = 'wordFormat']">
+                    &#160;&#160;<xsl:value-of disable-output-escaping="yes" select="@Name" />
+                  </xsl:for-each>
+                </xsl:if>
               </div>
-              <div class="col-sm-1 {$labelColor} border text-left">
+              <div class="col-sm-1 {$labelColor} border text-right">
                 Unit :
               </div>
               <div class="col-sm-3 {$labelColor} border text-left">
@@ -428,6 +415,11 @@
                     </xsl:choose>
                   </xsl:otherwise>
                 </xsl:choose>
+                <xsl:if test="./Alias/@Context = 'wordFormat'">
+                  <xsl:for-each select="./Alias[@Context = 'wordFormat']">
+                    &#160;&#160;<xsl:value-of disable-output-escaping="yes" select="@Name" />
+                  </xsl:for-each>
+                </xsl:if>
               </div>
             </xsl:otherwise>
           </xsl:choose>
@@ -437,32 +429,33 @@
   </xsl:template>
 
   <xsl:template match="ItemGroupDef">
-    <div class="input-group">
-      <h4>
-        <span class="badge-itemgroup">G</span>&#160;&#160;<xsl:value-of disable-output-escaping="yes" select="@Name" />
+    <div class="odmitemgroup">
+      <div class="row">
+        <div class="col-sm-12 border">
+          <h4>
+            <span class="badge-itemgroup">G</span>&#160;&#160;<xsl:value-of disable-output-escaping="yes" select="@Name" />
 
-        <xsl:if test="//FormDef/ItemGroupRef[@ItemGroupOID = current()/@OID]/@Mandatory = 'Yes'">
-          <em>&#160;*&#160;</em>
-        </xsl:if>
-      </h4>
+            <xsl:if test="//FormDef/ItemGroupRef[@ItemGroupOID = current()/@OID]/@Mandatory = 'Yes'">
+              <em>&#160;*&#160;</em>
+            </xsl:if>
+          </h4>
+          <xsl:choose>
+            <xsl:when test="./@osb:instruction != 'None'">
+              <div class="alert alert-secondary text-left help collapse" role="alert">
+                <span class="material-symbols-outlined">help</span>&#160;<xsl:value-of disable-output-escaping="yes" select="@osb:instruction" />
+              </div>
+            </xsl:when>
+          </xsl:choose>
+        </div>
 
-      <div class="col-sm-12">
-        <xsl:choose>
-          <xsl:when test="./@osb:instruction != 'None'">
-            <div class="alert alert-secondary text-left help collapse" role="alert">
-              <span class="material-symbols-outlined">help</span>&#160;<xsl:value-of disable-output-escaping="yes" select="@osb:instruction" />
-            </div>
-          </xsl:when>
-        </xsl:choose>
+        <xsl:for-each select="ItemRef">
+          <xsl:sort select="@OrderNumber"/>
+          <xsl:apply-templates select="//ItemDef[@OID = current()/@ItemOID]">
+            <xsl:with-param name="domainNiv" select="../FormDef/ItemGroupRef[@ItemGroupOID = current()/@OID]/@OrderNumber+1"/>
+            <xsl:with-param name="itemCondition" select="current()/@CollectionExceptionConditionOID"/>
+          </xsl:apply-templates>
+        </xsl:for-each>
       </div>
-
-      <xsl:for-each select="ItemRef">
-        <xsl:sort select="@OrderNumber"/>
-        <xsl:apply-templates select="//ItemDef[@OID = current()/@ItemOID]">
-          <xsl:with-param name="domainNiv" select="../FormDef/ItemGroupRef[@ItemGroupOID = current()/@OID]/@OrderNumber+1"/>
-          <xsl:with-param name="itemCondition" select="current()/@CollectionExceptionConditionOID"/>
-        </xsl:apply-templates>
-      </xsl:for-each>
     </div>
   </xsl:template>
 
@@ -481,7 +474,7 @@
           </xsl:choose>
         </div>
         <xsl:for-each select="ItemGroupRef">
-          <xsl:sort select="current()/@OrderNumber"/>
+          <xsl:sort select="current()/@OrderNumber" data-type="number"/>
           <xsl:apply-templates select="//ItemGroupDef[@OID = current()/@ItemGroupOID]"/>
         </xsl:for-each>
       </div>
@@ -495,13 +488,13 @@
     <xsl:value-of select="TranslatedText" />&#160;
     <xsl:choose>
       <xsl:when test="($lockItem = 'Yes') and ($sdvItem = 'Yes')">
-        <span class="material-symbols-outlined">lock</span>&#160;<span class="material-symbols-outlined">check</span>
+        <span class="material-symbols-outlined">lock</span>&#160;<span class="material-symbols-outlined">account_tree</span>
       </xsl:when>
       <xsl:when test="$lockItem = 'Yes'">
         <span class="material-symbols-outlined">lock</span>
       </xsl:when>
       <xsl:when test="$sdvItem = 'Yes'">
-        <span class="material-symbols-outlined">check</span>
+        <span class="material-symbols-outlined">account_tree</span>
       </xsl:when>
       <xsl:otherwise>
       </xsl:otherwise>
@@ -514,6 +507,15 @@
 
   <xsl:template match="Symbol">
     <xsl:value-of select="TranslatedText" />
+  </xsl:template>
+
+  <xsl:template name="Alias">
+    <xsl:param name="aliasContext"/>
+    <xsl:param name="aliasName"/>
+    <br />
+    <div class="badge" style="background-color:#3496f0; border: 1px solid #000; color: white;">
+      <xsl:value-of disable-output-escaping="yes" select="$aliasContext" />: <xsl:value-of disable-output-escaping="yes" select="$aliasName" />
+    </div>
   </xsl:template>
 
   <xsl:template name="splitter">

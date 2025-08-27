@@ -15,6 +15,9 @@ from clinical_mdr_api.domain_repositories.study_selections.study_activity_instan
 from clinical_mdr_api.domains.concepts.activities.activity_instance import (
     ActivityInstanceAR,
 )
+from clinical_mdr_api.domains.study_selections.study_selection_activity import (
+    StudySelectionActivityVO,
+)
 from clinical_mdr_api.domains.study_selections.study_selection_activity_instance import (
     StudySelectionActivityInstanceAR,
     StudySelectionActivityInstanceVO,
@@ -200,12 +203,23 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
     def activity_instance_validation(
         self,
         activity_instance_uid: str,
-        study_activity_selection: StudySelectionActivityInstanceVO,
+        study_activity_selection: StudySelectionActivityVO,
+        current_activity_instance_uid: str | None = None,
+        current_activity_instance_version: str | None = None,
     ):
         activity_instance_service = ActivityInstanceService()
-        activity_instance_ar = activity_instance_service.repository.find_by_uid_2(
-            activity_instance_uid, for_update=True
-        )
+
+        # If ActivityInstance wasn't changed we should fetch it in the version it was selected by StudyActivityInstance
+        if activity_instance_uid == current_activity_instance_uid:
+            activity_instance_ar = activity_instance_service.repository.find_by_uid_2(
+                activity_instance_uid,
+                version=current_activity_instance_version,
+            )
+        else:
+            activity_instance_ar = activity_instance_service.repository.find_by_uid_2(
+                activity_instance_uid
+            )
+
         exceptions.NotFoundException.raise_if_not(
             activity_instance_ar, "Activity Instance", activity_instance_uid
         )
@@ -360,6 +374,7 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
             show_activity_instance_in_protocol_flowchart=current_object.show_activity_instance_in_protocol_flowchart,
             activity_instance_uid=current_object.activity_instance_uid,
             study_activity_uid=current_object.study_activity_uid,
+            keep_old_version=current_object.keep_old_version,
         )
 
         # fill the missing from the inputs
@@ -376,6 +391,8 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
             activity_instance_ar = self.activity_instance_validation(
                 activity_instance_uid=request_object.activity_instance_uid,
                 study_activity_selection=study_activity_selection,
+                current_activity_instance_uid=current_object.activity_instance_uid,
+                current_activity_instance_version=current_object.activity_instance_version,
             )
         else:
             activity_instance_ar = None
@@ -399,6 +416,7 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
             activity_version=current_object.activity_version,
             study_activity_uid=current_object.study_activity_uid,
             show_activity_instance_in_protocol_flowchart=request_object.show_activity_instance_in_protocol_flowchart,
+            keep_old_version=request_object.keep_old_version,
         )
 
     def get_specific_selection(
@@ -446,6 +464,11 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
         new_selection: StudySelectionActivityInstanceVO = selection.update_version(
             activity_instance_version=activity_instance_ar.item_metadata.version
         )
+
+        # When we sync to latest version it means we clear keep_old_version flag as user
+        # decided to update to latest version
+        new_selection = new_selection.update_keep_old_version(keep_old_version=False)
+
         selection_ar.update_selection(new_selection)
         self._repos.study_activity_instance_repository.save(selection_ar, self.author)
 

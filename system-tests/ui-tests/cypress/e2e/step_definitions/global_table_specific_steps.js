@@ -1,5 +1,13 @@
 const { When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
+When('User adds column {string} to filters', (headerName) => cy.tableHeaderActions(headerName, 'Add to filter'))
+
+When('User sets status filter to {string}', (filterValue) => {
+    cy.get(`.layoutSelector button[value=${filterValue}]`).filter(':visible').click()
+})
+
+When('User searches for {string}', (value) => cy.searchAndCheckPresence(value, true))
+
 Then('The item has status {string} and version {string}', (status, version) => {
     cy.checkRowByIndex(0, 'Status', status)
     cy.checkRowByIndex(0, 'Version', version)

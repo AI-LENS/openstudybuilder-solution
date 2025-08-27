@@ -611,7 +611,12 @@ class TestUtils:
         cls, items: list[dict[Any, Any]], key: str, desc: bool = False
     ):
         """Asserts that the supplied list of dictionaries is sorted by `key` in expected order"""
-        sorted_items = sorted(items, key=lambda x: x[key], reverse=desc)
+        if "." in key:
+            # If the key is a nested key, we need to extract it from each item
+            key1, key2 = key.split(".")
+            sorted_items = sorted(items, key=lambda x: x[key1][key2], reverse=desc)
+        else:
+            sorted_items = sorted(items, key=lambda x: x[key], reverse=desc)
         assert items == sorted_items
 
     @classmethod
@@ -3360,7 +3365,10 @@ class TestUtils:
         dataset_variable_uid: str,
         sponsor_model_name: str,
         sponsor_model_version_number: str,
+        target_data_model_catalogue: str | None = "SDTMIG",
         is_basic_std: bool | None = False,
+        implemented_parent_dataset_class: str | None = None,
+        implemented_variable_class: str | None = None,
         label: str | None = "label",
         order: int | None = 1,
         variable_type: str | None = "variable_type",
@@ -3391,17 +3399,22 @@ class TestUtils:
         enrich_rule: str | None = "enrich_rule",
         incl_cre_domain: bool | None = False,
         xml_codelist_values: str | None = "xml_codelist_values",
+        references_codelists: list[str] | None = None,
+        references_terms: list[str] | None = None,
     ) -> SponsorModelDatasetVariableAPIModel:
         service: SponsorModelDatasetVariableService = (
             SponsorModelDatasetVariableService()
         )
         result: SponsorModelDatasetVariableAPIModel = service.create(
             item_input=SponsorModelDatasetVariableInput(
+                target_data_model_catalogue=target_data_model_catalogue,
                 dataset_uid=dataset_uid,
                 dataset_variable_uid=dataset_variable_uid,
                 sponsor_model_name=sponsor_model_name,
                 sponsor_model_version_number=sponsor_model_version_number,
                 is_basic_std=is_basic_std,
+                implemented_parent_dataset_class=implemented_parent_dataset_class,
+                implemented_variable_class=implemented_variable_class,
                 label=label,
                 order=order,
                 variable_type=variable_type,
@@ -3432,6 +3445,8 @@ class TestUtils:
                 enrich_rule=enrich_rule,
                 incl_cre_domain=incl_cre_domain,
                 xml_codelist_values=xml_codelist_values,
+                references_codelists=references_codelists,
+                references_terms=references_terms,
             )
         )
 

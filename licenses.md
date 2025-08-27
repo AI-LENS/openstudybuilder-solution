@@ -21,10 +21,10 @@ The OpenStudyBuilder App frontend can be released under GPLv3 License.
 
 | Package | License | Can be combined |
 |---|---|-|
-| certifi (2025.1.31) | MPL v. 2.0 | OK |
+| certifi (2025.4.26) | MPL v. 2.0 | OK |
 | hypothesis (6.115.6) | MPL v. 2.0 | OK |
 | pyphen (0.17.2) | GPL 2.0+/LGPL 2.1+/MPL 1.1 tri-license | OK |
-| typing_extensions (4.12.2) | Python License | OK |
+| typing_extensions (4.14.0) | Python License | OK |
 | usdm (0.59.0) | GPL 3.0 | OK |
 | yattag (1.16.1) | LGPL 3.0 | OK |
 
@@ -44,7 +44,7 @@ The Documentation Portal can be released under GPLv3 License.
 
 | Package | License | Can be combined |
 |---|---|-|
-| certifi 2024.8.30 | MPL v. 2.0 | OK |
+| certifi 2025.4.26 | MPL v. 2.0 | OK |
 
 As the licenses is using MPL version 2.0 it is assessed that it poses no issue to release in combination with GPL and GPL derivatives since version 2.0 of the MPL license was rewritten to allow for combination with the GPL versions as well as derivatives of GPL. 
 **Conclusion**  
@@ -54,8 +54,8 @@ The Neo4j MDR DB can be released under GPLv3 License.
 
 | Package | License | Can be combined |
 |---|---|-|
-| certifi 2024.12.14 | MPL v. 2.0 | OK |
-| packaging 24.2 | Dual-licensed as BSD-2-Clause or Apache-2.0 | OK |
+| certifi 2025.4.26 | MPL v. 2.0 | OK |
+| packaging 25.0 | Dual-licensed as BSD-2-Clause or Apache-2.0 | OK |
 
 As the licenses is using MPL version 2.0 it is assessed that it poses no issue to release in combination with GPL and GPL derivatives since version 2.0 of the MPL license was rewritten to allow for combination with the GPL versions as well as derivatives of GPL. 
 The `packaging` has the possibility for dual-licensing, where Apache-2.0 is preferrable.

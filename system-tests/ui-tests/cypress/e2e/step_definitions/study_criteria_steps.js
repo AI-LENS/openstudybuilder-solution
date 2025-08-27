@@ -8,8 +8,8 @@ When('The {string} criteria is created from studies', () => {
     cy.clickFormActionButton('continue')
 })
 
-When('The test study for {string} criteria copying is selected by study id', () => {
-    cy.selectFirstVSelect('Select studies')
+When('Study with {string} id is selected to copy criteria from', (studyId) => {
+    cy.selectVSelect('Select studies', studyId)
     cy.clickFormActionButton('continue')
 })
 

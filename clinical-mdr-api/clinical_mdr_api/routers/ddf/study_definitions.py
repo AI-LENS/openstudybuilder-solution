@@ -54,7 +54,7 @@ Possible errors:
 def get_study(
     study_uid: Annotated[str, Path(description="The unique uid of the study.")]
 ) -> dict[str, Any]:
-    usdm_service = USDMService(study_uid=study_uid)
+    usdm_service = USDMService()
     ddf_study_wrapper = usdm_service.get_by_uid(study_uid)
     return ddf_study_wrapper
 
@@ -83,7 +83,7 @@ def get_study_m11_protocol(
     request: Request,
     study_uid: Annotated[str, Path(description="The unique uid of the study.")],
 ):
-    usdm_service = USDMService(study_uid=study_uid)
+    usdm_service = USDMService()
     ddf_study_wrapper = usdm_service.get_by_uid(study_uid)
     ddf_study = ddf_study_wrapper.get("study")
 

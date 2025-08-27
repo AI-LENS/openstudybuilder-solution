@@ -106,33 +106,6 @@
           </v-col>
         </v-row>
         <div class="label my-2">
-          {{ $t('StudyActivityUpdateForms.data_collection') }}
-        </div>
-        <v-row>
-          <v-col cols="12">
-            <span
-              v-if="
-                checkIfDifferent(
-                  activity.activity.is_data_collected,
-                  activity.latest_activity.is_data_collected
-                )
-              "
-            >
-              <v-chip color="red" class="crossed-out">
-                <div class="text-nnTrueBlue">
-                  {{ $filters.yesno(activity.activity.is_data_collected) }}
-                </div>
-              </v-chip>
-              &#8594;
-            </span>
-            <v-chip color="green">
-              <div class="text-nnTrueBlue">
-                {{ $filters.yesno(activity.latest_activity.is_data_collected) }}
-              </div>
-            </v-chip>
-          </v-col>
-        </v-row>
-        <div class="label my-2">
           {{ $t('StudyActivityUpdateForms.accept_change') }}
         </div>
       </v-form>

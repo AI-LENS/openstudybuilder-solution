@@ -12,6 +12,12 @@ Cypress.Commands.add('tableRowActions', (rowIndex, action) => {
     cy.clickButton(action, true)
 })
 
+Cypress.Commands.add('tableHeaderActions', (headerName, action) => {
+    cy.waitForTable()
+    cy.clickHeaderActionsButton(headerName)
+    cy.contains('button', action).click()
+})
+
 Cypress.Commands.add('performActionOnSearchedItem', (action, message = null) => {
     cy.tableRowActions(0, action)
     if (message != null) cy.checkSnackbarMessage(message)
@@ -25,6 +31,10 @@ Cypress.Commands.add('performActionOnFlaggedItem', (action) => {
 
 Cypress.Commands.add('clickTableActionsButton', (rowIndex) => {
     cy.get(tableRowLocator).filter(':visible').eq(rowIndex).within(() => cy.clickButton('table-item-action-button', true))
+})
+
+Cypress.Commands.add('clickHeaderActionsButton', (headerName) => {
+    cy.get(tableHeaderLocator).filter(':visible').contains(headerName).parent().find('button').click()
 })
 
 Cypress.Commands.add('searchAndCheckPresence', (value, shouldBePresent) => {

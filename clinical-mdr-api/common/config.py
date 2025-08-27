@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     # Database Configuration
     neo4j_database: str | None = None  # deprecated, include database name in NEO4J_DSN
     neo4j_dsn: str
+    neo4j_connection_lifetime: int = 29 * 60
 
     # Cache Configuration
     cache_max_size: int = 1000
@@ -257,3 +258,5 @@ if settings.neo4j_database:
     neomodel_config.DATABASE_URL = urllib.parse.urljoin(
         settings.neo4j_dsn, f"/{settings.neo4j_database}"
     )
+
+neomodel_config.MAX_CONNECTION_LIFETIME = settings.neo4j_connection_lifetime

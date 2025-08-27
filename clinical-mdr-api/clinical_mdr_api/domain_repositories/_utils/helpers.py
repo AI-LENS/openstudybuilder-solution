@@ -4,8 +4,10 @@ from neomodel import db
 
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
 from clinical_mdr_api.models.concepts.concept import VersionProperties
+from common.telemetry import trace_calls
 
 
+@trace_calls
 def acquire_write_lock_study_value(uid: str) -> None:
     """
     Acquires exclusive lock on (Study) root object of given uid.

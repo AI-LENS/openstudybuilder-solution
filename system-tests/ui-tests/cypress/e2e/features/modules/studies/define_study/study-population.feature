@@ -8,10 +8,10 @@ Feature: Studies - Define Study - Study Population
     Scenario: [Navigation] Opening the page
         Given The '/studies' page is opened
         When The 'Study Population' submenu is clicked in the 'Define Study' section
-        Then The current URL is '/studies/Study_000001/population'
+        Then The current URL is '/population'
 
     Scenario: [Table][Columns][Names][Data] User must be able to see the page table with correct columns
-        Given The '/studies/Study_000001/population' page is opened
+        Given The test study '/population' page is opened
         Then A table is visible with following headers
             | headers                      |
             | Study population information |
@@ -35,19 +35,19 @@ Feature: Studies - Define Study - Study Population
             | 13  | Study population information  | Paediatric post-market study indica |
 
     Scenario: [Actions][Edit] User must be able to edit the Study Population
-        Given The '/studies/Study_000001/population' page is opened
+        Given The test study '/population' page is opened
         When The population is edited
         Then The population data is reflected in the table
 
     @manual_test
     Scenario: User must be able to read change history of output
-        Given The '/studies/Study_000001/population' page is opened
+        Given The test study '/population' page is opened
         When The user opens version history
         Then The user is presented with version history of the output containing timestamp and username
 
     @manual_test
     Scenario: User must be able to read change history of selected element
-        Given The '/studies/Study_000001/population' page is opened
+        Given The test study '/population' page is opened
         And The 'Show history' option is clicked from the three dot menu list
         When The user clicks on History for particular element
         Then The user is presented with history of changes for that element

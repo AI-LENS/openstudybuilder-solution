@@ -158,8 +158,8 @@ def pydantic_validation_error_handler(request: Request, exception: ValidationErr
 
 app.include_router(system_router, tags=["System"])
 
-app.include_router(v1_router, prefix="/v1", tags=["V1"])
-# app.include_router(v2_router, prefix="/v2", tags=["V2"])
+app.include_router(v1_router, prefix="/v1")
+# app.include_router(v2_router, prefix="/v2")
 
 
 def custom_openapi():

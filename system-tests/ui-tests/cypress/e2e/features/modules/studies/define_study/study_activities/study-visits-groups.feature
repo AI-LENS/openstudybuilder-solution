@@ -1,3 +1,4 @@
+@development_only
 Feature: Studies - Study Activities - Study Visits groups
     See shared notes for study visits in file study-visit-intro-notes.txt
 

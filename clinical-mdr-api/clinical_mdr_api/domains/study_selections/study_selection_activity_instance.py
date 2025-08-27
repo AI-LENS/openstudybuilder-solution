@@ -34,6 +34,7 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
     activity_instance_name: str | None
     activity_instance_version: str | None
     show_activity_instance_in_protocol_flowchart: bool
+    keep_old_version: bool
     # Study selection Versioning
     start_date: datetime.datetime
     author_id: str | None
@@ -63,6 +64,7 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
         activity_instance_name: str | None = None,
         activity_instance_version: str | None = None,
         show_activity_instance_in_protocol_flowchart: bool | None = False,
+        keep_old_version: bool | None = False,
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
@@ -93,6 +95,7 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
             activity_name=normalize_string(activity_name),
             activity_version=normalize_string(activity_version),
             show_activity_instance_in_protocol_flowchart=show_activity_instance_in_protocol_flowchart,
+            keep_old_version=keep_old_version,
             start_date=start_date,
             study_selection_uid=normalize_string(study_selection_uid),
             author_id=normalize_string(author_id),
@@ -127,6 +130,9 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
 
     def update_version(self, activity_instance_version: str):
         return replace(self, activity_instance_version=activity_instance_version)
+
+    def update_keep_old_version(self, keep_old_version: bool):
+        return replace(self, keep_old_version=keep_old_version)
 
 
 @dataclass

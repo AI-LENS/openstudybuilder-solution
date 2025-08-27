@@ -387,6 +387,7 @@ class StudyActivity(StudySelection):
 
 
 class StudyActivityInstance(StudySelection):
+    keep_old_version = BooleanProperty(default=False)
     has_study_activity_instance = RelationshipFrom(
         ".study.StudyValue",
         "HAS_STUDY_ACTIVITY_INSTANCE",
@@ -660,7 +661,6 @@ class StudyCompoundDosing(StudySelection):
 
 
 class StudySoAFootnote(StudySelection):
-    footnote_number = IntegerProperty()
     references_study_activity = RelationshipTo(
         StudyActivity,
         "REFERENCES_STUDY_ACTIVITY",

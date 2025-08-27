@@ -1,4 +1,4 @@
-@REQ_ID:1070683
+@REQ_ID:1070683 @development_only
 Feature: Library - Concepts - Activities - Activity instances - new wizard stepper
     As a user, I want to manage the Activity Instances in the Concepts Library with Wizard Stepper 
     process to ensure the data is saved and displayed correctly.
@@ -30,6 +30,7 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The current URL is '/overview'
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And Created activity is visible in table
 
     Scenario: [Create][Positive case][CategoricFindings] User must be able to add a new Activity Instance with Wizard Stepper process (categoric findings)
@@ -50,6 +51,7 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The current URL is '/overview'
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And Created activity is visible in table
 
     Scenario: [Create][Positive case][TextualFindings] User must be able to add a new Activity Instance with Wizard Stepper process (textual findings)
@@ -70,10 +72,12 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The current URL is '/overview'
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And Created activity is visible in table
 
     Scenario: [Create][Postive case][New activity] User must be able to search for specific activity and create instance with it
         Given The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And [API] Study Activity is created and approved
         When The Add Activity Instance button is clicked
         And Activity created via API is searched for
@@ -90,6 +94,7 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The current URL is '/overview'
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And Created activity is visible in table
 
     Scenario: [Create][Mandatory fields] User must not be able to continue without selecting activity
@@ -235,6 +240,7 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The current URL is '/overview'
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
+        And User sets status filter to 'all'
         And Created activity is visible in table
 
     Scenario: [Cancel][Creation] User must be able to cancel activity instance creation

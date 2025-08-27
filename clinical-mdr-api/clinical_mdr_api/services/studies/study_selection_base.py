@@ -35,6 +35,7 @@ from clinical_mdr_api.models.syntax_templates.objective_template import (
     ObjectiveTemplate,
 )
 from common import exceptions
+from common.telemetry import trace_calls
 
 
 class StudySelectionMixin:
@@ -263,6 +264,7 @@ class StudySelectionMixin:
             find_pharmaceutical_product_by_uid=self._repos.pharmaceutical_product_repository.find_by_uid_2,
         )
 
+    @trace_calls
     def find_term_name_by_uid(self, uid, at_specific_date=None):
         """Helper function to find CT term names."""
         return SimpleTermModel.from_ct_code(
@@ -271,6 +273,7 @@ class StudySelectionMixin:
             at_specific_date=at_specific_date,
         )
 
+    @trace_calls
     def _find_by_uid_or_raise_not_found(
         self,
         term_uid: str,
@@ -296,6 +299,7 @@ class StudySelectionMixin:
 
         return CTTermName.from_ct_term_ar(item)
 
+    @trace_calls
     def _find_terms_by_uids(
         self,
         term_uids: list[str],
@@ -316,6 +320,7 @@ class StudySelectionMixin:
             ]
         return [CTTermName.from_ct_term_ar(ith) for ith in items]
 
+    @trace_calls
     def _find_branch_arms_connected_to_arm_uid(
         self,
         study_uid: str,
@@ -344,6 +349,7 @@ class StudySelectionMixin:
 
         return branch_arms_transformed
 
+    @trace_calls
     def _get_specific_objective_selection_by_uids(
         self,
         study_uid: str,
@@ -366,6 +372,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_endpoint_selection_by_uids(
         self,
         study_uid: str,
@@ -388,6 +395,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_criteria_selection_by_uids(
         self,
         study_uid: str,
@@ -415,6 +423,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_activity_selection_by_uids(
         self,
         study_uid: str,
@@ -442,6 +451,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_activity_subgroup_selection_by_uids(
         self, study_uid: str, study_selection_uid: str, for_update: bool = False
     ):
@@ -468,6 +478,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_activity_group_selection_by_uids(
         self, study_uid: str, study_selection_uid: str, for_update: bool = False
     ):
@@ -492,6 +503,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_arm_selection_by_uids(
         self,
         study_uid: str,
@@ -514,6 +526,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_element_selection_by_uids(
         self,
         study_uid: str,
@@ -536,6 +549,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_branch_arm_selection_by_uids(
         self,
         study_uid: str,
@@ -561,6 +575,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_cohort_selection_by_uids(
         self,
         study_uid: str,
@@ -583,6 +598,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_soa_group_selection_by_uids(
         self, study_uid: str, study_selection_uid: str, for_update: bool = False
     ):
@@ -607,6 +623,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _get_specific_activity_instance_selection_by_uids(
         self,
         study_uid: str,
@@ -639,6 +656,7 @@ class StudySelectionMixin:
         finally:
             repos.close()
 
+    @trace_calls
     def _extract_study_standards_effective_date(
         self, study_uid, study_value_version: str = None
     ) -> datetime | None:
@@ -672,6 +690,7 @@ class StudySelectionMixin:
             )
         return terms_at_specific_datetime
 
+    @trace_calls
     def _extract_multiple_version_study_standards_effective_date(
         self, study_uid: str, list_of_start_dates: Sequence[datetime]
     ) -> Sequence[datetime | None]:

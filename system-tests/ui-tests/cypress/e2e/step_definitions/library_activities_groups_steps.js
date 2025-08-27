@@ -1,23 +1,22 @@
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
-let activitygroup, apiActivityGroupName
-let abbreviation = "ABB", definition = "DEF"
-
-When('The group can be find in table', () => cy.searchAndCheckPresence(apiActivityGroupName, true))
+let activityGroupName, abbreviation = "ABB", definition = "DEF"
 
 When('The add activity group button is clicked', () => cy.clickButton('add-activity'))
 
-When('The activity group container is filled with data and saved', () => {
-    fillGroupData(false)
-    saveGroup()
-})
+When('Activity group is searched for and found', () => cy.searchAndCheckPresence(activityGroupName, true))
+
+When('Activity group is searched for and not found', () => cy.searchAndCheckPresence(activityGroupName, false))
+
+Given('Activity group is saved and snackbar message says it is {string}', (action) => saveGroup(action))
 
 When('The test activity group container is filled with data', () => fillGroupData())
 
+When('The activity group is edited', () => editGroup())
+
 Then('The newly added activity group is visible in the the table', () => {
-    cy.searchAndCheckPresence(activitygroup, true)
-    cy.checkRowByIndex(0, 'Activity group', activitygroup)
-    cy.checkRowByIndex(0,'Sentence case name', activitygroup.toLowerCase())
+    cy.checkRowByIndex(0, 'Activity group', activityGroupName)
+    cy.checkRowByIndex(0,'Sentence case name', activityGroupName.toLowerCase())
     cy.checkRowByIndex(0, 'Abbreviation', abbreviation)
     cy.checkRowByIndex(0, 'Definition', definition)
 })
@@ -26,7 +25,6 @@ When('The Group name and Sentence case name and Definition fields are not filled
     cy.fillInput('groupform-activity-group-field', 'Test')
     cy.clearInput('groupform-activity-group-field')
     cy.clearInput('sentence-case-name-field')
-    cy.clickButton('save-button')
 })
 
 Then('The user is not able to save the acitivity group', () => {   
@@ -49,23 +47,9 @@ Then('The field for Sentence case name will be defaulted to the lower case value
 When('The user define a value for Sentence case name and it is not identical to the value of Activity group name', () => {
     cy.fillInput('groupform-activity-group-field', "TEST")
     cy.fillInput('sentence-case-name-field', "TEST2")
-    cy.clickButton('save-button')
-})
-
-When('The activity group is edited', () => {
-    editGroup()
-    saveGroup('updated')
 })
 
 When('The activity group edition form is filled with data', () => editGroup())
-
-Then('The activity group is no longer available', () => cy.searchAndCheckPresence(apiActivityGroupName, false))
-
-Then('The activity group is not created', () => cy.searchAndCheckPresence(activitygroup, false))
-
-Then('The activity group is not edited', () => cy.searchAndCheckPresence(activitygroup, false))
-
-Then('One activity group is found after performing full name search', () => cy.searchAndCheckPresence(apiActivityGroupName, true))
 
 When('[API] Activity group in status Draft exists', () => createGroupViaApi())
 
@@ -81,12 +65,9 @@ Given('[API] First activity group for search test is created', () => createGroup
 
 Given('[API] Second activity group for search test is created', () => cy.createGroup(`SearchTest${Date.now()}`))
 
-When('Activity group is found', () => cy.searchAndCheckPresence(apiActivityGroupName, true))
-
-function fillGroupData(clickAddButton = true) {
-    activitygroup = `Group${Date.now()}`
-    if (clickAddButton) cy.clickButton('add-activity')
-    cy.fillInput('groupform-activity-group-field', activitygroup)
+function fillGroupData() {
+    activityGroupName = `Group${Date.now()}`
+    cy.fillInput('groupform-activity-group-field', activityGroupName)
     cy.fillInput('groupform-abbreviation-field', abbreviation)
     cy.fillInput('groupform-definition-field', definition)
 }
@@ -96,16 +77,15 @@ function saveGroup(action = 'created') {
     cy.clickButton('save-button')
     cy.get('.v-snackbar__content').contains(`Group ${action}`).should('be.visible');
     cy.wait('@getData', {timeout: 20000})
-    cy.searchAndCheckPresence(activitygroup, true)
 }
 
 function editGroup() {
-    activitygroup = `${activitygroup}Edited`
-    cy.fillInput('groupform-activity-group-field', activitygroup)
+    activityGroupName = `${activityGroupName}Edited`
+    cy.fillInput('groupform-activity-group-field', activityGroupName)
     cy.fillInput('groupform-change-description-field', "e2e test")
 }
 
 function createGroupViaApi(customName = '') {
     cy.createGroup(customName)
-    cy.getGroupNameByUid().then(name => apiActivityGroupName = name)
+    cy.getGroupNameByUid().then(name => activityGroupName = name)
 }

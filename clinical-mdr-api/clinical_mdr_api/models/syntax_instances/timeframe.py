@@ -12,13 +12,11 @@ from clinical_mdr_api.models.syntax_templates.template_parameter_multi_select_in
 from clinical_mdr_api.models.syntax_templates.template_parameter_term import (
     IndexedTemplateParameterTerm,
     MultiTemplateParameterTerm,
-    TemplateParameterComplexValue,
 )
 from clinical_mdr_api.models.syntax_templates.timeframe_template import (
     TimeframeTemplateNameUidLibrary,
 )
 from clinical_mdr_api.models.utils import BaseModel, PatchInputModel, PostInputModel
-from clinical_mdr_api.utils import extract_parameters
 
 
 class Timeframe(BaseModel):
@@ -70,48 +68,22 @@ class Timeframe(BaseModel):
         parameter_terms: list[MultiTemplateParameterTerm] = []
         for position, parameter in enumerate(timeframe_ar.get_parameters()):
             terms: list[IndexedTemplateParameterTerm] = []
-            if (
-                hasattr(parameter, "parameter_template")
-                and parameter.parameter_template is not None
-            ):
-                # This branch of the code is called if particular parameter of parameter list uses parameter template
-                # If yes the abstraction of complex parameter is created to allow UI to recreate ParameterTemplate
-                # with related parameter templates. So the definition of parameter template is sent along with parameters.
-                param_names = extract_parameters(parameter.parameter_template)
-                param_list = []
-                for i, param_name in enumerate(param_names):
-                    param_term = parameter.parameters[i]
-                    indexed_template_parameter_term = IndexedTemplateParameterTerm(
-                        name=param_term.value,
-                        uid=param_term.uid,
-                        index=1,
-                        type=param_name,
-                    )
-                    param_list.append(indexed_template_parameter_term)
-                template_parameter_complex_value = TemplateParameterComplexValue(
-                    position=position + 1,
-                    conjunction="",
-                    terms=param_list,
-                    format_string=parameter.parameter_template,
+            # Regular way of handling simple parameters for object
+            for index, parameter_term in enumerate(parameter.parameters):
+                indexed_template_parameter_term = IndexedTemplateParameterTerm(
+                    index=index + 1,
+                    uid=parameter_term.uid,
+                    name=parameter_term.value,
+                    type=parameter.parameter_name,
                 )
-                parameter_terms.append(template_parameter_complex_value)
-            else:
-                # Regular way of handling simple parameters for object
-                for index, parameter_term in enumerate(parameter.parameters):
-                    indexed_template_parameter_term = IndexedTemplateParameterTerm(
-                        index=index + 1,
-                        uid=parameter_term.uid,
-                        name=parameter_term.value,
-                        type=parameter.parameter_name,
-                    )
-                    terms.append(indexed_template_parameter_term)
-                conjunction = parameter.conjunction
+                terms.append(indexed_template_parameter_term)
+            conjunction = parameter.conjunction
 
-                parameter_terms.append(
-                    MultiTemplateParameterTerm(
-                        conjunction=conjunction, position=position + 1, terms=terms
-                    )
+            parameter_terms.append(
+                MultiTemplateParameterTerm(
+                    conjunction=conjunction, position=position + 1, terms=terms
                 )
+            )
         return cls(
             uid=timeframe_ar.uid,
             name=timeframe_ar.name,

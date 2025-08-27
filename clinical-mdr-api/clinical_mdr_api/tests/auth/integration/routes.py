@@ -1777,6 +1777,7 @@ ALL_ROUTES_METHODS_ROLES = (
     ("/studies/{study_uid}/flowchart/coordinates", "GET", {"Study.Read"}),
     ("/studies/{study_uid}/flowchart.html", "GET", {"Study.Read"}),
     ("/studies/{study_uid}/flowchart.docx", "GET", {"Study.Read"}),
+    ("/studies/{study_uid}/flowchart.xlsx", "GET", {"Study.Read"}),
     ("/studies/{study_uid}/detailed-soa-history", "GET", {"Study.Read"}),
     ("/studies/{study_uid}/detailed-soa-exports", "GET", {"Study.Read"}),
     ("/studies/{study_uid}/protocol-soa-exports", "GET", {"Study.Read"}),

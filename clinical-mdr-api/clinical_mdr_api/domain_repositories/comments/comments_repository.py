@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from threading import Lock
 from typing import Collection
@@ -27,6 +28,8 @@ from clinical_mdr_api.repositories._utils import sb_clear_cache
 from common import exceptions
 from common.config import settings
 from common.utils import convert_to_datetime, validate_max_skip_clause
+
+log = logging.getLogger(__name__)
 
 
 class CommentsRepository:
@@ -249,23 +252,26 @@ class CommentsRepository:
         page_size: int = 0,
     ) -> tuple[list[CommentThreadAR], int]:
         validate_max_skip_clause(page_number=page_number, page_size=page_size)
+        params = {
+            "topic_path": topic_path,
+            "skip": (page_number - 1) * page_size,
+            "limit": page_size,
+        }
 
         topic_clause = ""
         if topic_path is not None:
             if topic_path_partial_match:
                 topic_clause = (
-                    f"AND toLower(topic.topic_path) CONTAINS toLower('{topic_path}') "
+                    "AND toLower(topic.topic_path) CONTAINS toLower($topic_path) "
                 )
             else:
-                topic_clause = (
-                    f"AND toLower(topic.topic_path) = toLower('{topic_path}') "
-                )
+                topic_clause = "AND toLower(topic.topic_path) = toLower($topic_path) "
 
-        status_clause = (
-            f"AND toLower(thread.status) = toLower('{status.value}') "
-            if status is not None
-            else ""
-        )
+        if status is None:
+            status_clause = ""
+        else:
+            status_clause = "AND toLower(thread.status) = toLower($status) "
+            params["status"] = status.value
 
         full_query = f"""
             MATCH (topic:CommentTopic)<-[:TOPIC]-(thread:CommentThread)
@@ -279,7 +285,7 @@ class CommentsRepository:
         
             WITH topic, thread, COLLECT(reply) as replies
             ORDER BY thread.created_at ASC
-            SKIP {page_number - 1} * {page_size} LIMIT {page_size}
+            SKIP $skip LIMIT $limit
             RETURN  topic.uid,
                     topic.topic_path, 
                     thread.uid,
@@ -305,7 +311,7 @@ class CommentsRepository:
 
         try:
             result_array, attributes_names = db.cypher_query(
-                query=full_query, params=None
+                query=full_query, params=params
             )
 
             threads_ars: list[CommentThreadAR] = []
@@ -349,15 +355,16 @@ class CommentsRepository:
                     )
                 )
 
-            count_result, _ = db.cypher_query(query=count_query, params=None)
+            count_result, _ = db.cypher_query(query=count_query, params=params)
             total_amount = count_result[0][0] if len(count_result) > 0 else 0
 
             return threads_ars, total_amount
 
-        except CypherSyntaxError as _ex:
+        except CypherSyntaxError as ex:
+            log.error("%s: %s", ex.code, ex.message)
             raise exceptions.ValidationException(
                 msg="Unsupported filtering or sort parameters specified"
-            ) from _ex
+            ) from ex
 
     def find_all_comment_topics(
         self,
@@ -367,17 +374,20 @@ class CommentsRepository:
         page_size: int = 0,
     ) -> tuple[list[CommentTopicAR], int]:
         validate_max_skip_clause(page_number=page_number, page_size=page_size)
+        params = {
+            "topic_path": topic_path,
+            "skip": (page_number - 1) * page_size,
+            "limit": page_size,
+        }
 
         topic_clause = ""
         if topic_path is not None:
             if topic_path_partial_match:
                 topic_clause = (
-                    f"AND toLower(topic.topic_path) CONTAINS toLower('{topic_path}') "
+                    "AND toLower(topic.topic_path) CONTAINS toLower($topic_path) "
                 )
             else:
-                topic_clause = (
-                    f"AND toLower(topic.topic_path) = toLower('{topic_path}') "
-                )
+                topic_clause = "AND toLower(topic.topic_path) = toLower($topic_path) "
 
         full_query = f"""
             MATCH (topic:CommentTopic)<-[:TOPIC]-(thread:CommentThread)
@@ -393,7 +403,7 @@ class CommentsRepository:
                     topic_path, 
                     collect(thread_status) as thread_statuses, 
                     collect(threads_count) as thread_counts
-            SKIP {page_number - 1} * {page_size} LIMIT {page_size}
+            SKIP $skip LIMIT $limit
             RETURN *
         """
 
@@ -406,7 +416,7 @@ class CommentsRepository:
 
         try:
             result_array, attributes_names = db.cypher_query(
-                query=full_query, params=None
+                query=full_query, params=params
             )
 
             topics_ars: list[CommentTopicAR] = []
@@ -429,15 +439,16 @@ class CommentsRepository:
                     )
                 )
 
-            count_result, _ = db.cypher_query(query=count_query, params=None)
+            count_result, _ = db.cypher_query(query=count_query, params=params)
             total_amount = count_result[0][0] if len(count_result) > 0 else 0
 
             return topics_ars, total_amount
 
-        except CypherSyntaxError as _ex:
+        except CypherSyntaxError as ex:
+            log.error("%s: %s", ex.code, ex.message)
             raise exceptions.ValidationException(
                 msg="Unsupported filtering or sort parameters specified"
-            ) from _ex
+            ) from ex
 
     def find_all_comment_thread_replies(
         self, thread_uid: str

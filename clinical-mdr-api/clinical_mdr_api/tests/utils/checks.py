@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Any, Iterable
 
 import httpx
 
@@ -44,3 +44,12 @@ def assert_response_content_type(
 
 def assert_json_response(response: httpx.Response):
     assert_response_content_type(response=response, content_type=JSON_CONTENT_TYPE)
+
+
+def parse_json_response(
+    response: httpx.Response, status: int | Iterable[int] = 200
+) -> Any:
+    """Shorthand of checking status code and Content-Type header and returning parsed JSON response"""
+    assert_response_status_code(response, status)
+    assert_json_response(response)
+    return response.json()

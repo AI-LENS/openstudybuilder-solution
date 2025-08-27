@@ -219,7 +219,7 @@ def test_add_term_node_parent(api_client):
     assert res["concept_id"] is None
     assert res["code_submission_value"] == "code_submission_value1"
     assert res["name_submission_value"] == "name_submission_value1"
-    assert res["nci_preferred_name"] == "preferred_term"
+    assert res["nci_preferred_name"] == "preferred_term1"
     assert res["definition"] == "definition"
     assert res["sponsor_preferred_name"] == "term_value_name1"
     assert (
@@ -246,7 +246,7 @@ def test_remove_term_node_parent(api_client):
     assert res["concept_id"] is None
     assert res["code_submission_value"] == "code_submission_value1"
     assert res["name_submission_value"] == "name_submission_value1"
-    assert res["nci_preferred_name"] == "preferred_term"
+    assert res["nci_preferred_name"] == "preferred_term1"
     assert res["definition"] == "definition"
     assert res["sponsor_preferred_name"] == "term_value_name1"
     assert (
@@ -273,7 +273,7 @@ def test_add_term_node_parent_after_deleting(api_client):
     assert res["concept_id"] is None
     assert res["code_submission_value"] == "code_submission_value1"
     assert res["name_submission_value"] == "name_submission_value1"
-    assert res["nci_preferred_name"] == "preferred_term"
+    assert res["nci_preferred_name"] == "preferred_term1"
     assert res["definition"] == "definition"
     assert res["sponsor_preferred_name"] == "term_value_name1"
     assert (

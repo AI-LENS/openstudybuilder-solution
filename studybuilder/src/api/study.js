@@ -703,13 +703,14 @@ export default {
       responseType: 'blob',
     })
   },
-  exportStudyProtocolSoaExcel(studyUid) {
+  exportStudyProtocolSoaExcel(studyUid, params) {
     const headers = {
       Accept:
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     }
-    return repository.get(`${resource}/${studyUid}/protocol-soa-exports`, {
+    return repository.get(`${resource}/${studyUid}/flowchart.xlsx`, {
       headers,
+      params,
       responseType: 'blob',
     })
   },

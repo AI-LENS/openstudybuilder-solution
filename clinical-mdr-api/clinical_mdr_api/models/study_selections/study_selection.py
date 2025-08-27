@@ -1886,7 +1886,7 @@ class StudySelectionActivityCore(StudySelection):
     keep_old_version: Annotated[
         bool,
         Field(
-            description="Boolean indicating that someone has not updated to lates version of Activity but reviewed the changes ",
+            description="Boolean indicating that someone has not updated to latest version of Activity but reviewed the changes ",
         ),
     ] = False
     study_activity_uid: Annotated[
@@ -2347,6 +2347,12 @@ class StudySelectionActivityInstance(BaseModel):
     show_activity_instance_in_protocol_flowchart: Annotated[bool, Field()] = (
         SHOW_ACTIVITY_INSTANCE_IN_PROTOCOL_FLOWCHART_FIELD
     )
+    keep_old_version: Annotated[
+        bool,
+        Field(
+            description="Boolean indicating that someone has not updated to latest version of ActivityInstance but reviewed the changes ",
+        ),
+    ] = False
     study_activity_instance_uid: Annotated[
         str | None,
         Field(
@@ -2507,6 +2513,7 @@ class StudySelectionActivityInstance(BaseModel):
             activity_instance=selected_activity_instance,
             latest_activity_instance=latest_activity_instance,
             show_activity_instance_in_protocol_flowchart=study_selection.show_activity_instance_in_protocol_flowchart,
+            keep_old_version=study_selection.keep_old_version,
             study_uid=study_uid,
             start_date=study_selection.start_date,
             author_username=study_selection.author_username,
@@ -2557,6 +2564,7 @@ class StudySelectionActivityInstanceEditInput(PatchInputModel):
     show_activity_instance_in_protocol_flowchart: Annotated[
         bool, SHOW_ACTIVITY_INSTANCE_IN_PROTOCOL_FLOWCHART_FIELD
     ] = False
+    keep_old_version: Annotated[bool, Field()] = False
 
 
 class StudySelectionActivityInstanceBatchCreate(InputModel):
@@ -4679,9 +4687,11 @@ def _find_versions(
     latest_version, selected_version = None, None
 
     if versions_by_uid:
+        # There can be a few versions with the same version number
+        # If so we should pick with the latest start_date
         latest_version = max(
             versions_by_uid[uid],
-            key=lambda a: version_string_to_tuple(a.version),
+            key=lambda a: (version_string_to_tuple(a.version), a.start_date),
         )
         BusinessLogicException.raise_if_not(
             latest_version,

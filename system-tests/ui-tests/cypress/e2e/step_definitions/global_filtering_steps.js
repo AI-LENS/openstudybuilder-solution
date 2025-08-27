@@ -11,6 +11,11 @@ When('The user filters field {string}', (fieldName) => {
     cy.wait(500)
 })
 
+When('The status filter is not available when expanding available filters', () => {
+    cy.clickButton("filters-button", false)
+    cy.contains('[data-cy="filter-field"]', 'Status').should('not.exist')
+})
+
 When('The user filters table by status {string}', (statusValue) => filterByStatus(statusValue, true))
 
 When('The user changes status filter value to {string}', (statusValue) => filterByStatus(statusValue, false))

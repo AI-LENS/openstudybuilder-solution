@@ -108,7 +108,7 @@
           </template>
           <template #[`header.data-table-select`]>
             <v-btn
-              :disabled="exchangeMode"
+              :disabled="exchangeMode || selectedOnly"
               data-cy="copy-all-activities"
               icon="mdi-content-copy"
               color="nnWhite"
@@ -139,6 +139,26 @@
           <template #[`item.activity.is_data_collected`]="{ item }">
             <div v-if="item.activity">
               {{ $filters.yesno(item.activity.is_data_collected) }}
+            </div>
+          </template>
+          <template #[`item.activity.definition`]="{ item }">
+            <div v-if="item.activity">
+              {{ item.activity.definition || '-' }}
+            </div>
+          </template>
+          <template #[`item.activity.synonyms`]="{ item }">
+            <div v-if="item.activity && item.activity.synonyms">
+              {{
+                item.activity.synonyms.length > 0
+                  ? item.activity.synonyms.join(', ')
+                  : '-'
+              }}
+            </div>
+            <div v-else>-</div>
+          </template>
+          <template #[`item.activity.abbreviation`]="{ item }">
+            <div v-if="item.activity">
+              {{ item.activity.abbreviation || '-' }}
             </div>
           </template>
         </NNTable>
@@ -226,7 +246,7 @@
           </template>
           <template #[`header.data-table-select`]>
             <v-btn
-              :disabled="exchangeMode"
+              :disabled="exchangeMode || selectedOnly"
               icon="mdi-content-copy"
               color="nnWhite"
               data-cy="copy-all-activities"
@@ -257,6 +277,13 @@
           </template>
           <template #[`item.is_data_collected`]="{ item }">
             {{ $filters.yesno(item.is_data_collected) }}
+          </template>
+          <template #[`item.synonyms`]="{ item }">
+            {{
+              item.synonyms && item.synonyms.length > 0
+                ? item.synonyms.join(', ')
+                : ''
+            }}
           </template>
         </NNTable>
       </v-col>
@@ -442,6 +469,19 @@
               <template #[`item.is_data_collected`]="{ item }">
                 {{ $filters.yesno(item.is_data_collected) }}
               </template>
+              <template #[`item.definition`]="{ item }">
+                {{ item.definition || '-' }}
+              </template>
+              <template #[`item.synonyms`]="{ item }">
+                {{
+                  item.synonyms && item.synonyms.length > 0
+                    ? item.synonyms.join(', ')
+                    : '-'
+                }}
+              </template>
+              <template #[`item.abbreviation`]="{ item }">
+                {{ item.abbreviation || '-' }}
+              </template>
             </v-data-table>
           </div>
         </div>
@@ -557,6 +597,9 @@ const activityHeaders = [
     key: 'name',
     exludeFromHeader: ['is_data_collected'],
   },
+  { title: t('_global.definition'), key: 'definition' },
+  { title: t('ActivityTable.synonyms'), key: 'synonyms' },
+  { title: t('_global.abbreviation'), key: 'abbreviation' },
   { title: t('StudyActivity.data_collection'), key: 'is_data_collected' },
   { title: t('_global.status'), key: 'status' },
 ]
@@ -600,6 +643,9 @@ const studyActivityHeaders = [
     disableColumnFilters: true,
   },
   { title: t('StudyActivity.activity'), key: 'activity.name' },
+  { title: t('_global.definition'), key: 'activity.definition' },
+  { title: t('ActivityTable.synonyms'), key: 'activity.synonyms' },
+  { title: t('_global.abbreviation'), key: 'activity.abbreviation' },
   {
     title: t('StudyActivity.data_collection'),
     key: 'activity.is_data_collected',

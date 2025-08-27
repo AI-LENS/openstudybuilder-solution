@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import Field
 
@@ -7,6 +7,9 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term import (
 )
 from clinical_mdr_api.models.utils import BaseModel, PatchInputModel, PostInputModel
 from common.config import settings
+
+if TYPE_CHECKING:
+    from clinical_mdr_api.models.study_selections.study_visit import StudyVisitBase
 
 
 class StudyEpochCreateInput(PostInputModel):
@@ -235,3 +238,28 @@ class StudyEpochTypes(BaseModel):
     type_name: Annotated[str, Field()]
     subtype: Annotated[str, Field(description="Study Epoch subtype")]
     subtype_name: Annotated[str, Field()]
+
+
+class StudyEpochTiny(BaseModel):
+    epoch: Annotated[
+        str | None,
+        Field(
+            json_schema_extra={"nullable": True}, description="CTTerm name of the Epoch"
+        ),
+    ] = None
+    epoch_ctterm: Annotated[
+        SimpleCTTermNameWithConflictFlag, Field(description="Epoch CTTerm")
+    ]
+    epoch_name: Annotated[str, Field(description="CTTerm name of the Epoch")]
+    study_uid: Annotated[str, Field(description="Study uid")]
+    uid: Annotated[str, Field(description="StudyEpoch uid")]
+
+    @classmethod
+    def from_study_visit(cls, study_visit: "StudyVisitBase") -> Self:
+        return cls(
+            epoch=study_visit.epoch_uid,
+            epoch_ctterm=study_visit.study_epoch,
+            epoch_name=study_visit.study_epoch.sponsor_preferred_name,
+            study_uid=study_visit.study_uid,
+            uid=study_visit.study_epoch_uid,
+        )

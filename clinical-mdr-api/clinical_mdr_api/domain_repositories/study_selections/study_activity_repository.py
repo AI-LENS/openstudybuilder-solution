@@ -117,8 +117,6 @@ class StudySelectionActivityRepository(
                 OPTIONAL MATCH (study_standard_version)-[:HAS_CT_PACKAGE]->(ct_package:CTPackage)
                 WHERE ct_package.uid CONTAINS "SDTM CT"
                 RETURN datetime(ct_package.effective_date + 'T23:59:59.999999000Z') AS terms_at_specific_datetime
-                ORDER BY study_standard_version.uid //sic
-                LIMIT 1
             }
             
             MATCH (sv)-[:HAS_STUDY_ACTIVITY]->(sa:StudyActivity)-[:HAS_SELECTED_ACTIVITY]->(av:ActivityValue)<-[ver:HAS_VERSION]-(ar:ActivityRoot)<-[:CONTAINS_CONCEPT]-(lib:Library)

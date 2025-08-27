@@ -28,11 +28,17 @@ Then('Category index is cleared for {string} template', (templateType) => cy.cle
 
 Then('Subcategory index is cleared for {string} template', (templateType) => cy.clearField(`template-${templateType}-sub-category`))
 
-When('Template indexes are set for {string}', (templateType) => changeIndexes(`${templateType}`, false, false))
+When('Template indexes are set for {string}', (templateType) => changeIndexesIncludingSubCategory(`${templateType}`, false, false))
 
-When('Template indexes are updated for {string}', (templateType) => changeIndexes(`${templateType}`, true, false))
+When('Template indexes are updated for {string}', (templateType) => changeIndexesIncludingSubCategory(`${templateType}`, true, false))
 
-When('Template indexes are cleared and updated for {string}', (templateType) => changeIndexes(`${templateType}`, true, true))
+When('Template indexes are cleared and updated for {string}', (templateType) => changeIndexesIncludingSubCategory(`${templateType}`, true, true))
+
+When('Objective criteria specific indexes are set', () => changeCommonIndexes('objective', false, false))
+
+When('Objective criteria specific indexes are updated', () => changeCommonIndexes('objective', true, false))
+
+When('Objective criteria specific indexes are cleared and updated', () => changeCommonIndexes('objective', true, true))
 
 Then('User goes to Index template step', () => cy.contains('.v-stepper-item', 'Index template').click())
 
@@ -54,11 +60,9 @@ Then('The indication index is updated', () => checkIndexValue(indicationSelected
 
 When('The indexes are not updated', () => cy.get('[data-cy="form-body"]').should('not.contain', indicationSelected))
 
-When('Template indexes are verified', () => {
-  checkIndexValue(indicationSelected)
-  checkIndexValue(categorySelected)
-  if (subCategorySelected) checkIndexValue(subCategorySelected)
-})
+When('Template indexes are verified', () => checkIndexesIncludingSubCategory())
+
+When('Objective indexes are verified', () => checkCommonIndexes())
 
 When('The user hides the parameter in the next step', () => cy.get('[title^="Show/hide parameter"] .v-btn__content').first().click())
 
@@ -86,14 +90,29 @@ function checkParameterValue(shouldContain, value) {
     cy.get('[edit-mode="false"] .pa-4').should(condition, value)
 }
 
-function changeIndexes(templateType, update, clear) {
+function changeIndexesIncludingSubCategory(templateType, update, clear) {
+  cy.wait(1000)
+  changeCommonIndexes(templateType, update, clear)
+  changeIndex(`template-${templateType}-sub-category`, update, clear)
+  cy.getText(`[data-cy="template-${templateType}-sub-category"] [class$="selection-text"]`).then(text => subCategorySelected = text)
+}
+
+function changeCommonIndexes(templateType, update, clear) {
   cy.wait(1000)
   changeIndex('template-indication-dropdown', update, clear)
   changeIndex(`template-${templateType}-category`, update, clear)
-  if (templateType != 'objective') changeIndex(`template-${templateType}-sub-category`, update, clear)
   cy.getText(`[data-cy="template-indication-dropdown"] [class$="selection-text"]`).then(text => indicationSelected = text)
   cy.getText(`[data-cy="template-${templateType}-category"] [class$="selection-text"]`).then(text => categorySelected = text)
-  if (templateType != 'objective') cy.getText(`[data-cy="template-${templateType}-sub-category"] [class$="selection-text"]`).then(text => subCategorySelected = text)
+}
+
+function checkIndexesIncludingSubCategory() {
+  checkCommonIndexes()
+  checkIndexValue(subCategorySelected)
+}
+
+function checkCommonIndexes() {
+  checkIndexValue(indicationSelected)
+  checkIndexValue(categorySelected)
 }
 
 function checkIndexValue(expectedValue) {

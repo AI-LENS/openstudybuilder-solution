@@ -6,7 +6,8 @@ from typing import Any
 
 from neomodel.sync_.core import db
 
-from common.utils import get_db_result_as_dict
+from common.exceptions import ValidationException
+from common.utils import filter_sort_valid_keys_re, get_db_result_as_dict
 
 log = logging.getLogger(__name__)
 
@@ -56,12 +57,20 @@ def urlencode_link(link: str) -> str:
 
 
 def db_pagination_clause(page_size: int, page_number: int) -> str:
+    # Ensure Cypher injection would not be possible even if values weren't integer types
+    if not isinstance(page_size, int) or not isinstance(page_number, int):
+        raise TypeError("Expected page_size and page_number to be integers")
+
     return f"SKIP {page_number - 1} * {page_size} LIMIT {page_size}"
 
 
 def db_sort_clause(
     sort_by: str, sort_order: str = "ASC", sort_by_type: SortByType = SortByType.STRING
 ) -> str:
+    # Ensure Cypher injection would not be exploitable even if sort_by keys were not checked
+    if not filter_sort_valid_keys_re.fullmatch(sort_by):
+        raise ValidationException(msg=f"Invalid sorting key: {sort_by}")
+
     if sort_by_type == SortByType.NUMBER:
         return f"ORDER BY toFloat({sort_by}) {sort_order}"
 

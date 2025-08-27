@@ -8,9 +8,6 @@ from pydantic import BaseModel
 from clinical_mdr_api.domain_repositories.syntax_instances.generic_syntax_instance_repository import (
     GenericSyntaxInstanceRepository,
 )
-from clinical_mdr_api.domain_repositories.template_parameters.complex_parameter import (
-    ComplexTemplateParameterRepository,
-)
 from clinical_mdr_api.domains.syntax_templates.template import (
     TemplateAggregateRootBase,
     TemplateVO,
@@ -23,7 +20,7 @@ from clinical_mdr_api.repositories._utils import ComparisonOperator
 from clinical_mdr_api.services._utils import (
     fill_missing_values_in_base_model_from_reference_base_model,
     is_library_editable,
-    process_complex_parameters,
+    process_parameters,
 )
 from clinical_mdr_api.services.generic_syntax_service import GenericSyntaxService
 from common.exceptions import AlreadyExistsException, NotFoundException
@@ -279,14 +276,12 @@ class GenericSyntaxTemplateService(GenericSyntaxService[_AggregateRootType], abc
         include_study_endpoints: bool | None = False,
     ):
         try:
-            parameter_repository_2 = ComplexTemplateParameterRepository()
-
             parameters = self.repository.get_parameters_including_terms(
                 template_uid=uid,
                 study_uid=study_uid,
                 include_study_endpoints=include_study_endpoints,
             )
-            return process_complex_parameters(parameters, parameter_repository_2)
+            return process_parameters(parameters)
         except core.DoesNotExist as exc:
             raise NotFoundException(field_value=uid) from exc
 

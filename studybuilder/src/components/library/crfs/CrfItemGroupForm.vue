@@ -543,7 +543,7 @@ export default {
         return a.nci_preferred_name.localeCompare(b.nci_preferred_name)
       })
     })
-    crfs.getAliases().then((resp) => {
+    crfs.getAllAliases({ page_size: 0 }).then((resp) => {
       this.aliases = resp.data.items
     })
     if (this.isEdit()) {
@@ -750,7 +750,7 @@ export default {
       this.alias.library_name = libraries.LIBRARY_SPONSOR
       await crfs.createAlias(this.alias).then((resp) => {
         this.form.alias_uids.push(resp.data.uid)
-        crfs.getAliases().then((resp) => {
+        crfs.getAllAliases({ page_size: 0 }).then((resp) => {
           this.aliases = resp.data.items
           this.alias = {}
           this.eventBusEmit('notification', {

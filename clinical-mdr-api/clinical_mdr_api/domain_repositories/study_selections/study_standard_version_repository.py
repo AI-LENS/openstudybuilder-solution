@@ -32,6 +32,7 @@ from clinical_mdr_api.repositories._utils import (
     transform_filters_into_neomodel,
 )
 from common.exceptions import ValidationException
+from common.telemetry import trace_calls
 from common.utils import validate_page_number_and_page_size
 
 # pylint: disable=invalid-name
@@ -103,6 +104,7 @@ class StudyStandardVersionRepository:
                 q_filters.append(Q(study_value__latest_value__uid=study_uid))
         return q_filters
 
+    @trace_calls
     def find_standard_versions_in_study(
         self,
         study_uid: str,
@@ -182,6 +184,7 @@ class StudyStandardVersionRepository:
             reverse=True,
         )
 
+    @trace_calls
     def get_all_study_version_versions(self, study_uid: str):
         return sorted(
             [

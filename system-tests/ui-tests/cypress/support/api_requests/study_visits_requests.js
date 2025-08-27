@@ -1,6 +1,8 @@
 const ctTermUrl = (codelistName) => `ct/terms?page_size=100&sort_by={"name.sponsor_preferred_name":true}&codelist_name=${codelistName}`
 const studyEpochsUrl = (study_uid) =>  `/studies/${study_uid}/study-epochs`
-const studyVisitUrl = (study_uid) =>  `/studies/${study_uid}/study-visits`
+const studyVisitsUrl = (study_uid) =>  `/studies/${study_uid}/study-visits`
+const studyVisitsTotalCountUrl = (study_uid) =>  `/studies/${study_uid}/study-visits?total_count=true`
+const studyVisitUrl = (study_uid, visit_uid) => `/studies/${study_uid}/study-visits/${visit_uid}`
 const visitsGroupsUrl = (study_uid, group) => `/studies/${study_uid}/consecutive-visit-groups/${group}`
 const visitsGroupsCreateUrl = (study_uid) => `/studies/${study_uid}/consecutive-visit-groups?validate_only=false`
 const visitTypeUrl = '/ct/terms/names?page_size=0&codelist_name=VisitType'
@@ -17,7 +19,6 @@ Cypress.Commands.add('getContactModeTermUid', (contactMode) => {
 Cypress.Commands.add('getTimeReferenceUid', (timeReferenceName) => {
     cy.getSpondorData(ctTermUrl('Time+Point+Reference'), timeReferenceName).then(uid => timeReferenceUid = uid)
 })
-
 Cypress.Commands.add('getEpochAllocationUid', () => {
     cy.getSpondorData(ctTermUrl('Epoch+Allocation'), 'Current Visit').then(uid => epochAllocationUid = uid)
 })
@@ -40,12 +41,14 @@ Cypress.Commands.add('getEpochUid', (study_uid, epochName) => {
 })
 
 Cypress.Commands.add('createVisit', (study_uid, isGlobalAnchorVisit, visitWeek, max_visit_window_value = 0) => {
-    cy.sendPostRequest(studyVisitUrl(study_uid), createVisitBody(isGlobalAnchorVisit, visitWeek, max_visit_window_value)).then(response => {
+    cy.sendPostRequest(studyVisitsUrl(study_uid), createVisitBody(isGlobalAnchorVisit, visitWeek, max_visit_window_value)).then(response => {
         if (!isGlobalAnchorVisit) studyVisitUids.push(response.body.uid)
     })
 })
 
 Cypress.Commands.add('deleteVisitsGroup', (study_uid, group) => cy.sendDeleteRequest(visitsGroupsUrl(study_uid, group)))
+
+Cypress.Commands.add('deleteVisitByUid', (study_uid, visit_uid) => cy.sendDeleteRequest(studyVisitUrl(study_uid, visit_uid)))
 
 Cypress.Commands.add('createVisitsGroup', (study_uid, groupformat) => {
     cy.sendPostRequest(visitsGroupsCreateUrl(study_uid), createVisitGroupBody(groupformat))
@@ -55,6 +58,28 @@ Cypress.Commands.add('getSpondorData', (url, filterBy) => {
     cy.sendGetRequest(url).then((response) => {
           return response.body.items.find(term => term.name.sponsor_preferred_name == filterBy).term_uid
     })
+})
+
+Cypress.Commands.add('getExistingStudyVisits', (study_uid) => {
+  cy.sendGetRequest(studyVisitsUrl(study_uid)).then((response) => {
+    let uid_array = []
+    response.body.items.forEach(item => uid_array.push(item.uid))
+    return uid_array
+  })
+})
+
+Cypress.Commands.add('createAnchorVisit', (study_uid, epoch) => {
+    cy.sendGetRequest(studyVisitsTotalCountUrl(study_uid)).then((response) => {
+        if (response.body.total == 0) {
+            cy.getEpochAllocationUid()
+            cy.getDayAndWeekTimeUnitUid()
+            cy.getContactModeTermUid('On Site Visit')
+            cy.getTimeReferenceUid('Global anchor visit')
+            cy.getVisitTypeUid('Pre-screening')
+            cy.getEpochUid(study_uid, epoch)
+            cy.createVisit(study_uid, 1, 0, 0)
+        } else cy.log('Anchor visit already exists')
+  })
 })
 
 const createVisitBody = (isGlobalAnchorVisit, visitWeek, maxVisitWindowValue) => {

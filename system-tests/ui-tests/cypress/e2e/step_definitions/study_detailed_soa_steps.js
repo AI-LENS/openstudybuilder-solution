@@ -1,4 +1,4 @@
-import { apiActivityName } from "./library_activities_steps";
+import { activityName } from "./library_activities_steps";
 
 const {Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 const { closeSync } = require("fs");
@@ -8,16 +8,16 @@ let new_activity_name
 let first_in_order
 let last_in_order
 
-When('At least {string} activites are present in {string} study', (number_of_activities, study_id) => {
-    prepareActivites(number_of_activities, study_id)
+When('At least {string} activites are present in the selected study', (number_of_activities) => {
+    prepareActivites(number_of_activities, `${Cypress.env('TEST_STUDY_UID')}`)
 })
 
-Given('At least {string} activities are present in {string} in the same {string} flowchart subgroup and {string} group', (number_of_activities, study_id, group, subgroup) => {
-    prepareActivitesInSameGroup(number_of_activities, subgroup, study_id, group)
+Given('At least {string} activities are present in the same {string} flowchart subgroup and {string} group in the selected study', (number_of_activities, group, subgroup) => {
+    prepareActivitesInSameGroup(number_of_activities, subgroup, group)
 })
 
 When('The user click on {string} action for an Activity', (action) => {
-    cy.request('api/studies/Study_000001/study-activities?total_count=true').then((req) => {
+    cy.request(`api/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?total_count=true`).then((req) => {
         current_activity = req.body.items[0].activity.name.substring(0, 40)
         cy.wait(1000)
         cy.contains('.v-selection-control', 'Expand table').click()
@@ -62,7 +62,7 @@ Then('The Activity is no longer visible in the SoA', () => {
 })
 
 When('The user selects rows in SoA table', () => {
-    cy.request('api/studies/Study_000001/study-activities?total_count=true').then((req) => {
+    cy.request(`api/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?total_count=true`).then((req) => {
         current_activity = req.body.items[0].activity.name.substring(0, 40)
         cy.wait(1000)
         cy.contains('.v-selection-control', 'Expand table').click()
@@ -159,15 +159,15 @@ Then('User can click Add study activity button', () => cy.contains('button', 'Ad
 
 Then('No activities are found', () => cy.get('table[aria-label="SoA table"] .bg-white').should('not.exist'))
 
-Then('Activity is found in table', () => cy.contains('table[aria-label="SoA table"] .bg-white', apiActivityName).should('exist'))
+Then('Activity is found in table', () => cy.contains('table[aria-label="SoA table"] .bg-white', activityName).should('exist'))
 
 When('User search for non-existing activity', () => cy.contains('.v-input__control', 'Search Activities').type('xxx'))
 
-When('User search newly added activity', () => cy.contains('.v-input__control', 'Search Activities').type(apiActivityName))
+When('User search newly added activity', () => cy.contains('.v-input__control', 'Search Activities').type(activityName))
 
-When('User search newly added activity in lowercase', () => cy.contains('.v-input__control', 'Search Activities').type(apiActivityName.toLowerCase()))
+When('User search newly added activity in lowercase', () => cy.contains('.v-input__control', 'Search Activities').type(activityName.toLowerCase()))
 
-When('User search newly added activity by partial name', () => cy.contains('.v-input__control', 'Search Activities').type(apiActivityName.slice(-3)))
+When('User search newly added activity by partial name', () => cy.contains('.v-input__control', 'Search Activities').type(activityName.slice(-3)))
 
 When('User search search activity by subgroup', () => cy.contains('.v-input__control', 'Search Activities').type('API_SubGroup'))
 
@@ -205,7 +205,7 @@ Then('Visit group delete button is clicked', () => cy.get('button[title="Delete 
 Then('Error message is displayed for collapsing visits with different epochs', () => cy.checkSnackbarMessage("Given Visits can't be collapsed as they exist in different Epochs"))
 
 function bulkAction(action) {
-    cy.request('api/studies/Study_000001/study-activities?total_count=true').then((req) => {
+    cy.request(`api/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?total_count=true`).then((req) => {
         current_activity = req.body.items[0].activity.name.substring(0, 40)
         cy.wait(1000)
         cy.contains('.v-selection-control', 'Expand table').click()
@@ -234,57 +234,33 @@ function prepareActivites(number_of_activities, study_id) {
         }
     })
 }
-function countGroupsAndSubgroupsInStudy(data, subgroup, group) {
+
+function prepareActivitesInSameGroup(number_of_activities, subgroup, group) {
     let group_subgroup_count = 0
-
-    data.body.items.forEach(element => {
-
-        if (element.study_activity_subgroup.activity_subgroup_name === subgroup && element.study_soa_group.soa_group_term_name === group) {
-            group_subgroup_count++
-        }
-    });
-    return group_subgroup_count
-
-}
-function prepareActivitesInSameGroup(number_of_activities, subgroup, study_id, group) {
-    cy.request('api/studies/' + study_id + '/study-activities?total_count=true').then((req) => {
-        cy.log(`found: ${countGroupsAndSubgroupsInStudy(req, group, subgroup)}`)
-        if ( countGroupsAndSubgroupsInStudy(req, group, subgroup) < parseInt(number_of_activities)) {
-            cy.visit('studies/' + study_id + '/activities/list')
+    cy.sendGetRequest(`/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?page_size=100`).then(response => {
+        response.body.items.forEach(item => {
+            let subgroupName = item.activity.activity_groupings[0].activity_subgroup_name
+            let soaName = item.study_soa_group.soa_group_term_name
+            if (subgroupName == group && soaName == subgroup) group_subgroup_count++
+        })
+    }).then(() => {
+        if (group_subgroup_count < parseInt(number_of_activities)) {
+            cy.visit(`studies/${Cypress.env('TEST_STUDY_UID')}/activities/list`)
             cy.clickButton('add-study-activity')
             cy.clickFormActionButton('continue')
             cy.contains('Use the same SoA group for all').click()
-            cy.get('.v-card-title > .v-autocomplete > .v-input__control > .v-field').first().click()
-            cy.contains('.v-list-item__content', 'BIOMARKERS').click()
-            cy.get('[data-cy="form-body"]').within(() => {
-                selectFirstNRowsContainingValue(subgroup, number_of_activities)
-
-            })
+            cy.searchForInPopUp(group)
+            cy.get('input[aria-label="Use the same SoA group for all"]').check()
+            cy.get('.v-card-title [role="combobox"] input').click()
+            cy.contains('.v-list-item__content', subgroup).click()
+            while (group_subgroup_count != parseInt(number_of_activities)) {
+                cy.get('.v-data-table__td--select-row input').not(':disabled').not('[checked]').first().check();
+                group_subgroup_count++;
+            }
             cy.clickFormActionButton('save')
-            prepareActivites(number_of_activities, study_id, subgroup)
         } else {
             cy.log('Skipping activity creation')
         }
     })
-}
 
-function selectFirstNRowsContainingValue(value, numberOfRows) {
-    let selectedCount = 0
-
-    cy.get('tbody.v-data-table__tbody tr').each(($row) => {
-        if (selectedCount < numberOfRows) {
-            cy.wrap($row).find(':nth-child(5)').each(($cell) => {
-                cy.wrap($cell).invoke('text').then((cellText) => {
-                    if (selectedCount < numberOfRows) {
-                    if (cellText.includes(value)) {
-                        cy.wrap($row).find('input[type="checkbox"]').check(); // Checking the checkbox
-                        selectedCount++
-                    }
-                }
-                })
-            })
-        } else {
-            return false
-        }
-    })
 }

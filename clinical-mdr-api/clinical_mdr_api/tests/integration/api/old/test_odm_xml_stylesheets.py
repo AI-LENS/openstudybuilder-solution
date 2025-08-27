@@ -22,7 +22,7 @@ def test_get_available_stylesheet_names(api_client):
     response = api_client.get("concepts/odms/metadata/xmls/stylesheets")
 
     assert_response_status_code(response, 200)
-    assert response.json() == ["blank", "sdtm"]
+    assert response.json() == ["blank", "falcon", "with-annotations"]
 
 
 def test_get_specific_stylesheet(api_client):

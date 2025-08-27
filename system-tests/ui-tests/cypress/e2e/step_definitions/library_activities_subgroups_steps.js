@@ -1,27 +1,23 @@
 import { apiGroupName } from "./api_library_steps"
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
-let activitysubgroup, apiActivitySubGroupName
-let abbreviation = "ABB", definition = "DEF"
+let activitysubgroup, abbreviation = "ABB", definition = "DEF"
 
 When('The Add activity subgroup button is clicked', () => cy.clickButton('add-activity'))
 
-When('The subgroup can be find in table', () => cy.searchAndCheckPresence(apiActivitySubGroupName, true))
+When('Activity subgroup is searched for and found', () => cy.searchAndCheckPresence(activitysubgroup, true))
 
-When('The test activity subgroup container is filled with data and saved', () => {
-    fillSubGroupData(false)
-    saveSubGroup()
-})
+When('Activity subgroup is searched for and not found', () => cy.searchAndCheckPresence(activitysubgroup, false))
 
-When('Approved Group can be linked to subgroup', () => {
-    fillSubGroupData(true, apiGroupName)
-    saveSubGroup()
-})
+Given('Custom group name is typed', () => cy.get('[data-cy="groupform-activity-group-dropdown"] input').type(apiGroupName))
 
-When('The test activity subgroup container is filled with data', () => fillSubGroupData())
+Given('Activity subgroup is saved and snackbar message says it is {string}', (action) => saveSubGroup(action))
+
+When('The activity subgroup edition form is filled with data', () => editSubGroup())
+
+When('The activity subgroup form is filled with data', () => fillSubGroupData())
 
 Then('The newly added activity subgroup is visible in the the table', () => {  
-    cy.searchAndCheckPresence(activitysubgroup, true)
     cy.checkRowByIndex(0, 'Activity subgroup', activitysubgroup)
     cy.checkRowByIndex(0,'Sentence case name', activitysubgroup.toLowerCase())
     cy.checkRowByIndex(0, 'Abbreviation', abbreviation)
@@ -32,7 +28,6 @@ When('The Activity groups, Subgroup name, Sentence case name and Definition fiel
     cy.fillInput('groupform-activity-group-field', 'test')
     cy.clearInput('sentence-case-name-field')
     cy.clearInput('groupform-activity-group-field')
-    cy.clickButton('save-button')
 })
 
 Then('The user is not able to save the acitivity subgroup', () => {   
@@ -40,12 +35,13 @@ Then('The user is not able to save the acitivity subgroup', () => {
     cy.get('span.dialog-title').should('be.visible').should('have.text', 'Add activity subgroup'); 
 })
 
-Then('The message is displayed as {string} in each of the mandatory field', (message) => {  
-    cy.get('[data-cy="groupform-subgroup-class"]').contains('.v-messages__message', message).should('be.visible'); 
-    cy.get('[data-cy="groupform-activity-group-class"]').contains('.v-messages__message', message).should('be.visible'); 
-    cy.get('[data-cy="sentence-case-name-class"]').contains('.v-messages__message', message).should('be.visible');
-    cy.get('[data-cy="groupform-definition-class"]').contains('.v-messages__message', message).should('be.visible');
-})
+Then('The validation appears for missing subgroup', () => cy.checkIfValidationAppears('groupform-subgroup-class'))
+
+Then('The validation appears for missing group', () => cy.checkIfValidationAppears('groupform-activity-group-class'))
+
+Then('The validation appears for missing subgroup name', () => cy.checkIfValidationAppears('sentence-case-name-class'))
+
+Then('The validation appears for missing subgroup definition', () => cy.checkIfValidationAppears('groupform-definition-class'))
 
 When('The user enters a value for Activity subgroup name', () => {
     cy.fillInput('groupform-activity-group-field', "TEST")
@@ -58,23 +54,7 @@ Then('The field for Sentence case name will be defaulted to the lower case value
 When('The user define a value for Sentence case name and it is not identical to the value of Activity subgroup name', () => {
     cy.fillInput('groupform-activity-group-field', "TEST")
     cy.fillInput('sentence-case-name-field', "TEST2")
-    cy.clickButton('save-button')
 })
-
-When('The activity subgroup is edited', () => {
-    editSubGroup()
-    saveSubGroup('updated')
-})
-
-When('The activity subgroup edition form is filled with data', () => editSubGroup())
-
-Then('The activity subgroup is no longer available', () => cy.searchAndCheckPresence(apiActivitySubGroupName, false))
-
-Then('The activity subgroup is not created', () => cy.searchAndCheckPresence(activitysubgroup, false))
-
-Then('The activity subgroup is not edited', () => cy.searchAndCheckPresence(activitysubgroup, false))
-
-Then('One activity subgroup is found after performing full name search', () => cy.searchAndCheckPresence(apiActivitySubGroupName, true))
 
 When('[API] Activity subgroup in status Draft exists', () => createSubGroupViaApi())
 
@@ -92,20 +72,10 @@ Given('[API] Second activity subgroup for search test is created', () => cy.crea
 
 Given('[API] Activity subgroup is created', () => cy.createSubGroup())
 
-When('Activity subgroup is found', () => cy.searchAndCheckPresence(apiActivitySubGroupName, true))
+When('Drafted or Retired group is not available during subgroup creation', () => cy.checkNoDataAvailable())
 
-When('Drafted or Retired group is not available during subgroup creation', () => selectCustomGroup(apiGroupName))
-
-function selectCustomGroup(customGroup) {
-    cy.get('[data-cy="groupform-activity-group-dropdown"] input').type(customGroup)
-    cy.get('.v-overlay__content .v-list-item-title').should('have.text', 'No data available')
-}
-
-function fillSubGroupData(clickAddButton = true, customGroup = '') {
+function fillSubGroupData() {
     activitysubgroup = `Subgroup${Date.now()}`
-    if (clickAddButton) cy.clickButton('add-activity')
-    cy.wait(1000)
-    if (customGroup) cy.get('[data-cy="groupform-activity-group-dropdown"] input').type(customGroup)
     cy.selectFirstVSelect('groupform-activity-group-dropdown')
     cy.fillInput('groupform-activity-group-field', activitysubgroup)
     cy.fillInput('groupform-abbreviation-field', abbreviation)
@@ -123,13 +93,12 @@ function saveSubGroup(action = 'created') {
     cy.clickButton('save-button')
     cy.get('.v-snackbar__content').contains(`Subgroup ${action}`).should('be.visible')
     cy.wait('@getData', {timeout: 20000}) 
-    cy.searchAndCheckPresence(activitysubgroup, true)
 }
 
 function createSubGroupViaApi(customName = '') {
     cy.intercept('/api/concepts/activities/activity-sub-groups?page_number=1&*').as('getData')
     cy.getFinalGroupUid()
     cy.createSubGroup(customName)
-    cy.getSubGroupNameByUid().then(name => apiActivitySubGroupName = name)
+    cy.getSubGroupNameByUid().then(name => activitysubgroup = name)
     cy.wait('@getData', {timeout: 20000})
 }

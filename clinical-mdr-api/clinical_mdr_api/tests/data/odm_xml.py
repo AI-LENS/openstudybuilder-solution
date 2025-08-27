@@ -424,7 +424,7 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         <ItemGroupRef ItemGroupOID="G.VS.VS" Mandatory="Yes" OrderNumber="1" osb:locked="Yes" />
                         <ItemGroupRef ItemGroupOID="G.VS.BPP" Mandatory="Yes" OrderNumber="2" osb:locked="Yes" />
                     </FormDef>
-                    <ItemGroupDef OID="G.VS.BPP" Name="Blood pressure and pulse" Repeating="No" Purpose="Tabulation" SASDatasetName="VITALSIGNSBPP" Domain="VS:Vital Signs Domain" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig1">
+                    <ItemGroupDef OID="G.VS.BPP" Name="Blood pressure and pulse" Repeating="No" Purpose="Tabulation" SASDatasetName="VITALSIGNSBPP" Domain="code_submission_value1:preferred_term1|code_submission_value3:preferred_term3" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig1">
                         <osb:DomainColor>VS:#bfffff !important;</osb:DomainColor>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">Blood pressure and pulse</TranslatedText>
@@ -437,7 +437,7 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         <ItemRef ItemOID="I.PULSE" Mandatory="Yes" OrderNumber="6" osb:sdv="Yes" />
                         <Alias Name="name1" Context="context1" />
                     </ItemGroupDef>
-                    <ItemGroupDef OID="G.DM.DM" Name="General Demography" Repeating="No" Purpose="Tabulation" SASDatasetName="DEMOG" Domain="DM:Demographics Domain" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig2">
+                    <ItemGroupDef OID="G.DM.DM" Name="General Demography" Repeating="No" Purpose="Tabulation" SASDatasetName="DEMOG" Domain="preferred_term1" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig2">
                         <osb:DomainColor>DM:#bfffff !important;</osb:DomainColor>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">General Demographic item group</TranslatedText>
@@ -454,7 +454,7 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         <ItemRef ItemOID="I.PREVSUBJ" Mandatory="Yes" OrderNumber="10" osb:sdv="Yes" />
                         <Alias Name="name2" Context="context2" />
                     </ItemGroupDef>
-                    <ItemGroupDef OID="G.DM.IC" Name="Informed Consent" Repeating="No" Purpose="Tabulation" SASDatasetName="DEMOG" Domain="DM:Demographics Domain" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig3">
+                    <ItemGroupDef OID="G.DM.IC" Name="Informed Consent" Repeating="No" Purpose="Tabulation" SASDatasetName="DEMOG" Domain="code_submission_value1" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig3">
                         <osb:DomainColor>DM:#bfffff !important;</osb:DomainColor>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">Informed Consent item group</TranslatedText>
@@ -467,7 +467,7 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         <ItemRef ItemOID="I.RFICDATLAR2" Mandatory="Yes" OrderNumber="6" osb:sdv="Yes" />
                         <ItemRef ItemOID="I.RFICTIMLAR2" Mandatory="Yes" OrderNumber="7" osb:sdv="Yes" />
                     </ItemGroupDef>
-                    <ItemGroupDef OID="G.VS.VS" Name="Vital Signs" Repeating="Yes" Purpose="Tabulation" SASDatasetName="VITALSIGNS" Domain="VS:Vital Signs Domain" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig4">
+                    <ItemGroupDef OID="G.VS.VS" Name="Vital Signs" Repeating="Yes" Purpose="Tabulation" SASDatasetName="VITALSIGNS" Domain="" osb:version="1.0" osb:instruction="item group instruction" osb:sponsorInstruction="item group sponsor instruction" osb:gr="ig4">
                         <osb:DomainColor>VS:#bfffff !important;</osb:DomainColor>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">Vital signs</TranslatedText>
@@ -535,6 +535,7 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">Date of birth (only for Argus interface) [hidden ]</TranslatedText>
                         </Description>
+                        <CodeListRef CodeListOID="new codelist created by odm xml import" />
                     </ItemDef>
                     <ItemDef OID="I.VSDAT" Name="Date of examination" Origin="Collected Value" DataType="date" SASFieldName="VSDAT" SDSVarName="VSDTC" osb:version="1.0" osb:instruction="item instruction" osb:sponsorInstruction="item sponsor instruction">
                         <Question>
@@ -709,17 +710,27 @@ import_input1 = """<?xml version="1.0" encoding="utf-8"?>
                         </Question>
                         <FormalExpression Context="XPath">Formal Expression 1</FormalExpression>
                     </MethodDef>
-                    <CodeList OID="codelist submission value1@I.STUDYID" Name="editable_cr" DataType="string" SASFormatName="codelist submission value1" osb:version="1.0">
+                    <CodeList OID="codelist submission value1@I.STUDYID" Name="codelist attributes value1" DataType="string" SASFormatName="codelist submission value1" osb:version="1.0">
                         <CodeListItem CodedValue="codeSubmissionValue" OrderNumber="2" osb:mandatory="True" osb:name="term_value_name1" osb:OID="term_root_final" osb:version="1.0">
                             <Decode>
-                                <TranslatedText xml:lang="en">preferred_term</TranslatedText>
+                                <TranslatedText xml:lang="en">preferred_term1</TranslatedText>
                             </Decode>
                         </CodeListItem>
                     </CodeList>
-                    <CodeList OID="codelist submission value1@I.AGE" Name="editable_cr" DataType="string" SASFormatName="codelist submission value1" osb:version="1.0">
+                    <CodeList OID="codelist submission value1@I.AGE" Name="codelist attributes value1" DataType="string" SASFormatName="codelist submission value1" osb:version="1.0">
                         <CodeListItem CodedValue="codeSubmissionValue" OrderNumber="1" osb:mandatory="False" osb:name="term_value_name1" osb:OID="term_root_final" osb:version="1.0">
                             <Decode>
-                                <TranslatedText xml:lang="en">preferred_term</TranslatedText>
+                                <TranslatedText xml:lang="en">preferred_term1</TranslatedText>
+                            </Decode>
+                        </CodeListItem>
+                    </CodeList>
+                    <CodeList OID="new codelist created by odm xml import" Name="cnew codelist created by odm xml import" DataType="string" SASFormatName="new codelist created by odm xml import" osb:version="1.0">
+                        <Description>
+                            <TranslatedText xml:lang="en">new codelist created by odm xml import</TranslatedText>
+                        </Description>
+                        <CodeListItem CodedValue="codelistitem codedvalue" OrderNumber="1">
+                            <Decode>
+                                <TranslatedText xml:lang="en">preferred term for new codelist</TranslatedText>
                             </Decode>
                         </CodeListItem>
                     </CodeList>
@@ -1374,7 +1385,18 @@ import_output1 = {
                     "version": "1.0",
                 }
             ],
-            "sdtm_domains": [],
+            "sdtm_domains": [
+                {
+                    "uid": "term_root_final",
+                    "code_submission_value": "code_submission_value1",
+                    "preferred_term": "preferred_term1",
+                },
+                {
+                    "uid": "term_root_final_non_edit",
+                    "code_submission_value": "code_submission_value3",
+                    "preferred_term": "preferred_term3",
+                },
+            ],
             "activity_subgroups": [],
             "items": [
                 {
@@ -1586,7 +1608,13 @@ import_output1 = {
                     "version": "1.0",
                 }
             ],
-            "sdtm_domains": [],
+            "sdtm_domains": [
+                {
+                    "uid": "term_root_final",
+                    "code_submission_value": "code_submission_value1",
+                    "preferred_term": "preferred_term1",
+                }
+            ],
             "activity_subgroups": [],
             "items": [
                 {
@@ -1883,7 +1911,13 @@ import_output1 = {
                 }
             ],
             "aliases": [],
-            "sdtm_domains": [],
+            "sdtm_domains": [
+                {
+                    "uid": "term_root_final",
+                    "code_submission_value": "code_submission_value1",
+                    "preferred_term": "preferred_term1",
+                }
+            ],
             "activity_subgroups": [],
             "items": [
                 {
@@ -2547,8 +2581,22 @@ import_output1 = {
             ],
             "aliases": [],
             "unit_definitions": [],
-            "codelist": None,
-            "terms": [],
+            "codelist": {
+                "uid": "CTCodelist_000001",
+                "name": "cnew codelist created by odm xml import",
+                "submission_value": "cnew codelist created by odm xml import",
+                "preferred_term": "new codelist created by odm xml import",
+            },
+            "terms": [
+                {
+                    "term_uid": "CTTerm_000001",
+                    "name": "preferred term for new codelist",
+                    "mandatory": True,
+                    "order": 1,
+                    "display_text": "preferred term for new codelist",
+                    "version": "1.0",
+                }
+            ],
             "activity": None,
             "vendor_elements": [],
             "vendor_attributes": [],
@@ -3429,6 +3477,45 @@ import_output1 = {
             "possible_actions": ["inactivate", "new_version"],
         }
     ],
+    "codelists": [
+        {
+            "catalogue_name": "SDTM CT",
+            "codelist_uid": "CTCodelist_000001",
+            "parent_codelist_uid": None,
+            "child_codelist_uids": [],
+            "name": "cnew codelist created by odm xml import",
+            "submission_value": "cnew codelist created by odm xml import",
+            "nci_preferred_name": "new codelist created by odm xml import",
+            "definition": "new codelist created by odm xml import",
+            "extensible": True,
+            "sponsor_preferred_name": "cnew codelist created by odm xml import",
+            "template_parameter": False,
+            "library_name": "Sponsor",
+            "possible_actions": ["new_version"],
+        }
+    ],
+    "terms": [
+        {
+            "term_uid": "CTTerm_000001",
+            "catalogue_name": "SDTM CT",
+            "codelists": [
+                {
+                    "codelist_uid": "CTCodelist_000001",
+                    "order": 999999,
+                    "library_name": "Sponsor",
+                }
+            ],
+            "concept_id": None,
+            "code_submission_value": "codelistitem codedvalue",
+            "name_submission_value": None,
+            "nci_preferred_name": "codelistitem codedvalue",
+            "definition": "codelistitem codedvalue",
+            "sponsor_preferred_name": "preferred term for new codelist",
+            "sponsor_preferred_name_sentence_case": "preferred term for new codelist",
+            "library_name": "Sponsor",
+            "possible_actions": ["inactivate", "new_version"],
+        }
+    ],
 }
 import_input2 = """<?xml version="1.0" encoding="utf-8"?>
         <ODM xmlns:odm="http://www.cdisc.org/ns/odm/v1.3" xmlns:osb="url2" xmlns:cs="http://clinspark.org" ODMVersion="1.3.2" FileType="Snapshot" FileOID="OID.1666353293513" CreationDateTime="2022-10-21 13:54:53.513447" Granularity="All">
@@ -3672,6 +3759,8 @@ import_output2 = {
     "items": [],
     "conditions": [],
     "methods": [],
+    "codelists": [],
+    "terms": [],
 }
 import_input3 = """<?xml version="1.0" encoding="utf-8"?>
         <ODM ODMVersion="1.3.2" FileType="Snapshot" FileOID="OID.1666353293513" CreationDateTime="2022-10-21 13:54:53.513447" Granularity="All">
@@ -3682,13 +3771,23 @@ import_input3 = """<?xml version="1.0" encoding="utf-8"?>
                     <StudyDescription>ODM version 1.3.2 with DoB</StudyDescription>
                 </GlobalVariables>
                 <BasicDefinitions>
-                    <MeasurementUnit OID="wrong name" Name="a name">
+                    <MeasurementUnit OID="unitOID" Name="non-existing unit">
                         <Symbol>
-                        <TranslatedText xml:lang="en">a name</TranslatedText>
+                        <TranslatedText xml:lang="en">non-existing unit</TranslatedText>
                         </Symbol>
                     </MeasurementUnit>
                 </BasicDefinitions>
-                <MetaDataVersion OID="MDV.0.1" Name="MDV.0.1" Description="Draft version" />
+                <MetaDataVersion OID="MDV.0.1" Name="MDV.0.1" Description="Draft version">
+                    <ItemDef OID="I.AGE" Name="Age" Origin="Collected Value" DataType="integer" Length="3" SASFieldName="AGE" SDSVarName="AGE">
+                        <Question>
+                            <TranslatedText xml:lang="en">Age</TranslatedText>
+                        </Question>
+                        <Description>
+                            <TranslatedText xml:lang="en">Age</TranslatedText>
+                        </Description>
+                        <MeasurementUnitRef MeasurementUnitOID="unitOID" />
+                    </ItemDef>
+                </MetaDataVersion>
             </Study>
         </ODM>"""
 import_input4 = """<?xml version="1.0" encoding="utf-8"?>
@@ -3753,7 +3852,7 @@ import_input6 = """<?xml version="1.0" encoding="utf-8"?>
                         <Description>
                             <TranslatedText xml:lang="en" osb:version="0.1">Systolic blood pressure</TranslatedText>
                         </Description>
-                        <MeasurementUnitRef MeasurementUnitOID="name1" />
+                        <MeasurementUnitRef MeasurementUnitOID="unitOID" />
                     </ItemDef>
                 </MetaDataVersion>
             </Study>
@@ -9019,4 +9118,6 @@ clinspark_output = {
             "possible_actions": ["inactivate", "new_version"],
         }
     ],
+    "codelists": [],
+    "terms": [],
 }

@@ -139,6 +139,11 @@ def odm_itemgroup(data, alias_uids, domain_uids):
 
 # library,oid,name,prompt,datatype,length,significantdigits,codelist,term,unit,sasfieldname,sdsvarname,origin,comment,language,description,instruction
 def odm_item(data, alias_uids, units, terms):
+    try:
+        length = int(data["length"])
+    except ValueError:
+        length = None
+
     return {
         "path": "/concepts/odms/items",
         "body": {
@@ -147,7 +152,7 @@ def odm_item(data, alias_uids, units, terms):
             "oid": data["oid"],
             "datatype": data["datatype"],
             "prompt": data["prompt"],
-            "length": int(data["length"]),
+            "length": length,
             "significant_digits": int(data["significantdigits"]),
             "sas_field_name": data["sasfieldname"],
             "sds_var_name": data["sdsvarname"],

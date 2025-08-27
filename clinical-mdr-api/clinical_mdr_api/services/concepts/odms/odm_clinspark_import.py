@@ -133,7 +133,7 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
             filter_by={
                 "submission_value": {
                     "v": [
-                        self._get_codelist_submission_value(codelist)
+                        self._get_codelist_description_translatedtext_value(codelist)
                         for codelist in self.codelists
                     ],
                     "op": "eq",
@@ -146,7 +146,9 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
 
         new_codelist_uids = set()
         for codelist in self.codelists:
-            submission_value = self._get_codelist_submission_value(codelist)
+            submission_value = self._get_codelist_description_translatedtext_value(
+                codelist
+            )
 
             if submission_value not in existing_codelist_submission_values:
                 ct_codelist = self.ct_codelist_service.non_transactional_create(
@@ -262,7 +264,7 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
                 active_codelist = next(
                     db_ct_codelist_attribute
                     for db_ct_codelist_attribute in self.db_ct_codelist_attributes
-                    if self._get_codelist_submission_value(codelist)
+                    if self._get_codelist_description_translatedtext_value(codelist)
                     == db_ct_codelist_attribute.submission_value
                 )
             except StopIteration as exc:
@@ -285,19 +287,6 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
         return self._repos.ct_term_attributes_repository.find_all(
             filter_by={"term_uid": {"v": term_attribute_uids, "op": "eq"}}
         ).items
-
-    @staticmethod
-    def _get_codelist_submission_value(codelist):
-        try:
-            return (
-                codelist.getElementsByTagName("Description")[0]
-                .getElementsByTagName("TranslatedText")[0]
-                .firstChild.nodeValue
-            )
-        except Exception as exc:
-            raise exceptions.BusinessLogicException(
-                msg=f"Code Submission Value not provided for Codelist with OID '{codelist.getAttribute('OID')}'."
-            ) from exc
 
     def _get_item_unit_definition_inputs(self, item_def):
         try:
@@ -345,7 +334,7 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
                 db_ct_codelist_attribute.codelist_uid
                 for db_ct_codelist_attribute in self.db_ct_codelist_attributes
                 if codelist
-                and self._get_codelist_submission_value(codelist)
+                and self._get_codelist_description_translatedtext_value(codelist)
                 == db_ct_codelist_attribute.submission_value
             ),
             None,
@@ -353,20 +342,26 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
 
         input_terms = []
         if codelist:
-            input_terms = [
-                OdmItemTermRelationshipInput(
-                    uid=db_ct_term_attribute.term_uid,
-                    order=int(float(codelist_item.getAttribute("Rank") or "1")),
-                    display_text=codelist_item.getElementsByTagName("TranslatedText")[
-                        0
-                    ].firstChild.nodeValue,
-                )
-                for codelist_item in codelist.getElementsByTagName("CodeListItem")
+            term_uid_map = {
+                (
+                    db_ct_term_attribute.codelists[0].codelist_uid,
+                    db_ct_term_attribute.code_submission_value,
+                ): db_ct_term_attribute.term_uid
                 for db_ct_term_attribute in self.db_ct_term_attributes
-                if codelist_item.getAttribute("CodedValue")
-                == db_ct_term_attribute.code_submission_value
-                and db_ct_term_attribute.codelists[0].codelist_uid == codelist_uid
-            ]
+            }
+
+            for codelist_item in codelist.getElementsByTagName("CodeListItem"):
+                key = (codelist_uid, codelist_item.getAttribute("CodedValue"))
+                if key in term_uid_map:
+                    input_terms.append(
+                        OdmItemTermRelationshipInput(
+                            uid=term_uid_map.get(key),
+                            order=int(float(codelist_item.getAttribute("Rank") or "1")),
+                            display_text=codelist_item.getElementsByTagName(
+                                "TranslatedText"
+                            )[0].firstChild.nodeValue,
+                        )
+                    )
 
         return (
             OdmItemPostInput(

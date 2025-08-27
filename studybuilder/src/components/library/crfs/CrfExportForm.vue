@@ -28,7 +28,10 @@
           <v-col cols="4">
             <label>{{ $t('OdmViewer.stylesheet') }}</label>
             <v-radio-group v-model="exportParams.stylesheet">
-              <v-radio :label="$t('OdmViewer.sdtm')" value="sdtm" />
+              <v-radio
+                :label="$t('OdmViewer.crf_with_annotations')"
+                value="sdtm"
+              />
               <v-radio :label="$t('OdmViewer.blank')" value="blank" />
             </v-radio-group>
           </v-col>

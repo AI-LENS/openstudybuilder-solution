@@ -399,14 +399,13 @@ def test_flowchart_html(
     [
         (SoALayout.PROTOCOL, "day"),
         (SoALayout.PROTOCOL, "week"),
-        (SoALayout.PROTOCOL, "day"),
-        (SoALayout.PROTOCOL, "week"),
-        (SoALayout.PROTOCOL, "week"),
+        (SoALayout.PROTOCOL, None),
         (SoALayout.DETAILED, "day"),
         (SoALayout.DETAILED, "week"),
+        (SoALayout.DETAILED, None),
         (SoALayout.OPERATIONAL, "day"),
         (SoALayout.OPERATIONAL, "week"),
-        (SoALayout.OPERATIONAL, "day"),
+        (SoALayout.OPERATIONAL, None),
     ],
 )
 def test_flowchart_docx(
@@ -438,6 +437,7 @@ def test_flowchart_docx(
 
         # Layout alterations from get_study_flowchart_docx
         service.add_protocol_section_column(soa_table)
+
     else:
         service.show_hidden_rows(soa_table.rows)
 
@@ -477,6 +477,79 @@ def test_flowchart_docx(
             soa_table.footnotes,
             DOCX_STYLES,
         )
+
+
+@pytest.mark.parametrize(
+    "layout, time_unit",
+    [
+        (SoALayout.PROTOCOL, "day"),
+        (SoALayout.PROTOCOL, "week"),
+        (SoALayout.PROTOCOL, None),
+        (SoALayout.DETAILED, "day"),
+        (SoALayout.DETAILED, "week"),
+        (SoALayout.DETAILED, None),
+        (SoALayout.OPERATIONAL, "day"),
+        (SoALayout.OPERATIONAL, "week"),
+        (SoALayout.OPERATIONAL, None),
+    ],
+)
+def test_flowchart_xlsx(
+    soa_test_data: SoATestData,
+    api_client: TestClient,
+    layout: SoALayout,
+    time_unit: str | None,
+):
+    """
+    Tests SoA XLSX by downloading and counting rows & columns
+
+    Go fix test_flowchart() first if both tests are failing.
+    """
+
+    service = StudyFlowchartService()
+
+    # SoA table for comparison base
+    soa_table: TableWithFootnotes = service.build_flowchart_table(
+        study_uid=soa_test_data.study.uid,
+        study_value_version=None,
+        layout=layout,
+        time_unit=time_unit,
+    )
+
+    # Layout alterations from get_flowchart_table
+    if layout == SoALayout.PROTOCOL:
+        service.propagate_hidden_rows(soa_table.rows)
+        service.remove_hidden_rows(soa_table)
+
+    else:
+        service.show_hidden_rows(soa_table.rows)
+
+    # Query parameters
+    params = {"layout": layout.value}
+    if time_unit is not None:
+        params["time_unit"] = time_unit
+
+    # Fetch SoA XLSX
+    response = api_client.get(
+        f"/studies/{soa_test_data.study.uid}/flowchart.xlsx", params=params
+    )
+    assert_response_status_code(response, 200)
+    # THEN returns XLSX content type HTTP header
+    assert_response_content_type(response, XLSX_CONTENT_TYPE)
+
+    # THEN body is a parsable XLSX document
+    workbook = openpyxl.load_workbook(BytesIO(response.content))
+
+    # THEN the document contains exactly one worksheet
+    assert len(workbook.worksheets) == 1, "expected exactly 1 worksheet in XLSX file"
+    worksheet = workbook.worksheets[0]
+
+    # THEN worksheet has the same number of rows as SoA table
+    xlsx_rows = list(worksheet.rows)
+    assert len(xlsx_rows) == len(soa_table.rows), "number of rows mismatch"
+
+    # THEN worksheet has the same number of columns as SoA table
+    num_xlsx_cols = sum(1 for _ in worksheet.columns)
+    assert num_xlsx_cols == len(soa_table.rows[-1].cells), "number of columns mismatch"
 
 
 @pytest.mark.parametrize(

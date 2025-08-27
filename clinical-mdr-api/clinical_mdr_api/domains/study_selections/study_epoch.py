@@ -10,6 +10,7 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term import (
     SimpleCTTermNameWithConflictFlag,
 )
 from common.config import settings
+from common.telemetry import trace_calls
 from common.utils import BaseTimelineAR
 
 StudyEpochType: dict[str, SimpleCTTermNameWithConflictFlag] = {}
@@ -212,6 +213,7 @@ class TimelineAR(BaseTimelineAR):
     collect_visits_to_epochs
     """
 
+    @trace_calls
     def collect_visits_to_epochs(
         self, epochs: list[StudyEpochVO]
     ) -> Mapping[str, list[StudyVisitVO]]:

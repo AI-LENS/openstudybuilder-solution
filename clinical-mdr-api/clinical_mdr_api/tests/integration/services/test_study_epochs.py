@@ -44,8 +44,7 @@ class TestStudyEpochManagement(unittest.TestCase):
         fix_study_preferred_time_unit(self.study.uid)
 
     def test__list_epoch_studies(self):
-        epoch_service = StudyEpochService()
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
 
         assert len(epochs) == 0
 
@@ -76,20 +75,17 @@ class TestStudyEpochManagement(unittest.TestCase):
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
 
-        epoch_service = StudyEpochService()
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
         self.assertEqual(len(epochs), 2)
 
     def test__create_study_epoch_with_not_unique_epoch_subtype__epoch_names_are_properly_assigned(
         self,
     ):
-        epoch_service = StudyEpochService()
-
         first_epoch_subtype_name = "Epoch Subtype1"
         first_epoch_subtype_uid = "EpochSubType_0002"
 
         create_study_epoch(epoch_subtype_uid=first_epoch_subtype_uid)
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
         self.assertEqual(len(epochs), 1)
         self.assertEqual(
             epochs[0].epoch_ctterm.sponsor_preferred_name, first_epoch_subtype_name
@@ -100,7 +96,7 @@ class TestStudyEpochManagement(unittest.TestCase):
         epoch_subtype_name = "Epoch Subtype"
 
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
         self.assertEqual(len(epochs), 2)
         self.assertEqual(
             epochs[0].epoch_ctterm.sponsor_preferred_name, first_epoch_subtype_name
@@ -113,7 +109,7 @@ class TestStudyEpochManagement(unittest.TestCase):
 
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
 
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
         self.assertEqual(len(epochs), 3)
         self.assertEqual(
             epochs[0].epoch_ctterm.sponsor_preferred_name, first_epoch_subtype_name
@@ -240,12 +236,10 @@ class TestStudyEpochManagement(unittest.TestCase):
     def test__create_study_epoch_with_not_unique_epoch_subtype__new_epoch_is_being_created(
         self,
     ):
-        epoch_service = StudyEpochService()
-
         epoch_subtype_uid = "EpochSubType_0001"
         epoch_subtype_name = "Epoch Subtype"
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
 
         self.assertEqual(len(epochs), 1)
         self.assertEqual(
@@ -255,7 +249,7 @@ class TestStudyEpochManagement(unittest.TestCase):
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
         create_study_epoch(epoch_subtype_uid=epoch_subtype_uid)
-        epochs = epoch_service.get_all_epochs(self.study.uid).items
+        epochs = StudyEpochService.get_all_epochs(self.study.uid).items
         self.assertEqual(len(epochs), 4)
         self.assertEqual(
             epochs[0].epoch_ctterm.sponsor_preferred_name, epoch_subtype_name + " 1"

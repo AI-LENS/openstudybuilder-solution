@@ -76,9 +76,18 @@ from clinical_mdr_api.models.concepts.odms.odm_vendor_namespace import (
 from clinical_mdr_api.models.concepts.unit_definitions.unit_definition import (
     UnitDefinitionModel,
 )
+from clinical_mdr_api.models.controlled_terminologies.ct_codelist import (
+    CTCodelist,
+    CTCodelistCreateInput,
+)
+from clinical_mdr_api.models.controlled_terminologies.ct_term import (
+    CTTerm,
+    CTTermCreateInput,
+)
 from clinical_mdr_api.models.controlled_terminologies.ct_term_attributes import (
     CTTermAttributes,
 )
+from clinical_mdr_api.repositories._utils import FilterOperator
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services._utils import is_library_editable
 from clinical_mdr_api.services.concepts.odms.odm_aliases import OdmAliasService
@@ -108,6 +117,10 @@ from clinical_mdr_api.services.concepts.odms.odm_vendor_namespaces import (
 from clinical_mdr_api.services.concepts.unit_definitions.unit_definition import (
     UnitDefinitionService,
 )
+from clinical_mdr_api.services.controlled_terminologies.ct_codelist import (
+    CTCodelistService,
+)
+from clinical_mdr_api.services.controlled_terminologies.ct_term import CTTermService
 from clinical_mdr_api.services.controlled_terminologies.ct_term_attributes import (
     CTTermAttributesService,
 )
@@ -133,7 +146,9 @@ class OdmXmlImporterService:
     odm_description_service: OdmDescriptionService
     odm_alias_service: OdmAliasService
     unit_definition_service: UnitDefinitionService
+    ct_term_service: CTTermService
     ct_term_attributes_service: CTTermAttributesService
+    ct_codelist_service: CTCodelistService
 
     xml_document: minidom.Document
     form_defs: minicompat.NodeList
@@ -155,6 +170,8 @@ class OdmXmlImporterService:
     db_items: list[OdmItem]
     db_conditions: list[OdmCondition]
     db_methods: list[OdmMethod]
+    db_ct_codelists: list[CTCodelist]
+    db_ct_terms: list[CTTerm]
     db_ct_term_attributes: list[CTTermAttributes]
     db_unit_definitions: list[UnitDefinitionModel]
     measurement_unit_names_by_oid: dict[str, str]
@@ -191,7 +208,9 @@ class OdmXmlImporterService:
         self.odm_formal_expression_service = OdmFormalExpressionService()
         self.odm_description_service = OdmDescriptionService()
         self.odm_alias_service = OdmAliasService()
+        self.ct_term_service = CTTermService()
         self.ct_term_attributes_service = CTTermAttributesService()
+        self.ct_codelist_service = CTCodelistService()
 
         self.namespace_prefixes = {}
         self.db_vendor_namespaces = []
@@ -203,6 +222,8 @@ class OdmXmlImporterService:
         self.db_items = []
         self.db_conditions = []
         self.db_methods = []
+        self.db_ct_codelists = []
+        self.db_ct_terms = []
         self.db_ct_term_attributes = []
         self.db_unit_definitions = []
 
@@ -240,6 +261,8 @@ class OdmXmlImporterService:
             "items": self._get_newly_created_items(),
             "conditions": self._get_newly_created_conditions(),
             "methods": self._get_newly_created_methods(),
+            "codelists": self._get_newly_created_codelists(),
+            "terms": self._get_newly_created_terms(),
         }
 
     def _set_def_elements(self):
@@ -316,13 +339,11 @@ class OdmXmlImporterService:
 
     def _create_missing_vendor_namespaces(self):
         missing_prefixes = sorted(
-            list(
-                set(self.namespace_prefixes.keys())
-                - {
-                    db_vendor_namespace.prefix
-                    for db_vendor_namespace in self.db_vendor_namespaces
-                }
-            )
+            set(self.namespace_prefixes.keys())
+            - {
+                db_vendor_namespace.prefix
+                for db_vendor_namespace in self.db_vendor_namespaces
+            }
         )
 
         new_vendor_namespaces: list[OdmVendorNamespace] = []
@@ -704,22 +725,13 @@ class OdmXmlImporterService:
         return False
 
     def _set_unit_definitions(self):
-        measurement_unit_oids = {
-            measurement_unit.getAttribute("OID")
+        measurement_unit_names = {
+            measurement_unit.getAttribute("Name").removeprefix("mu.")
             for measurement_unit in self.measurement_units
         }
 
         rs, _ = self._repos.unit_definition_repository.find_all(
-            filter_by={"uid": {"v": measurement_unit_oids, "op": "eq"}},
-        )
-
-        rs_uids = {item.uid for item in rs}
-
-        non_existent_measurement_unit_oids = measurement_unit_oids - rs_uids
-
-        exceptions.BusinessLogicException.raise_if(
-            non_existent_measurement_unit_oids,
-            msg=f"MeasurementUnits with OIDs '{non_existent_measurement_unit_oids}' don't match any Unit Definition.",
+            filter_by={"name": {"v": measurement_unit_names, "op": "eq"}},
         )
 
         self.db_unit_definitions = [
@@ -732,18 +744,23 @@ class OdmXmlImporterService:
         ]
 
     def _set_ct_term_attributes(self):
+        code_submission_values = set()
+        nci_preferred_names = set()
+        for item_group_def in self.item_group_defs:
+            for domain in item_group_def.getAttribute("Domain").split("|"):
+                if not domain:
+                    continue
+
+                domain = domain.split(":", 1)
+                code_submission_values.add(domain[0])
+                nci_preferred_names.add(domain[-1])
+
         rs = self._repos.ct_term_attributes_repository.find_all(
             filter_by={
-                "nci_preferred_name": {
-                    "v": [
-                        domain.split(":", 1)[-1]
-                        for item_group_def in self.item_group_defs
-                        for domain in item_group_def.getAttribute("Domain").split("|")
-                        if domain
-                    ],
-                    "op": "eq",
-                }
-            }
+                "code_submission_value": {"v": code_submission_values, "op": "eq"},
+                "nci_preferred_name": {"v": nci_preferred_names, "op": "eq"},
+            },
+            filter_operator=FilterOperator.OR,
         )
 
         self.db_ct_term_attributes = [
@@ -1147,7 +1164,7 @@ class OdmXmlImporterService:
 
         for description in descriptions:
             description["lang"] = get_iso_lang_data(
-                description["lang"], "639-1", "639-2/B"
+                description["lang"] or "en", "639-1", "639-2/B"
             ).upper()
 
         exceptions.BusinessLogicException.raise_if(
@@ -1339,6 +1356,48 @@ class OdmXmlImporterService:
             for concept_ar in rs
         ]
 
+    def _get_newly_created_codelists(self):
+        rs = (
+            self._repos.ct_codelist_aggregated_repository.find_all_aggregated_result(
+                filter_by={
+                    "codelist_uid": {
+                        "v": [
+                            codelist.codelist_uid for codelist in self.db_ct_codelists
+                        ],
+                        "op": "eq",
+                    }
+                }
+            )
+        ).items
+
+        rs.sort(key=lambda elm: elm[0].uid)
+
+        return [
+            CTCodelist.from_ct_codelist_ar(
+                ct_codelist_name_ar, ct_codelist_attributes_ar
+            )
+            for ct_codelist_name_ar, ct_codelist_attributes_ar in rs
+        ]
+
+    def _get_newly_created_terms(self):
+        rs = (
+            self._repos.ct_term_aggregated_repository.find_all_aggregated_result(
+                filter_by={
+                    "term_uid": {
+                        "v": [term.term_uid for term in self.db_ct_terms],
+                        "op": "eq",
+                    }
+                }
+            )
+        ).items
+
+        rs.sort(key=lambda elm: elm[0].uid)
+
+        return [
+            CTTerm.from_ct_term_ars(ct_term_name_ar, ct_term_attributes_ar)
+            for ct_term_name_ar, ct_term_attributes_ar in rs
+        ]
+
     def _get_library(self, concept_input):
         exceptions.BusinessLogicException.raise_if_not(
             self._repos.library_repository.library_exists(
@@ -1351,6 +1410,19 @@ class OdmXmlImporterService:
             library_name=concept_input.library_name,
             is_library_editable_callback=is_library_editable,
         )
+
+    @staticmethod
+    def _get_codelist_description_translatedtext_value(codelist):
+        try:
+            return (
+                codelist.getElementsByTagName("Description")[0]
+                .getElementsByTagName("TranslatedText")[0]
+                .firstChild.nodeValue
+            )
+        except Exception as exc:
+            raise exceptions.BusinessLogicException(
+                msg=f"Code Submission Value not provided for Codelist with OID '{codelist.getAttribute('OID')}'. Provide a Description with TranslatedText element for the CodeList."
+            ) from exc
 
     def _get_odm_item_post_input(self, item_def):
         descriptions = self._extract_descriptions(item_def)
@@ -1371,22 +1443,103 @@ class OdmXmlImporterService:
         )
 
         input_terms = []
+        codelist_uid = None
+        new_codelist = False
         if codelist:
-            input_terms = [
-                OdmItemTermRelationshipInput(
-                    uid=codelist_item.getAttribute("osb:OID"),
-                    mandatory=(
-                        codelist_item.getAttribute("osb:mandatory")
-                        if codelist_item.getAttribute("osb:mandatory") != ""
-                        else True
-                    ),
-                    order=codelist_item.getAttribute("OrderNumber"),
-                    display_text=codelist_item.getElementsByTagName("TranslatedText")[
-                        0
-                    ].firstChild.nodeValue,
+            codelist_name = codelist.getAttribute("Name")
+            codelist_uid = (
+                self._repos.ct_codelist_attribute_repository.find_uid_by_name(
+                    codelist_name
                 )
-                for codelist_item in codelist.getElementsByTagName("CodeListItem")
-            ]
+            )
+            if not codelist_uid:
+                codelist_description_translatedtext = (
+                    self._get_codelist_description_translatedtext_value(codelist)
+                )
+
+                _codelist = self.ct_codelist_service.create(
+                    CTCodelistCreateInput(
+                        catalogue_name="SDTM CT",
+                        name=codelist_name,
+                        submission_value=codelist_name,
+                        nci_preferred_name=codelist_description_translatedtext,
+                        definition=codelist_description_translatedtext,
+                        extensible=True,
+                        sponsor_preferred_name=codelist_name,
+                        template_parameter=False,
+                        terms=[],
+                        library_name="Sponsor",
+                    ),
+                    approve=True,
+                )
+                self.db_ct_codelists.append(_codelist)
+                codelist_uid = _codelist.codelist_uid
+
+                new_codelist = True
+
+            for codelist_item in codelist.getElementsByTagName("CodeListItem"):
+                new_term = False
+                term_uid = codelist_item.getAttribute("osb:OID")
+                if not term_uid:
+                    coded_value_value = codelist_item.getAttribute("CodedValue")
+                    term_uid = (
+                        self._repos.ct_term_attributes_repository.find_uid_by_field(
+                            coded_value_value,
+                            "code_submission_value",
+                            codelist_uid if not new_codelist else None,
+                        )
+                    )
+                    if not term_uid:
+                        decode_value = (
+                            codelist_item.getElementsByTagName("Decode")[0]
+                            .getElementsByTagName("TranslatedText")[0]
+                            .firstChild.nodeValue
+                        )
+                        term_uid = (
+                            self._repos.ct_term_attributes_repository.find_uid_by_field(
+                                decode_value,
+                                "preferred_term",
+                                codelist_uid if not new_codelist else None,
+                            )
+                        )
+                        if not term_uid:
+                            _term = self.ct_term_service.create(
+                                CTTermCreateInput(
+                                    catalogue_name="SDTM CT",
+                                    codelist_uid=codelist_uid,
+                                    code_submission_value=coded_value_value,
+                                    name_submission_value=None,
+                                    nci_preferred_name=coded_value_value,
+                                    definition=coded_value_value,
+                                    sponsor_preferred_name=decode_value,
+                                    sponsor_preferred_name_sentence_case=decode_value.lower(),
+                                    library_name="Sponsor",
+                                ),
+                                approve=True,
+                            )
+                            term_uid = _term.term_uid
+                            self.db_ct_terms.append(_term)
+                            new_term = True
+
+                if new_codelist and not new_term:
+                    self.ct_codelist_service.add_term(
+                        codelist_uid=codelist_uid, term_uid=term_uid, order=999999
+                    )
+
+                input_terms.append(
+                    OdmItemTermRelationshipInput(
+                        uid=term_uid,
+                        mandatory=(
+                            codelist_item.getAttribute("osb:mandatory")
+                            if codelist_item.getAttribute("osb:mandatory") != ""
+                            else True
+                        ),
+                        order=codelist_item.getAttribute("OrderNumber"),
+                        display_text=codelist_item.getElementsByTagName(
+                            "TranslatedText"
+                        )[0].firstChild.nodeValue,
+                    )
+                )
 
         return (
             OdmItemPostInput(
@@ -1419,7 +1572,7 @@ class OdmXmlImporterService:
                     for alias_element in item_def.getElementsByTagName("Alias")
                 ],
                 unit_definitions=item_unit_definitions,
-                codelist_uid=codelist.getAttribute("Name") if codelist else None,
+                codelist_uid=codelist_uid,
                 terms=input_terms,
             ),
             input_terms,
@@ -1458,10 +1611,15 @@ class OdmXmlImporterService:
             ],
             sdtm_domain_uids=[
                 db_ct_term_attribute.term_uid
-                for db_ct_term_attribute in self.db_ct_term_attributes
                 for domain in item_group_def.getAttribute("Domain").split("|")
+                for db_ct_term_attribute in self.db_ct_term_attributes
                 if domain
-                and domain.split(":", 1)[-1] == db_ct_term_attribute.nci_preferred_name
+                and (
+                    domain.split(":", 1)[0]
+                    == db_ct_term_attribute.code_submission_value
+                    or domain.split(":", 1)[-1]
+                    == db_ct_term_attribute.nci_preferred_name
+                )
             ],
         )
 
@@ -1495,19 +1653,31 @@ class OdmXmlImporterService:
         )
 
     def _get_item_unit_definition_inputs(self, item_def):
-        try:
-            return [
-                OdmItemUnitDefinitionRelationshipInput(
-                    uid=measurement_unit_ref.getAttribute("MeasurementUnitOID")
+        mu_oid_map = {mu.getAttribute("OID"): mu for mu in self.measurement_units}
+
+        unit_name_to_uid = {ud.name: ud.uid for ud in self.db_unit_definitions}
+
+        measurement_unit_oids = [
+            ref.getAttribute("MeasurementUnitOID")
+            for ref in item_def.getElementsByTagName("MeasurementUnitRef")
+        ]
+
+        uids = []
+        for mu_oid in measurement_unit_oids:
+            mu = mu_oid_map.get(mu_oid)
+            if not mu:
+                raise exceptions.BusinessLogicException(
+                    msg=f"MeasurementUnit with OID '{mu_oid}' was not provided."
                 )
-                for measurement_unit_ref in item_def.getElementsByTagName(
-                    "MeasurementUnitRef"
+            unit_name = mu.getAttribute("Name").removeprefix("mu.")
+            uid = unit_name_to_uid.get(unit_name)
+            if not uid:
+                raise exceptions.BusinessLogicException(
+                    msg=f"MeasurementUnit with Name '{unit_name}' doesn't exist."
                 )
-            ]
-        except KeyError as exc:
-            raise exceptions.BusinessLogicException(
-                msg=f"MeasurementUnit with OID '{exc}' was not provided."
-            )
+            uids.append(uid)
+
+        return [OdmItemUnitDefinitionRelationshipInput(uid=uid) for uid in uids]
 
     def _get_list_of_attributes(self, attributes):
         rs = []

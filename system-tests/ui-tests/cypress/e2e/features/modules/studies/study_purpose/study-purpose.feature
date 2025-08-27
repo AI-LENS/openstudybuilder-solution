@@ -9,10 +9,10 @@ Feature: Studies - Define Study - Study Purpose - Study Objectives
         Given The '/studies' page is opened
         When The 'Study Purpose' submenu is clicked in the 'Define Study' section
         And The 'Study Objectives' tab is selected
-        Then The current URL is '/studies/Study_000001/study_purpose/objectives'
+        Then The current URL is '/study_purpose/objectives'
 
     Scenario: User must be able to see the page table with correct columns
-        Given The '/studies/Study_000001/study_purpose/objectives' page is opened
+        Given The test study '/study_purpose/objectives' page is opened
         Then A table is visible on the 'Study Objectives' tab with following options
             | option                                                          |
             | Add study objective                                             |
@@ -34,7 +34,7 @@ Feature: Studies - Define Study - Study Purpose - Study Objectives
             | Modified by     |
 
     Scenario: User must be able to add a study objective as a copy from other existing studies
-        And The '/studies/Study_000001/study_purpose/objectives' page is opened
+        And The test study '/study_purpose/objectives' page is opened
         When the user select to add a study objective
         And The objective is selected from other studies
         # These can both be based on a sponsor standard template or a user denied template
@@ -48,7 +48,7 @@ Feature: Studies - Define Study - Study Purpose - Study Objectives
     Scenario: User must be able to select study objectives from other studies when adding study objectives from other studies
 
     Scenario: User must be able to add a study objective based on an existing base objective template or pre-instantiated objective template
-        Given The '/studies/Study_000001/study_purpose/objectives' page is opened
+        Given The test study '/study_purpose/objectives' page is opened
         When the user select to add a study objective
         And The objective is created from existing template
         And base objective template or pre-instantiated template is selected
@@ -64,7 +64,7 @@ Feature: Studies - Define Study - Study Purpose - Study Objectives
     Scenario: User must see pre-selected template parameter values when adding new study objectives based on pre-instantiated syntax templates
 
     Scenario: User must be able add a study objective created from from scratch
-        Given The '/studies/Study_000001/study_purpose/objectives' page is opened
+        Given The test study '/study_purpose/objectives' page is opened
         When the user select to add a study objective
         And The objective is created from scratch
         # This will become a user defined template
@@ -88,13 +88,13 @@ Feature: Studies - Define Study - Study Purpose - Study Objectives
 
     @manual_test
     Scenario: User must be able to read change history of output
-        Given The '/studies/Study_000001/study_purpose/objectives' page is opened
+        Given The test study '/study_purpose/objectives' page is opened
       When The user opens version history
       Then The user is presented with version history of the output containing timestamp and username
 
     @manual_test    
     Scenario: User must be able to read change history of selected element
-        Given The '/studies/Study_000001/study_purpose/objectives' page is opened
+        Given The test study '/study_purpose/objectives' page is opened
         And The 'Show history' option is clicked from the three dot menu list
         When The user clicks on History for particular element
         Then The user is presented with history of changes for that element

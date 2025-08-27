@@ -18,7 +18,12 @@ from clinical_mdr_api.models.concepts.concept import VersionProperties
 from clinical_mdr_api.models.controlled_terminologies.ct_term import SimpleTermModel
 from clinical_mdr_api.models.standard_data_models.sponsor_model import SponsorModelBase
 from common.exceptions import ValidationException
-from common.utils import get_field_type, get_sub_fields, validate_max_skip_clause
+from common.utils import (
+    filter_sort_valid_keys_re,
+    get_field_type,
+    get_sub_fields,
+    validate_max_skip_clause,
+)
 
 # Re-used regex
 nested_regex = re.compile(r"\.")
@@ -222,32 +227,48 @@ def get_version_properties_sources() -> list[Any]:
     ]
 
 
-def validate_sort_by_is_dict(sort_by: dict[str, bool] | None):
+def validate_sort_by_dict(sort_by: dict[str, bool] | None | str):
     # Accept an empty string as an empty dictionary
     if sort_by == "":
         sort_by = {}
+
     ValidationException.raise_if(
         sort_by is not None and not isinstance(sort_by, dict),
         msg=f"Invalid sort_by object provided: '{sort_by}', it must be a dict",
     )
+
+    # Validate keys to prevent Cypher injection
+    if sort_by:
+        for key in sort_by:
+            if key != "size(name)" and not filter_sort_valid_keys_re.fullmatch(key):
+                raise ValidationException(msg=f"Invalid sorting key: {key}")
+
     return sort_by
 
 
-def validate_filter_by_is_dict(filter_by: dict[str, dict[str, Any]] | None):
+def validate_filter_by_dict(filter_by: dict[str, dict[str, Any]] | None | str):
     # Accept an empty string as an empty dictionary
     if filter_by == "":
         filter_by = {}
+
     ValidationException.raise_if(
         filter_by is not None and not isinstance(filter_by, dict),
         msg=f"Invalid filter_by object provided: '{filter_by}', it must be a dict",
     )
+
+    # Validate keys to prevent Cypher injection
+    if filter_by:
+        for key in filter_by:
+            if key != "*" and not filter_sort_valid_keys_re.fullmatch(key):
+                raise ValidationException(msg=f"Invalid filter key: {key}")
+
     return filter_by
 
 
 def validate_filters_and_add_search_string(
     search_string: str, field_name: str, filter_by: dict[str, dict[str, Any]] | None
 ):
-    filter_by = validate_filter_by_is_dict(filter_by)
+    filter_by = validate_filter_by_dict(filter_by)
     if search_string != "":
         if filter_by is None:
             filter_by = {}
@@ -420,6 +441,16 @@ class FilterDict(BaseModel):
             return {}
         return val
 
+    @field_validator("elements")
+    @classmethod
+    def _validate_keys(cls, val: dict[str, FilterDictElement]):
+        """Restricts the characters allowed in filter keys to prevent Cypher query injection"""
+
+        for key in val:
+            if key != "*" and not filter_sort_valid_keys_re.fullmatch(key):
+                raise ValidationException(msg=f"Invalid filter key: {key}")
+        return val
+
 
 class CypherQueryBuilder:
     """
@@ -513,16 +544,14 @@ class CypherQueryBuilder:
 
         # Auto-generate internal clauses
         if filter_by is not None:
-            filter_by.elements = validate_filter_by_is_dict(
-                filter_by=filter_by.elements
-            )
+            filter_by.elements = validate_filter_by_dict(filter_by=filter_by.elements)
 
         if filter_by and len(self.filter_by.elements) > 0:
             self.build_filter_clause()
         if self.page_size > 0:
             self.build_pagination_clause()
         if self.sort_by:
-            self.sort_by = validate_sort_by_is_dict(sort_by=self.sort_by)
+            self.sort_by = validate_sort_by_dict(sort_by=self.sort_by)
             self.build_sort_clause()
 
         # Auto-generate final queries
@@ -552,10 +581,24 @@ class CypherQueryBuilder:
                     f"toLower({path}.{_alias}){_parsed_operator}${_query_param_name}"
                 )
             else:
-                # if field is an array of SimpleTermModels
-                _predicates.append(
-                    f"any(attr in {path} WHERE toLower(attr.{_alias}) CONTAINS ${_query_param_name})"
-                )
+                # Special handling for activity_groupings fields that map to nested structure
+                # activity_group_name -> activity_group.name
+                # activity_subgroup_name -> activity_subgroup.name
+                if path == "activity_groupings" and _alias == "activity_group_name":
+                    _predicates.append(
+                        f"any(attr in {path} WHERE toLower(attr.activity_group.name) CONTAINS ${_query_param_name})"
+                    )
+                elif (
+                    path == "activity_groupings" and _alias == "activity_subgroup_name"
+                ):
+                    _predicates.append(
+                        f"any(attr in {path} WHERE toLower(attr.activity_subgroup.name) CONTAINS ${_query_param_name})"
+                    )
+                else:
+                    # Default behavior for other array fields
+                    _predicates.append(
+                        f"any(attr in {path} WHERE toLower(attr.{_alias}) CONTAINS ${_query_param_name})"
+                    )
             self.parameters[f"{_query_param_name}"] = elm.lower()
         else:
             attr_desc = self.return_model.model_fields.get(_alias)
@@ -580,6 +623,8 @@ class CypherQueryBuilder:
 
         for key in self.filter_by.elements:
             _alias = key
+            if key != "*" and not filter_sort_valid_keys_re.fullmatch(key):
+                raise ValueError(f"Invalid filter key: {key}")
             _values = self.filter_by.elements[key].v
             _operator = self.filter_by.elements[key].op
             _predicates = []
@@ -633,6 +678,8 @@ class CypherQueryBuilder:
                 # If necessary, replace key using return-model-to-cypher fieldname mapping
                 if self.format_filter_sort_keys:
                     _alias = self.format_filter_sort_keys(_alias)
+                    if not filter_sort_valid_keys_re.fullmatch(key):
+                        raise ValueError(f"Invalid filter key: {key}")
                 _values.sort()
                 _query_param_prefix = f"{self.escape_alias(_alias)}"
                 _predicate = (
@@ -649,6 +696,8 @@ class CypherQueryBuilder:
                 # If necessary, replace key using return-model-to-cypher fieldname mapping
                 if self.format_filter_sort_keys and _alias != "*":
                     _alias = self.format_filter_sort_keys(_alias)
+                    if not filter_sort_valid_keys_re.fullmatch(key):
+                        raise ValueError(f"Invalid filter key: {key}")
                 # An empty _values list means that the returned item's property value should be null
                 if len(_values) == 0:
                     ValidationException.raise_if(
@@ -961,6 +1010,9 @@ class CypherQueryBuilder:
             > WHERE filter_clause using aliases
             > RETURN list of possible headers for given alias, ordered, with a limit
         """
+        if not filter_sort_valid_keys_re.fullmatch(header_alias):
+            raise ValidationException(msg=f"Invalid header: {header_alias}")
+
         _with_alias_clause = f"WITH {self.alias_clause}"
 
         # support header clause for nested properties
@@ -1021,10 +1073,11 @@ class CypherQueryBuilder:
             result_array, attributes_names = db.cypher_query(
                 query=self.full_query, params=self.parameters
             )
-        except CypherSyntaxError as _ex:
+        except CypherSyntaxError as ex:
+            log.error("%s: %s", ex.code, ex.message)
             raise ValidationException(
-                msg="Unsupported filtering or sort parameters specified"
-            ) from _ex
+                msg="Unsupported filtering or sort parameters or other syntax error in Cypher query"
+            ) from ex
         return result_array, attributes_names
 
 

@@ -14,6 +14,7 @@ Feature: Library - Concepts - Activities - Overview Page Versioning
    
   Scenario: [Activity][Overview][Edit] Edit the activity
     Given The '/library/activities/activities' page is opened
+    When User sets status filter to 'all'
     And A test activity overview page is opened
     When I click 'New version' button
     Then I verify that the activity version is '1.1' and status is 'Draft'
@@ -26,6 +27,7 @@ Feature: Library - Concepts - Activities - Overview Page Versioning
     
   Scenario: [Activity][Overview][Approve] Approve the Activity
     Given The '/library/activities/activities' page is opened
+    When User sets status filter to 'all'
     And A test activity overview page is opened
     When I click 'Approve' button
     Then I verify that the activity version is '2.0' and status is 'Final'
@@ -37,6 +39,7 @@ Feature: Library - Concepts - Activities - Overview Page Versioning
   Scenario: [Activity][Overview][Edit] Edit the activity with draft instance
     Given A test activity approved with draft instance is linked through API
     And The '/library/activities/activities' page is opened
+    When User sets status filter to 'all'
     And A test activity overview page is opened
     When I click 'New version' button
     Then I verify that the activity version is '1.1' and status is 'Draft'
@@ -49,6 +52,7 @@ Feature: Library - Concepts - Activities - Overview Page Versioning
 
 Scenario: [Activity Instance][Overview][Edit] Edit the Instance
     Given The '/library/activities/activity-instances' page is opened
+    When User sets status filter to 'all'
     And A test instance overview page is opened
     When I click 'New version' button
     Then User verifies that version is '2.1' and status is 'Draft'
@@ -60,6 +64,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 
   Scenario: [Activity Instance][Overview][Approve] Approve the Instance
     Given The '/library/activities/activity-instances' page is opened
+    When User sets status filter to 'all'
     And A test instance overview page is opened
     When I click 'Approve' button
     Then User verifies that version is '3.0' and status is 'Final'
@@ -67,6 +72,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 
   Scenario: [Group][Overview][Edit] Edit the Group
     Given The '/library/activities/activity-groups' page is opened
+    When User sets status filter to 'all'
     And Subgroup name created through API is found
     And A test group overview page is opened
     When I click 'New version' button
@@ -79,6 +85,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 
   Scenario: [Group][Overview][Approve] Approve the Group
     Given The '/library/activities/activity-groups' page is opened
+    When User sets status filter to 'all'
     And A test group overview page is opened
     When I click 'Approve' button
     Then I verify that the group version is '2.0' and status is 'Final'
@@ -86,6 +93,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 
   Scenario: [Subgroup][Overview][Edit] Edit the SubGroup
     Given The '/library/activities/activity-subgroups' page is opened
+    When User sets status filter to 'all'
     And A test subgroup overview page is opened
     When I click 'New version' button
     And I verify that in the table Activities there is an activity with status 'Final' and version '2.0'
@@ -100,6 +108,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 
   Scenario: [Subgroup][Overview][Approve] Approve the SubGroup
     Given The '/library/activities/activity-subgroups' page is opened
+    When User sets status filter to 'all'
     And A test subgroup overview page is opened
     When I click 'Approve' button
     Then User verifies that version is '2.0' and status is 'Final'
@@ -111,6 +120,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
  @manual_test 
   Scenario: Switch between edit version and previous version for instance overview page 
     Given The '/library/activities/activity-instances' page is opened
+    When User sets status filter to 'all'
     And A test instance overview page is opened
     Then User verifies that version is '2.0' and status is 'Final'
     And I verify the definition is 'def'
@@ -127,6 +137,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
   @manual_test  
   Scenario: Switch between edit version and previous version for activity overview page
     Given The '/library/activities/activities' page is opened
+    When User sets status filter to 'all'
     And A test activity overview page is opened
     Then User verifies that version is '2.0' and status is 'Final'
     And I verify the definition is 'def'
@@ -143,6 +154,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
   @manual_test 
   Scenario: Switch between edit version and previous version for group overview page 
     Given The '/library/activities/activity-groups' page is opened
+    When User sets status filter to 'all'
     And A test group overview page is opened
     Then User verifies that version is '2.0' and status is 'Final'
     And I verify the definition is 'def'
@@ -159,6 +171,7 @@ Scenario: [Activity Instance][Overview][Edit] Edit the Instance
 @manual_test
   Scenario: Switch between edit version and previous version for subgroup overview page 
     Given The '/library/activities/activity-subgroups' page is opened
+    When User sets status filter to 'all'
     And A test subgroup overview page is opened
     Then User verifies that version is '2.0' and status is 'Final'
     And I verify the definition is 'def'

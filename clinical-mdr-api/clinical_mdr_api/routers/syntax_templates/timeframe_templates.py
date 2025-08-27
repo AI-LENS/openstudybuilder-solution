@@ -7,7 +7,7 @@ from pydantic.types import Json
 
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
 from clinical_mdr_api.models.syntax_templates.template_parameter import (
-    ComplexTemplateParameter,
+    TemplateParameter,
 )
 from clinical_mdr_api.models.syntax_templates.timeframe_template import (
     TimeframeTemplate,
@@ -690,7 +690,7 @@ def get_parameters(
             description="if specified only valid parameters for a given study will be returned.",
         ),
     ] = None,
-) -> list[ComplexTemplateParameter]:
+) -> list[TemplateParameter]:
     return Service().get_parameters(timeframe_template_uid, study_uid=study_uid)
 
 

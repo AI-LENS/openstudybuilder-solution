@@ -294,40 +294,40 @@
             "rationale_for_request": "A written note on why the request is needed."
         },
         "ActivityOverview": {
-          "general": "An Activity is a definition of an activity performed on a subject. The Activity is the overall name of the activity used in the protocol SoA.",
-          "cosmos_yaml": "The tab displays the content in a YAML file structure. The naming complies with the CDISC COSMoS Biomedical Concept structure.",
-          "osb_yaml": "OSB YAML",
-          "activity_groups": "The overall group(s) that the activity belongs to. The grouping is also used for protocol SoA display and for searching in the List of Activities.",
-          "activity_subgroups": "This is a sub-grouping within a group. The sub-grouping is also used for protocol SoA display and for searching in the List of Activities.",
-          "activity_group": "Activity group",
-          "activity_subgroup": "Activity subgroup",
-          "adam_code": "The code used as the PARAM code in the ADaM data.",
-          "topic_code": "The CDW Topic Code",
-          "is_data_collected": "Specifies if the activity involves data collection.",
-          "class": "The class in which the Activity Instance belongs to.",
-          "instances": "The list of Activity Instances. An Activity Instance is a detailed definition of the activity specifying e.g. unit, specimen, location etc.",
-          "no_instances": "No activity instances available for this activity.",
-          "activity_groupings": "The list of groups and sub-groups assigned.",
-          "history_title": "History for activity [{uid}]",
-          "name": "Name",
-          "sentence_case_name": "Sentence case name",
-          "version": "Version",
-          "status": "Status",
-          "start_date": "Date when this version became active",
-          "end_date": "Date when this version became inactive",
-          "library": "Library where defined",
-          "author": "User who created or last modified",
-          "definition": "Definition",
-          "activities": "List of Activities",
-          "is_required_for_activity": "Required for activity",
-          "is_default_selected_for_activity": "Default selected for activity",
-          "is_data_sharing": "Data sharing",
-          "is_legacy_usage": "Legacy usage",
-          "item_type": "Item type",
-          "items": "Items",
-          "ct_term_name": "CT term name",
-          "unit_def_name": "Unit definition",
-          "item_class": "Item class"
+            "general": "An Activity is a definition of an activity performed on a subject. The Activity is the overall name of the activity used in the protocol SoA.",
+            "cosmos_yaml": "The tab displays the content in a YAML file structure. The naming complies with the CDISC COSMoS Biomedical Concept structure.",
+            "osb_yaml": "OSB YAML",
+            "activity_groups": "The overall group(s) that the activity belongs to. The grouping is also used for protocol SoA display and for searching in the List of Activities.",
+            "activity_subgroups": "This is a sub-grouping within a group. The sub-grouping is also used for protocol SoA display and for searching in the List of Activities.",
+            "activity_group": "Activity group",
+            "activity_subgroup": "Activity subgroup",
+            "adam_code": "The code used as the PARAM code in the ADaM data.",
+            "topic_code": "The CDW Topic Code",
+            "is_data_collected": "Specifies if the activity involves data collection.",
+            "class": "The class in which the Activity Instance belongs to.",
+            "instances": "The list of Activity Instances. An Activity Instance is a detailed definition of the activity specifying e.g. unit, specimen, location etc.",
+            "no_instances": "No activity instances available for this activity.",
+            "activity_groupings": "The list of groups and sub-groups assigned.",
+            "history_title": "History for activity [{uid}]",
+            "name": "Name",
+            "sentence_case_name": "Sentence case name",
+            "version": "Version",
+            "status": "Status",
+            "start_date": "Date when this version became active",
+            "end_date": "Date when this version became inactive",
+            "library": "Library where defined",
+            "author": "User who created or last modified",
+            "definition": "Definition",
+            "activities": "List of Activities",
+            "is_required_for_activity": "Required for activity",
+            "is_default_selected_for_activity": "Default selected for activity",
+            "is_data_sharing": "Data sharing",
+            "is_legacy_usage": "Legacy usage",
+            "item_type": "Item type",
+            "items": "Items",
+            "ct_term_name": "CT term name",
+            "unit_def_name": "Unit definition",
+            "item_class": "Item class"
         },
         "ActivityInstanceOverview": {
             "general": "An Activity Instance is detailed definition of an activity, showing the relevant qualifiers/items, e.g. unit, location, specimen, dose regimen.",
@@ -3261,7 +3261,10 @@
         "accept": "Accept",
         "update_success": "Study activity updated",
         "remove_success": "Study activity removed",
-        "decline_success": "Changes declined"
+        "decline_success": "Changes declined",
+        "instance_name": "Instance name",
+        "instance_class": "Instance class",
+        "topic_code": "Topic code"
     },
     "StudyActivityTable": {
         "confirm_delete": "The study activity '{activity}' will be removed",
@@ -3894,7 +3897,8 @@
     },
     "OdmViewer": {
         "blank": "Blank",
-        "sdtm": "SDTM Annotation",
+        "crf_with_annotations": "CRF with annotations",
+        "falcon": "Downloadable Falcon (word)",
         "allowed_namespaces": "Allowed Extensions",
         "specific": "Specific",
         "provide_uri": "Provide URI",
@@ -3911,7 +3915,8 @@
         "item": "Item",
         "element_status": "ODM Element Status",
         "export": "Export ",
-        "format": "Format"
+        "format": "Format",
+        "xml_code": "XML Code"
     },
     "TemplateIndexingDialog": {
         "title": "Edit indexing properties",
@@ -4162,16 +4167,16 @@
         "headerActivityInstanceClass": "Activity Instance class",
         "headerTopicCode": "Topic code",
         "headerAdamParamCode": "Adam parameter code"
-  },
-  "activityItemsTable": {
+    },
+    "activityItemsTable": {
         "exportLabel": "Activity Items",
         "noItemsFound": "No activity items found",
         "noItemsAvailable": "No activity items available",
         "headerDataType": "Data type",
         "headerName": "Name",
         "headerActivityItemClass": "Activity Item Class"
-  },
-  "activitySummary": {
+    },
+    "activitySummary": {
         "dataCollection": "Data collection"
     },
     "YamlViewer": {

@@ -1,0 +1,7 @@
+CT_CD_LIST_SUBMVAL,CT_NAME,NAME_SENTENSE_CASE,CT_SUBMVAL,DEFINITION,ORDER,CT_CD,NCI_PREFERRED_NAME
+LOCK_STUDY_MILESTONE,PORT Approval,port approval,PORT_APPROVAL,Milestone for locking study after PORT approval,1,,PORT Approval
+LOCK_STUDY_MILESTONE,PORT Submission,port submission,PORT_SUBMISSION,Milestone for locking study after PORT submission,2,,PORT Submission
+LOCK_STUDY_MILESTONE,Protocol QC,protocol qc,PROTOCOL_QC,Milestone for locking study after protocol quality control,3,,Protocol QC
+LOCK_STUDY_MILESTONE,Final Protocol,final protocol,FINAL_PROTOCOL,Milestone for locking study after final protocol completion,4,,Final Protocol
+LOCK_STUDY_MILESTONE,Data Specification Updates,data specification updates,DATA_SPECIFICATION_UPDATES,Milestone for locking study after data specification updates,5,,Data Specification Updates
+LOCK_STUDY_MILESTONE,Other,other,OTHER,Other milestone for locking study,6,,Other

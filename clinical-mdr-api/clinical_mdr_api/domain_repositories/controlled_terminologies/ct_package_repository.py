@@ -14,6 +14,7 @@ from clinical_mdr_api.models.controlled_terminologies.ct_package import (
 )
 from clinical_mdr_api.services.user_info import UserInfoService
 from common.exceptions import AlreadyExistsException, NotFoundException
+from common.telemetry import trace_calls
 
 
 class CTPackageRepository:
@@ -21,6 +22,7 @@ class CTPackageRepository:
         package_node = CTPackage.nodes.get_or_none(name=package_name)
         return bool(package_node)
 
+    @trace_calls
     def find_all(
         self,
         catalogue_name: str | None,
@@ -83,6 +85,7 @@ class CTPackageRepository:
         ]
         return ct_packages
 
+    @trace_calls
     def find_by_uid(
         self, uid: str | None, sponsor_only: bool = False
     ) -> CTPackageModel | None:
@@ -135,6 +138,7 @@ class CTPackageRepository:
         """
         return len(CTPackage.nodes)
 
+    @trace_calls
     def find_by_catalogue_and_date(
         self, catalogue_name: str, package_date: date
     ) -> CTPackageAR | None:
@@ -176,6 +180,7 @@ class CTPackageRepository:
             )
         return None
 
+    @trace_calls
     def create_sponsor_package(
         self, extends_package: str, effective_date: date, author_id: str
     ) -> CTPackageAR:

@@ -46,7 +46,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     Given The 'library/objective_templates' page is opened
     And The Add template button is clicked
     When The objective template form is filled with base data
-    And Template indexes are set for 'objective'
+    And Objective criteria specific indexes are set
     And Form save button is clicked
     And The objective template is found
     Then The item has status 'Draft' and version '0.1'
@@ -70,7 +70,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     And The objective template is found
     When The 'Edit' option is clicked from the three dot menu list
     And The objective metadata update is started
-    And Template indexes are cleared and updated for 'objective'
+    And Objective criteria specific indexes are updated
     And Form continue button is clicked
     And Template change description is provided
     And Form save button is clicked
@@ -79,7 +79,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     And The 'Edit' option is clicked from the three dot menu list
     And The objective template name is checked
     And User goes to Index template step
-    And Template indexes are verified
+    And Objective indexes are verified
 
   Scenario: [Create][Mandatory fields] User must not be able to create Objective template without: Template Text
     Given The 'library/objective_templates' page is opened
@@ -102,7 +102,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     Given The 'library/objective_templates' page is opened
     And The Add template button is clicked
     And The objective template form is filled with base data
-    When Template indexes are set for 'objective'
+    And Objective criteria specific indexes are set
     And Indication or Disorder index is cleared
     And Form save button is clicked
     Then The validation appears for Indication or Disorder field
@@ -112,7 +112,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     Given The 'library/objective_templates' page is opened
     And The Add template button is clicked
     And The objective template form is filled with base data
-    When Template indexes are set for 'objective'
+    And Objective criteria specific indexes are set
     And Category index is cleared for 'objective' template
     And Form save button is clicked
     Then The validation appears for 'objective' template category field
@@ -163,11 +163,11 @@ Feature: Library - Syntax Templates - Objectives - Parent
     And [API] Approve objective template
     And The objective template is found
     When The 'Edit indexing' option is clicked from the three dot menu list
-    And Template indexes are updated for 'objective'
+    And Objective criteria specific indexes are cleared and updated
     And Form save button is clicked
     And The objective template is found
     And The 'Edit indexing' option is clicked from the three dot menu list
-    Then Template indexes are verified
+    And Objective indexes are verified
 
   Scenario: [Actions][Edit][Mandatory fields] User must not be able to save changes to Objective template without: Change description
     Given The 'library/objective_templates' page is opened
@@ -198,7 +198,7 @@ Feature: Library - Syntax Templates - Objectives - Parent
     Then The item has status 'Draft' and version '1.1'
     When The 'Edit' option is clicked from the three dot menu list
     And The objective metadata update is started
-    And Template indexes are cleared and updated for 'objective'
+    And Objective criteria specific indexes are updated
     And Form continue button is clicked
     And Template change description is provided
     And Form save button is clicked

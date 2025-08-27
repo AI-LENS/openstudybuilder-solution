@@ -72,7 +72,7 @@ class StudyPharmaCMService:
 
     def get_pharma_cm_xml(
         self, study_uid: str, study_value_version: str | None
-    ) -> StudyPharmaCM:
+    ) -> StudyPharmaCMXML:
         study_pharma_cm: StudyPharmaCM = self.get_pharma_cm_representation(
             study_uid=study_uid, study_value_version=study_value_version
         )

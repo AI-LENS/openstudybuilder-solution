@@ -748,7 +748,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:48",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -816,7 +815,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:49",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -884,7 +882,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:49",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -952,7 +949,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:49",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1020,7 +1016,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:50",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1088,7 +1083,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:50",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1156,7 +1150,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:50",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1224,7 +1217,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:50",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1292,7 +1284,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:50",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000002",
@@ -1360,7 +1351,6 @@ STUDY_VISITS = (
         start_date="2022-08-24 11:52:51",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000042",
@@ -1428,7 +1418,6 @@ STUDY_VISITS = (
         start_date="2022-08-26 02:14:58",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000003",
@@ -1496,7 +1485,6 @@ STUDY_VISITS = (
         start_date="2022-08-26 02:14:31",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
     StudyVisit(
         study_epoch_uid="StudyEpoch_000034",
@@ -1564,7 +1552,6 @@ STUDY_VISITS = (
         start_date="2022-09-01 09:39:57",
         author_username=AUTHOR_USERNAME,
         possible_actions=["edit", "delete", "lock"],
-        study_activity_count=0,
     ),
 )
 

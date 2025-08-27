@@ -3,11 +3,9 @@ const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor")
 let study_uid, studyNumber, studyAcronym
 
 Given('A test study is selected', () => {
-    cy.selectTestStudy('Study_000001')
+    cy.selectTestStudy(Cypress.env('TEST_STUDY_UID'))
 })
 
-// Usage: 
-// Given A 'CDISC DEV-0000' study is selected
 Given('A {string} study is selected', (study_id) => {
     cy.selectStudyByStudyId(study_id)
 })
@@ -61,5 +59,10 @@ When('[API] Study uid is fetched', () => cy.getStudyUid(studyNumber).then(id => 
 
 When('Go to created study', () => {
     cy.visit(`/studies/${study_uid}/activities/soa`)
+    cy.waitForPage()
+})
+
+When('Go to {string} study page {string}', (studyNumber, page) => {
+    cy.getStudyUidById(studyNumber).then(id => cy.visit(`/studies/${id}/${page}`))
     cy.waitForPage()
 })

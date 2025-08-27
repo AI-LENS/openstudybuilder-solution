@@ -564,6 +564,17 @@ class ActivityInstanceOverview(BaseModel):
                 ],
                 key=lambda x: x.uid,
             )
+            # Extract activity_item_class handling Neo4j node format
+            aic = activity_item.get("activity_item_class", {})
+            if "properties" in aic:
+                aic_name = aic["properties"].get("name", "")
+                aic_order = aic["properties"].get("order", 0)
+                if isinstance(aic_order, dict):
+                    aic_order = aic_order.get("low", 0)
+            else:
+                aic_name = aic.get("name", "")
+                aic_order = aic.get("order", 0)
+
             activity_items.append(
                 SimplifiedActivityItem(
                     ct_terms=terms,
@@ -572,8 +583,8 @@ class ActivityInstanceOverview(BaseModel):
                     odm_item_groups=odm_item_groups,
                     odm_items=odm_items,
                     activity_item_class=SimpleActivityItemClass(
-                        name=activity_item.get("activity_item_class").get("name"),
-                        order=activity_item.get("activity_item_class").get("order"),
+                        name=aic_name,
+                        order=aic_order,
                         role_name=activity_item.get("activity_item_class_role"),
                         data_type_name=activity_item.get(
                             "activity_item_class_data_type"
@@ -610,8 +621,8 @@ class ActivityInstanceOverview(BaseModel):
                             "activity_value"
                         ).get("is_multiple_selection_allowed", True),
                         library_name=activity_grouping.get("activity_library_name"),
-                        version=activity_grouping.get("version", {}).get("version"),
-                        status=activity_grouping.get("version", {}).get("status"),
+                        version=(activity_grouping.get("version") or {}).get("version"),
+                        status=(activity_grouping.get("version") or {}).get("status"),
                     ),
                     activity_group=SimpleActivityGroup(
                         uid=activity_grouping.get("activity_group_uid"),
@@ -619,12 +630,12 @@ class ActivityInstanceOverview(BaseModel):
                         definition=activity_grouping.get("activity_group_value").get(
                             "definition"
                         ),
-                        version=activity_grouping.get("activity_group_version", {}).get(
-                            "version"
-                        ),
-                        status=activity_grouping.get("activity_group_version", {}).get(
-                            "status"
-                        ),
+                        version=(
+                            activity_grouping.get("activity_group_version") or {}
+                        ).get("version"),
+                        status=(
+                            activity_grouping.get("activity_group_version") or {}
+                        ).get("status"),
                     ),
                     activity_subgroup=SimpleActivitySubGroup(
                         uid=activity_grouping.get("activity_subgroup_uid"),
@@ -634,11 +645,11 @@ class ActivityInstanceOverview(BaseModel):
                         definition=activity_grouping.get("activity_subgroup_value").get(
                             "definition"
                         ),
-                        version=activity_grouping.get(
-                            "activity_subgroup_version", {}
+                        version=(
+                            activity_grouping.get("activity_subgroup_version") or {}
                         ).get("version"),
-                        status=activity_grouping.get(
-                            "activity_subgroup_version", {}
+                        status=(
+                            activity_grouping.get("activity_subgroup_version") or {}
                         ).get("status"),
                     ),
                 )
@@ -797,6 +808,17 @@ class ActivityInstancePaginatedResponse(BaseModel):
                 ],
                 key=lambda x: x.uid,
             )
+            # Extract activity_item_class handling Neo4j node format
+            aic = activity_item.get("activity_item_class", {})
+            if "properties" in aic:
+                aic_name = aic["properties"].get("name", "")
+                aic_order = aic["properties"].get("order", 0)
+                if isinstance(aic_order, dict):
+                    aic_order = aic_order.get("low", 0)
+            else:
+                aic_name = aic.get("name", "")
+                aic_order = aic.get("order", 0)
+
             activity_items.append(
                 SimplifiedActivityItem(
                     ct_terms=terms,
@@ -805,8 +827,8 @@ class ActivityInstancePaginatedResponse(BaseModel):
                     odm_item_groups=odm_item_groups,
                     odm_items=odm_items,
                     activity_item_class=SimpleActivityItemClass(
-                        name=activity_item.get("activity_item_class").get("name"),
-                        order=activity_item.get("activity_item_class").get("order"),
+                        name=aic_name,
+                        order=aic_order,
                         role_name=activity_item.get("activity_item_class_role"),
                         data_type_name=activity_item.get(
                             "activity_item_class_data_type"
@@ -843,8 +865,8 @@ class ActivityInstancePaginatedResponse(BaseModel):
                             "activity_value"
                         ).get("is_multiple_selection_allowed", True),
                         library_name=activity_grouping.get("activity_library_name"),
-                        version=activity_grouping.get("version", {}).get("version"),
-                        status=activity_grouping.get("version", {}).get("status"),
+                        version=(activity_grouping.get("version") or {}).get("version"),
+                        status=(activity_grouping.get("version") or {}).get("status"),
                     ),
                     activity_group=SimpleActivityGroup(
                         uid=activity_grouping.get("activity_group_uid"),
@@ -852,12 +874,12 @@ class ActivityInstancePaginatedResponse(BaseModel):
                         definition=activity_grouping.get("activity_group_value").get(
                             "definition"
                         ),
-                        version=activity_grouping.get("activity_group_version", {}).get(
-                            "version"
-                        ),
-                        status=activity_grouping.get("activity_group_version", {}).get(
-                            "status"
-                        ),
+                        version=(
+                            activity_grouping.get("activity_group_version") or {}
+                        ).get("version"),
+                        status=(
+                            activity_grouping.get("activity_group_version") or {}
+                        ).get("status"),
                     ),
                     activity_subgroup=SimpleActivitySubGroup(
                         uid=activity_grouping.get("activity_subgroup_uid"),
@@ -867,11 +889,11 @@ class ActivityInstancePaginatedResponse(BaseModel):
                         definition=activity_grouping.get("activity_subgroup_value").get(
                             "definition"
                         ),
-                        version=activity_grouping.get(
-                            "activity_subgroup_version", {}
+                        version=(
+                            activity_grouping.get("activity_subgroup_version") or {}
                         ).get("version"),
-                        status=activity_grouping.get(
-                            "activity_subgroup_version", {}
+                        status=(
+                            activity_grouping.get("activity_subgroup_version") or {}
                         ).get("status"),
                     ),
                 )

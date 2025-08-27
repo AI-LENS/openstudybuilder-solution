@@ -210,6 +210,7 @@ class ActivitySubGroupService(ConceptGenericService[ActivitySubGroupAR]):
         self,
         subgroup_uid: str,
         version: str | None = None,
+        search_string: str | None = None,
         page_number: int = 1,
         page_size: int = 10,
         total_count: bool = False,
@@ -220,6 +221,7 @@ class ActivitySubGroupService(ConceptGenericService[ActivitySubGroupAR]):
         Args:
             subgroup_uid: The UID of the activity subgroup
             version: Optional specific version, or None for latest
+            search_string: Optional search string to filter activities by name or other fields
             page_number: The page number for pagination (starting from 1)
             page_size: The number of items per page
             total_count: Whether to calculate the total count
@@ -234,6 +236,7 @@ class ActivitySubGroupService(ConceptGenericService[ActivitySubGroupAR]):
             self._repos.activity_subgroup_repository.get_linked_activity_uids(
                 subgroup_uid=subgroup_uid,
                 version=subgroup_ar.version,
+                search_string=search_string,
                 page_number=page_number,
                 page_size=page_size,
                 total_count=total_count,

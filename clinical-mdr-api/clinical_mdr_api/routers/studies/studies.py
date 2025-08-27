@@ -2,7 +2,7 @@ from typing import Annotated, Any
 
 from dict2xml import DataSorter, dict2xml
 from fastapi import APIRouter, Body, Path, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from pydantic.types import Json
 from starlette.requests import Request
 
@@ -657,7 +657,6 @@ def get_pharma_cm_representation(
     "/{study_uid}/pharma-cm.xml",
     dependencies=[security, rbac.STUDY_READ],
     summary="Returns the pharma-cm represention of study identified by 'study_uid' in the xml format.",
-    response_model_exclude_unset=True,
     status_code=200,
     responses={
         403: _generic_descriptions.ERROR_403,
@@ -670,29 +669,29 @@ def get_pharma_cm_xml_representation(
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
-) -> StreamingResponse:
+) -> Response:
     StudyService().check_if_study_uid_and_version_exists(
         study_uid=study_uid, study_value_version=study_value_version
     )
     study_pharma_service = StudyPharmaCMService()
-    study_pharma = study_pharma_service.get_pharma_cm_xml(
+    study_pharma: dict[str, Any] = study_pharma_service.get_pharma_cm_xml(
         study_uid=study_uid,
         study_value_version=study_value_version,
     )
-    response = StreamingResponse(
-        iter(
-            [
-                dict2xml(
-                    study_pharma,
-                    indent="  ",
-                    closed_tags_for=[None],
-                    data_sorter=DataSorter.never(),
-                )
-            ]
+    response = Response(
+        dict2xml(
+            study_pharma,
+            indent="  ",
+            closed_tags_for=[None],
+            data_sorter=DataSorter.never(),
         ),
         media_type="text/xml",
+        headers={
+            "Content-Disposition": "attachment; filename=export.xml",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'",
+        },
     )
-    response.headers["Content-Disposition"] = "attachment; filename=export"
     return response
 
 

@@ -256,13 +256,11 @@ class StudyDesignFigureService:
         """Returns the list of StudyEpochs except Basic epoch."""
         return [
             epoch
-            for epoch in StudyEpochService()
-            .get_all_epochs(
+            for epoch in StudyEpochService.get_all_epochs(
                 study_uid=study_uid,
                 sort_by={"order": True},
                 study_value_version=study_value_version,
-            )
-            .items
+            ).items
             if epoch.epoch_ctterm.sponsor_preferred_name != settings.basic_epoch_name
         ]
 
@@ -294,11 +292,9 @@ class StudyDesignFigureService:
         self, study_uid: str, study_value_version: str | None = None
     ) -> list[StudyVisit]:
         """Returns list of StudyVisits"""
-        return (
-            StudyVisitService(study_uid=study_uid)
-            .get_all_visits(study_uid, study_value_version=study_value_version)
-            .items
-        )
+        return StudyVisitService.get_all_visits(
+            study_uid, study_value_version=study_value_version
+        ).items
 
     @trace_calls
     def _mk_data_matrix(

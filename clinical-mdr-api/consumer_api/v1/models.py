@@ -314,6 +314,17 @@ class SortByStudyActivities(Enum):
     ACTIVITY_NAME = "activity_name"
 
 
+class SortByStudyActivityInstances(Enum):
+    UID = "uid"
+    ACTIVITY_NAME = "activity.name"
+    ACTIVITY_INSTANCE_NAME = "activity_instance.name"
+
+
+class SortByLibraryItem(Enum):
+    UID = "uid"
+    NAME = "name"
+
+
 class StudyActivity(BaseModel):
     study_uid: Annotated[str, Field(description="Study UID")]
     uid: Annotated[str, Field(description="Study Activity UID")]
@@ -330,6 +341,14 @@ class StudyActivity(BaseModel):
     soa_group: Annotated[dict, Field(description="SoA Group")]
     activity_uid: Annotated[str, Field(description="Activity UID")]
     activity_name: Annotated[str, Field(description="Activity Name")]
+    activity_nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    activity_nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
     is_data_collected: Annotated[bool, Field(description="Activity Is Data Collected")]
 
     @classmethod
@@ -343,7 +362,122 @@ class StudyActivity(BaseModel):
             soa_group=val["soa_group"],
             activity_uid=val["activity_uid"],
             activity_name=val["activity_name"],
+            activity_nci_concept_id=val.get("nci_concept_id", None),
+            activity_nci_concept_name=val.get("nci_concept_name", None),
             is_data_collected=val["is_data_collected"],
+        )
+
+
+class StudyActivityInstance(BaseModel):
+
+    class Activity(BaseModel):
+        uid: Annotated[str, Field(description="Activity UID")]
+        name: Annotated[str, Field(description="Activity Name")]
+        nci_concept_id: Annotated[
+            str | None,
+            Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+        ] = None
+        nci_concept_name: Annotated[
+            str | None,
+            Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+        ] = None
+        order: Annotated[
+            int | None,
+            Field(description="Activity Order", json_schema_extra={"nullable": True}),
+        ]
+        version: Annotated[str, Field(description="Activity Version")]
+
+    class ActivityInstance(BaseModel):
+        uid: Annotated[str, Field(description="Activity Instance UID")]
+        name: Annotated[str, Field(description="Activity Instance Name")]
+        nci_concept_id: Annotated[
+            str | None,
+            Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+        ] = None
+        nci_concept_name: Annotated[
+            str | None,
+            Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+        ] = None
+        param_code: Annotated[
+            str | None,
+            Field(description="Param Code", json_schema_extra={"nullable": True}),
+        ] = None
+        topic_code: Annotated[
+            str | None,
+            Field(description="Topic Code", json_schema_extra={"nullable": True}),
+        ] = None
+        version: Annotated[str, Field(description="Activity Instance Version")]
+
+    class SoaGroup(BaseModel):
+        uid: Annotated[str, Field(description="SoA Group UID")]
+        name: Annotated[str, Field(description="SoA Group Name")]
+        order: Annotated[
+            int | None,
+            Field(description="SoA Group Order", json_schema_extra={"nullable": True}),
+        ]
+        selection_uid: Annotated[str, Field(description="SoA Group Selection UID")]
+
+    class StudyActivityGroup(BaseModel):
+        uid: Annotated[str, Field(description="Study Activity Group UID")]
+        name: Annotated[str, Field(description="Study Activity Group Name")]
+        order: Annotated[
+            int | None,
+            Field(
+                description="Study Activity Group Order",
+                json_schema_extra={"nullable": True},
+            ),
+        ]
+        selection_uid: Annotated[
+            str, Field(description="Study Activity Group Selection UID")
+        ]
+
+    class StudyActivitySubgroup(BaseModel):
+        uid: Annotated[str, Field(description="Study Activity Subgroup UID")]
+        name: Annotated[str, Field(description="Study Activity Subgroup Name")]
+        order: Annotated[
+            int | None,
+            Field(
+                description="Study Activity Subgroup Order",
+                json_schema_extra={"nullable": True},
+            ),
+        ]
+        selection_uid: Annotated[
+            str, Field(description="Study Activity Subgroup Selection UID")
+        ]
+
+    study_uid: Annotated[str, Field(description="Study UID")]
+    uid: Annotated[str, Field(description="Study Activity Instance UID")]
+    soa_group: Annotated[SoaGroup, Field(description="SoA Group")]
+    study_activity_group: Annotated[
+        StudyActivityGroup, Field(description="Study Activity Group")
+    ]
+
+    study_activity_subgroup: Annotated[
+        StudyActivitySubgroup,
+        Field(description="Study Activity Subgroup"),
+    ]
+    activity: Annotated[
+        Activity,
+        Field(description="Library Activity"),
+    ]
+    activity_instance: Annotated[
+        ActivityInstance | None,
+        Field(
+            description="Library Activity Instance",
+            json_schema_extra={"nullable": True},
+        ),
+    ]
+
+    @classmethod
+    def from_input(cls, val: dict[str, Any]):
+        return cls(
+            study_uid=val["study_uid"],
+            uid=val["uid"],
+            study_activity_subgroup=val["study_activity_subgroup"],
+            study_activity_group=val["study_activity_group"],
+            soa_group=val["study_soa_group"],
+            activity_instance=val["activity_instance"],
+            activity=val["activity"],
         )
 
 
@@ -358,9 +492,19 @@ class SortByStudyDetailedSoA(Enum):
 
 class StudyDetailedSoA(BaseModel):
     study_uid: Annotated[str, Field(description="Study UID")]
+    study_activity_uid: Annotated[str, Field(description="Study Activity UID")]
     visit_short_name: Annotated[str, Field(description="Study Visit Short Name")]
     epoch_name: Annotated[str, Field(description="Study Epoch Name")]
+    activity_uid: Annotated[str, Field(description="Activity UID")]
     activity_name: Annotated[str, Field(description="Activity Name")]
+    activity_nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    activity_nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
     activity_subgroup_name: Annotated[
         str | None,
         Field(
@@ -378,9 +522,13 @@ class StudyDetailedSoA(BaseModel):
     def from_input(cls, val: dict[str, Any]):
         return cls(
             study_uid=val["study_uid"],
+            study_activity_uid=val["study_activity_uid"],
             visit_short_name=str(val["visit_short_name"]),
             epoch_name=val["epoch_name"],
+            activity_uid=val["activity_uid"],
             activity_name=val["activity_name"],
+            activity_nci_concept_id=val.get("activity_nci_concept_id", None),
+            activity_nci_concept_name=val.get("activity_nci_concept_name", None),
             activity_subgroup_name=val["activity_subgroup_name"],
             activity_group_name=val["activity_group_name"],
             soa_group_name=val["soa_group_name"],
@@ -401,10 +549,19 @@ class StudyOperationalSoA(BaseModel):
     study_id: Annotated[
         str | None, Field(description="Study ID", json_schema_extra={"nullable": True})
     ]
+    study_activity_uid: Annotated[str, Field(description="Study Activity UID")]
     activity_name: Annotated[
         str | None,
         Field(description="Activity Name", json_schema_extra={"nullable": True}),
     ]
+    activity_nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    activity_nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
     activity_uid: Annotated[
         str | None,
         Field(description="Activity UID", json_schema_extra={"nullable": True}),
@@ -435,6 +592,14 @@ class StudyOperationalSoA(BaseModel):
             description="Activity Instance Name", json_schema_extra={"nullable": True}
         ),
     ]
+    activity_instance_nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    activity_instance_nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
     activity_instance_uid: Annotated[
         str | None,
         Field(
@@ -471,13 +636,22 @@ class StudyOperationalSoA(BaseModel):
         return cls(
             study_uid=val["study_uid"],
             study_id=val["study_id"],
+            study_activity_uid=val["study_activity_uid"],
             activity_name=val["activity_name"],
+            activity_nci_concept_id=val.get("activity_nci_concept_id", None),
+            activity_nci_concept_name=val.get("activity_nci_concept_name", None),
             activity_uid=val["activity_uid"],
             activity_group_name=val["activity_group_name"],
             activity_group_uid=val["activity_group_uid"],
             activity_subgroup_name=val["activity_subgroup_name"],
             activity_subgroup_uid=val["activity_subgroup_uid"],
             activity_instance_name=val["activity_instance_name"],
+            activity_instance_nci_concept_id=val.get(
+                "activity_instance_nci_concept_id", None
+            ),
+            activity_instance_nci_concept_name=val.get(
+                "activity_instance_nci_concept_name", None
+            ),
             activity_instance_uid=val["activity_instance_uid"],
             epoch_name=val["epoch_name"],
             param_code=val["param_code"],
@@ -485,6 +659,136 @@ class StudyOperationalSoA(BaseModel):
             topic_code=val["topic_code"],
             visit_short_name=str(val["visit_short_name"]),
             visit_uid=val["visit_uid"],
+        )
+
+
+class Library(Enum):
+    SPONSOR = "Sponsor"
+    REQUESTED = "Requested"
+
+
+class LibraryItemStatus(Enum):
+    FINAL = "Final"
+    DRAFT = "Draft"
+    RETIRED = "Retired"
+
+
+class LibraryActivityGrouping(BaseModel):
+    activity_group_uid: Annotated[str, Field(description="Activity Group UID")]
+    activity_group_name: Annotated[str, Field(description="Activity Group Name")]
+    activity_subgroup_uid: Annotated[str, Field(description="Activity Subgroup UID")]
+    activity_subgroup_name: Annotated[str, Field(description="Activity Subgroup Name")]
+
+
+class LibraryActivityGroupingWithActivity(LibraryActivityGrouping):
+    activity_uid: Annotated[str, Field(description="Activity UID")]
+    activity_name: Annotated[str, Field(description="Activity Name")]
+
+
+class LibraryActivity(BaseModel):
+    uid: Annotated[str, Field(description="Activity UID")]
+    library: Annotated[str, Field(description="Library Name")]
+    name: Annotated[str, Field(description="Activity Name")]
+    definition: Annotated[
+        str | None,
+        Field(description="Activity Definition", json_schema_extra={"nullable": True}),
+    ]
+    nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
+    is_data_collected: Annotated[
+        bool, Field(description="Is Data Collected for Activity")
+    ]
+    status: Annotated[LibraryItemStatus, Field(description="Activity Status")]
+    version: Annotated[str, Field(description="Activity Version")]
+    groupings: Annotated[
+        list[LibraryActivityGrouping], Field(description="Activity Groups/Subgroups")
+    ] = []
+
+    @classmethod
+    def from_input(cls, val: dict[str, Any]):
+        return cls(
+            uid=val["uid"],
+            library=val["library"],
+            name=val["name"],
+            definition=val.get("definition", None),
+            nci_concept_id=val.get("nci_concept_id", None),
+            nci_concept_name=val.get("nci_concept_name", None),
+            is_data_collected=val["is_data_collected"],
+            status=LibraryItemStatus(val["status"]),
+            version=val["version"],
+            groupings=[
+                LibraryActivityGrouping(
+                    activity_group_uid=grouping["activity_group"]["uid"],
+                    activity_group_name=grouping["activity_group"]["name"],
+                    activity_subgroup_uid=grouping["activity_subgroup"]["uid"],
+                    activity_subgroup_name=grouping["activity_subgroup"]["name"],
+                )
+                for grouping in val.get("groupings", [])
+            ],
+        )
+
+
+class LibraryActivityInstance(BaseModel):
+    uid: Annotated[str, Field(description="Activity UID")]
+    library: Annotated[str, Field(description="Library Name")]
+    name: Annotated[str, Field(description="Activity Name")]
+    definition: Annotated[
+        str | None,
+        Field(description="Activity Definition", json_schema_extra={"nullable": True}),
+    ]
+    nci_concept_id: Annotated[
+        str | None,
+        Field(description="NCI Concept ID", json_schema_extra={"nullable": True}),
+    ] = None
+    nci_concept_name: Annotated[
+        str | None,
+        Field(description="NCI Concept Name", json_schema_extra={"nullable": True}),
+    ] = None
+    topic_code: Annotated[
+        str | None,
+        Field(description="Topic Code", json_schema_extra={"nullable": True}),
+    ] = None
+    param_code: Annotated[
+        str | None,
+        Field(description="ADaM Parameter Code", json_schema_extra={"nullable": True}),
+    ] = None
+    status: Annotated[LibraryItemStatus, Field(description="Activity Status")]
+    version: Annotated[str, Field(description="Activity Version")]
+    groupings: Annotated[
+        list[LibraryActivityGroupingWithActivity],
+        Field(description="Activity Groups/Subgroups"),
+    ] = []
+
+    @classmethod
+    def from_input(cls, val: dict[str, Any]):
+        return cls(
+            uid=val["uid"],
+            library=val["library_name"],
+            name=val["name"],
+            definition=val.get("definition", None),
+            nci_concept_id=val.get("nci_concept_id", None),
+            nci_concept_name=val.get("nci_concept_name", None),
+            topic_code=val.get("topic_code", None),
+            param_code=val.get("param_code", None),
+            status=LibraryItemStatus(val["status"]),
+            version=val["version"],
+            groupings=[
+                LibraryActivityGroupingWithActivity(
+                    activity_uid=grouping["activity"]["uid"],
+                    activity_name=grouping["activity"]["name"],
+                    activity_group_uid=grouping["activity_group"]["uid"],
+                    activity_group_name=grouping["activity_group"]["name"],
+                    activity_subgroup_uid=grouping["activity_subgroup"]["uid"],
+                    activity_subgroup_name=grouping["activity_subgroup"]["name"],
+                )
+                for grouping in val.get("activity_groupings", [])
+            ],
         )
 
 

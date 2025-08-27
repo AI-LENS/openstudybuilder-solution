@@ -1,5 +1,5 @@
-import { apiActivityName } from "./library_activities_steps";
-import {getCurrentStudyId} from "./../../support/helper_functions"
+import { activityName } from "./library_activities_steps";
+import { getCurrentStudyId } from "./../../support/helper_functions";
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
 let activity_placeholder_name, activity_library, activity_soa_group, activity_group, activity_sub_group, activity_activity, edit_placeholder_name, current_study
@@ -10,14 +10,12 @@ Then('The Study Activity is found', () => cy.searchAndCheckPresence(activity_act
 
 When('Activity placeholder is found', () => cy.searchAndCheckPresence(activity_placeholder_name, true))
 
-Given('Study Activity is found', () => cy.searchAndCheckPresence(apiActivityName, true))
-
 Then('The Study Activity Placeholder is no longer available', () => cy.searchAndCheckPresence(activity_placeholder_name, false))
 
 When('Activity placeholder is searched for', () => cy.searchForInPopUp(activity_placeholder_name))
 
-Given('Study activities for Study_000001 are loaded', () => {
-    cy.intercept('/api/studies/Study_000001/study-activities?*').as('getData')
+Given('Study activities for selected study are loaded', () => {
+    cy.intercept(`/api/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?*`).as('getData')
     cy.wait('@getData', { timeout: 30000 })
 })
 
@@ -26,7 +24,7 @@ Given('The activity exists in the library', () => {
 })
 
 When('User tries to add Activity in Draft status', () => {
-    cy.searchForInPopUp(apiActivityName)
+    cy.searchForInPopUp(activityName)
     cy.waitForTable()
 })
 
@@ -113,6 +111,23 @@ When('The study activity request is edited', () => {
     cy.fillInput('instance-name', edit_placeholder_name)
 })
 
+When('The study activity request SoA group field is edited', () => {
+    cy.get('[data-cy="flowchart-group"]').click()
+    cy.contains('.v-list-item', 'HIDDEN').click()
+})
+
+When('The study activity request data collection field is edited', () => {
+    cy.get('[aria-label="Data collection"]').click()
+})
+
+When('The study activity request rationale for activity field is edited', () => {
+    cy.fillInput('activity-rationale', "TEST OF UPDATE REDBELL")
+})
+
+Then('The updated notification icon and update option are not present', () => {
+    cy.get('.v-badge__badge').should('not.exist')
+})
+
 When('The user is presented with the changes to request', () => {
     cy.get('[data-cy="form-body"]').should('contain', edit_placeholder_name)
 })
@@ -149,7 +164,8 @@ function checkIfTableContainsActivity() {
 }
 
 function addLibraryActivityByName() {
-    activity_activity = apiActivityName
+    activity_activity = activityName
+    cy.waitForTable()
     cy.searchForInPopUp(activity_activity)
     cy.waitForTable()
     cy.get('[data-cy="select-activity"] input').check()

@@ -1,4 +1,5 @@
 import datetime
+from textwrap import dedent
 from typing import Any
 
 from neomodel import db
@@ -23,19 +24,22 @@ from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import 
     StudyStatus,
 )
 from clinical_mdr_api.domains.study_selections.study_epoch import (
-    StudyEpochEpoch,
     StudyEpochHistoryVO,
-    StudyEpochSubType,
-    StudyEpochType,
     StudyEpochVO,
 )
+from clinical_mdr_api.models.controlled_terminologies.ct_term import (
+    SimpleCTTermNameWithConflictFlag,
+)
+from common import queries
+from common.auth.user import user
 from common.config import settings
 from common.exceptions import ValidationException
+from common.telemetry import trace_calls
 
 
 def get_ctlist_terms_by_name(
     codelist_names: str, effective_date: datetime.datetime | None = None
-):
+) -> dict[str, list[str]]:
     if not effective_date:
         ctterm_name_match = "(:CTTermNameRoot)-[:LATEST_FINAL]->(ctnv:CTTermNameValue) WHERE codelist_name_value.name IN $codelist_names"
     else:
@@ -66,8 +70,8 @@ def get_ctlist_terms_by_name(
 
 
 class StudyEpochRepository:
-    def __init__(self, author_id: str):
-        self.author_id = author_id
+    def __init__(self):
+        self.author_id = user().id()
 
     def fetch_ctlist(
         self, codelist_names: str, effective_date: datetime.datetime | None = None
@@ -122,8 +126,9 @@ class StudyEpochRepository:
         )
         return basic_visit[0][0] if len(basic_visit) > 0 else None
 
+    @classmethod
     def _create_aggregate_root_instance_from_cypher_result(
-        self, input_dict: dict[str, Any], audit_trail: bool = False
+        cls, input_dict: dict[str, Any], audit_trail: bool = False
     ) -> StudyEpochVO | StudyEpochHistoryVO:
         study_epoch_vo = StudyEpochVO(
             uid=input_dict.get("study_epoch").get("uid"),
@@ -131,9 +136,21 @@ class StudyEpochRepository:
             start_rule=input_dict.get("study_epoch").get("start_rule"),
             end_rule=input_dict.get("study_epoch").get("end_rule"),
             description=input_dict.get("study_epoch").get("description"),
-            epoch=StudyEpochEpoch[input_dict.get("epoch_ct_term_uid")],
-            subtype=StudyEpochSubType[input_dict.get("epoch_subtype_ct_term_uid")],
-            epoch_type=StudyEpochType[input_dict.get("epoch_type_ct_term_uid")],
+            epoch=(
+                SimpleCTTermNameWithConflictFlag(**input_dict["epoch_term"])
+                if input_dict.get("epoch_term")
+                else None
+            ),
+            subtype=(
+                SimpleCTTermNameWithConflictFlag(**input_dict["epoch_subtype_term"])
+                if input_dict.get("epoch_subtype_term")
+                else None
+            ),
+            epoch_type=(
+                SimpleCTTermNameWithConflictFlag(**input_dict["epoch_type_term"])
+                if input_dict.get("epoch_type_term")
+                else None
+            ),
             order=input_dict.get("study_epoch").get("order"),
             status=StudyStatus(input_dict.get("study_epoch").get("status")),
             start_date=input_dict.get("study_action").get("date"),
@@ -144,12 +161,14 @@ class StudyEpochRepository:
         )
         if not audit_trail:
             return study_epoch_vo
-        return self.from_study_epoch_vo_to_history_vo(
+        return cls.from_study_epoch_vo_to_history_vo(
             study_epoch_vo=study_epoch_vo, input_dict=input_dict
         )
 
+    @classmethod
+    @trace_calls
     def _retrieve_concepts_from_cypher_res(
-        self, result_array, attribute_names, audit_trail: bool = False
+        cls, result_array, attribute_names, audit_trail: bool = False
     ) -> list[StudyEpochVO]:
         """
         Method maps the result of the cypher query into real aggregate objects.
@@ -163,73 +182,145 @@ class StudyEpochRepository:
             for concept_property, attribute_name in zip(concept, attribute_names):
                 concept_dictionary[attribute_name] = concept_property
             concept_ars.append(
-                self._create_aggregate_root_instance_from_cypher_result(
+                cls._create_aggregate_root_instance_from_cypher_result(
                     concept_dictionary, audit_trail=audit_trail
                 )
             )
         return concept_ars
 
+    @staticmethod
+    @trace_calls
     def find_all_epochs_query(
-        self,
         study_uid: str,
         study_value_version: str | None = None,
         study_epoch_uid: str | None = None,
         audit_trail: bool = False,
     ) -> tuple[str, dict[Any, Any]]:
-        params = {}
-        if not audit_trail:
+        query = []
+        params = {"study_uid": study_uid}
+
+        if audit_trail:
+            if study_epoch_uid:
+                query.append(
+                    "MATCH (study_epoch:StudyEpoch {uid: $study_epoch_uid})<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})"
+                )
+                params["study_epoch_uid"] = study_epoch_uid
+
+            else:
+                query.append(
+                    "MATCH (study_epoch:StudyEpoch)<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})"
+                )
+
+        else:
             if study_value_version:
-                query = "MATCH (study_root:StudyRoot {uid: $study_uid})-[:HAS_VERSION{status: $study_status, version: $study_value_version}]->(study_value:StudyValue)"
+                query.append(
+                    "MATCH (study_root:StudyRoot {uid: $study_uid})-[:HAS_VERSION{status: $study_status, version: $study_value_version}]->(study_value:StudyValue)"
+                )
                 params["study_value_version"] = study_value_version
                 params["study_status"] = StudyStatus.RELEASED.value
-            else:
-                query = "MATCH (study_root:StudyRoot {uid: $study_uid})-[:LATEST]->(study_value:StudyValue)"
-            params["study_uid"] = study_uid
-            if study_epoch_uid:
-                query += "MATCH (study_value)-[:HAS_STUDY_EPOCH]->(study_epoch:StudyEpoch {uid: $study_epoch_uid})<-[:AFTER]-(study_action:StudyAction)"
-                params["study_epoch_uid"] = study_epoch_uid
-            else:
-                query += "MATCH (study_value)-[:HAS_STUDY_EPOCH]->(study_epoch:StudyEpoch)<-[:AFTER]-(study_action:StudyAction)"
-        else:
-            if study_epoch_uid:
-                query = "MATCH (study_epoch:StudyEpoch {uid: $study_epoch_uid})<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot)"
-                params["study_epoch_uid"] = study_epoch_uid
-            else:
-                query = "MATCH (study_epoch:StudyEpoch)<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid:$study_uid})"
-                params["study_uid"] = study_uid
-        if not (study_value_version or audit_trail):
-            query += "WHERE NOT (study_epoch)-[:BEFORE]-()"
 
-        query += """
+            else:
+                query.append(
+                    "MATCH (study_root:StudyRoot {uid: $study_uid})-[:LATEST]->(study_value:StudyValue)"
+                )
+
+            query.append(queries.study_standard_version_ct_terms_datetime)
+
+            if study_epoch_uid:
+                query.append(
+                    "MATCH (study_value)-[:HAS_STUDY_EPOCH]->(study_epoch:StudyEpoch {uid: $study_epoch_uid})<-[:AFTER]-(study_action:StudyAction)"
+                )
+                params["study_epoch_uid"] = study_epoch_uid
+
+            else:
+                query.append(
+                    "MATCH (study_value)-[:HAS_STUDY_EPOCH]->(study_epoch:StudyEpoch)<-[:AFTER]-(study_action:StudyAction)"
+                )
+
+            if not study_value_version:
+                query.append("WHERE NOT (study_epoch)-[:BEFORE]-()")
+
+        query.append(
+            dedent(
+                """
+            MATCH (study_epoch)-[:HAS_EPOCH]->(epoch_ct_term_root:CTTermRoot)
+            MATCH (study_epoch)-[:HAS_EPOCH_SUB_TYPE]->(epoch_subtype_ct_term_root:CTTermRoot)
+            MATCH (study_epoch)-[:HAS_EPOCH_TYPE]->(epoch_type_ct_term_root:CTTermRoot)
+        """
+            )
+        )
+
+        if audit_trail:
+            query.append(
+                dedent(
+                    """
+                WITH *,
+                    {term_uid: epoch_ct_term_root.uid} AS epoch_term,
+                    {term_uid: epoch_subtype_ct_term_root.uid} AS epoch_subtype_term,
+                    {term_uid: epoch_type_ct_term_root.uid} AS epoch_type_term
+            """
+                )
+            )
+
+        else:
+            query.append(
+                queries.ct_term_name_at_datetime.format(
+                    root="epoch_ct_term_root", value="epoch_term"
+                )
+            )
+            query.append(
+                queries.ct_term_name_at_datetime.format(
+                    root="epoch_subtype_ct_term_root", value="epoch_subtype_term"
+                )
+            )
+            query.append(
+                queries.ct_term_name_at_datetime.format(
+                    root="epoch_type_ct_term_root", value="epoch_type_term"
+                )
+            )
+
+        query.append(
+            dedent(
+                """
             WITH 
                 study_root.uid AS study_uid,
                 study_action,
                 study_epoch,
-                head([(study_epoch)-[:HAS_EPOCH]->(epoch_ct_term_root:CTTermRoot) | epoch_ct_term_root.uid]) AS epoch_ct_term_uid,
-                head([(study_epoch)-[:HAS_EPOCH_SUB_TYPE]->(epoch_subtype_ct_term_root:CTTermRoot) | epoch_subtype_ct_term_root.uid]) AS epoch_subtype_ct_term_uid,
-                head([(study_epoch)-[:HAS_EPOCH_TYPE]->(epoch_type_ct_term_root:CTTermRoot) | epoch_type_ct_term_root.uid]) AS epoch_type_ct_term_uid,
+                epoch_term,
+                epoch_subtype_term,
+                epoch_type_term,
                 size([(study_epoch)-[:STUDY_EPOCH_HAS_STUDY_VISIT]->(study_visit:StudyVisit)<-[:HAS_STUDY_VISIT]-(:StudyValue) | study_visit]) AS count_vists,
                 coalesce(head([(user:User)-[*0]-() WHERE user.user_id=study_action.author_id | user.username]), study_action.author_id) AS author_username
         """
+            )
+        )
         if audit_trail:
-            query += """,head([(study_epoch:StudyEpoch)<-[:BEFORE]-(study_action_before:StudyAction) | study_action_before]) AS study_action_before,
+            query.append(
+                dedent(
+                    """,head([(study_epoch:StudyEpoch)<-[:BEFORE]-(study_action_before:StudyAction) | study_action_before]) AS study_action_before,
                 labels(study_action) AS change_type
                 RETURN * ORDER BY study_epoch.uid, study_action.date DESC
             """
+                )
+            )
         else:
-            query += "RETURN * ORDER BY study_epoch.order"
+            query.append("RETURN * ORDER BY study_epoch.order")
+
+        query = "\n".join(query)
         return query, params
 
+    @classmethod
+    @trace_calls
     def find_all_epochs_by_study(
-        self, study_uid: str, study_value_version: str | None = None
+        cls, study_uid: str, study_value_version: str | None = None
     ) -> list[StudyEpochVO]:
-        query, params = self.find_all_epochs_query(
+        query, params = cls.find_all_epochs_query(
             study_uid=study_uid, study_value_version=study_value_version
         )
 
         study_epochs, attributes_names = db.cypher_query(query=query, params=params)
 
-        extracted_items = self._retrieve_concepts_from_cypher_res(
+        extracted_items = cls._retrieve_concepts_from_cypher_res(
             study_epochs, attributes_names
         )
         return extracted_items
@@ -253,8 +344,9 @@ class StudyEpochRepository:
         )
         return len(sdc_node) > 0
 
+    @classmethod
     def find_by_uid(
-        self,
+        cls,
         uid: str,
         study_uid: str,
         study_value_version: str | None = None,
@@ -262,13 +354,13 @@ class StudyEpochRepository:
     ) -> StudyEpochVO:
         if for_update:
             acquire_write_lock_study_value(uid=study_uid)
-        query, params = self.find_all_epochs_query(
+        query, params = cls.find_all_epochs_query(
             study_uid=study_uid,
             study_value_version=study_value_version,
             study_epoch_uid=uid,
         )
         study_epochs, attributes_names = db.cypher_query(query=query, params=params)
-        extracted_items = self._retrieve_concepts_from_cypher_res(
+        extracted_items = cls._retrieve_concepts_from_cypher_res(
             study_epochs, attributes_names
         )
         ValidationException.raise_if(
@@ -281,22 +373,25 @@ class StudyEpochRepository:
         )
         return extracted_items[0]
 
+    @classmethod
+    @trace_calls
     def get_all_versions(
-        self,
+        cls,
         study_uid,
         uid: str | None = None,
     ) -> list[StudyEpochHistoryVO]:
-        query, params = self.find_all_epochs_query(
+        query, params = cls.find_all_epochs_query(
             study_uid=study_uid, study_epoch_uid=uid, audit_trail=True
         )
         study_visits, attributes_names = db.cypher_query(query=query, params=params)
-        extracted_items = self._retrieve_concepts_from_cypher_res(
+        extracted_items = cls._retrieve_concepts_from_cypher_res(
             study_visits, attributes_names, audit_trail=True
         )
         return extracted_items
 
+    @staticmethod
     def from_study_epoch_vo_to_history_vo(
-        self, study_epoch_vo: StudyEpochVO, input_dict: dict[str, Any]
+        study_epoch_vo: StudyEpochVO, input_dict: dict[str, Any]
     ) -> StudyEpochHistoryVO:
         change_type = input_dict.get("change_type")
         for action in change_type:

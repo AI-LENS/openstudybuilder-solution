@@ -15,11 +15,11 @@ Feature: Studies - View Listings - Analysis Study Metadata (New)
         Given A test study is selected
         Given The '/studies' page is opened
         When The 'Analysis Study Metadata (New)' submenu is clicked in the 'View Listings' section
-        Then The current URL is '/studies/Study_000001/analysis_study_metadata_new/mdvisit'
+        Then The current URL is '/analysis_study_metadata_new/mdvisit'
 
 @manual_test
     Scenario: User must be able to select Column labels
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         And The user selects 'Column labels' option
         Then A table is visible with following headers
             | headers                                    |
@@ -36,7 +36,7 @@ Feature: Studies - View Listings - Analysis Study Metadata (New)
 
 @manual_test
     Scenario: User must be able to select Column name
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         And The user selects 'Column names' option
         Then A table is visible with following headers
             | headers   |
@@ -53,20 +53,20 @@ Feature: Studies - View Listings - Analysis Study Metadata (New)
 
 @manual_test
     Scenario: Scenario: Verify that the number of studies displayed on the MDVISIT page matches the study visits listed on the Study Structure page.
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         When Check the number of studies displayed on the MDVISIT page
         And Check the number of study visits listed on the Study Structure page
         Then The number of studies displayed on the MDVISIT page matches the study visits listed on the Study Structure page
 
 @manual_test
     Scenario: It must be possible to use the free text search field to narrow down the rows shown on the screen
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         When The user inputs the test text in the free text search field
         Then The corresponding results should be displayed in the table
 
 @manual_test
     Scenario: It must be possible to add filters for each column and sort the table based on the columns
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         When The user applies a filter to the specified column
         And The user sorts the table by the specified column in ascending order
         Then the table should display only the rows that match the filter criteria
@@ -76,7 +76,7 @@ Feature: Studies - View Listings - Analysis Study Metadata (New)
 
 @manual_test
     Scenario: It must be possible to export the table to CSV, JSON, XML and Excel
-        Given The '/studies/Study_000001/analysis_study_metadata_new/mdvisit' page is opened
+        Given The test study '/analysis_study_metadata_new/mdvisit' page is opened
         When The user clicks on the Export button
         Then CSV, JSON, XML, and Excel options must be available
         Then The corresponding file in the selected format should be downloaded to the local machine

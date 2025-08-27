@@ -1,5 +1,5 @@
 mock_study = {
-    "uid": "Study_000001",
+    "uid": `${Cypress.env('TEST_STUDY_UID')}`,
     "study_number": "0",
     "study_id": "CDISC DEV-0",
     "study_acronym": null,

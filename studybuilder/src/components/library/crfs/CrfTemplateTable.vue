@@ -92,7 +92,6 @@ export default {
       default: null,
     },
   },
-  emits: ['clearUid'],
   setup() {
     const crfsStore = useCrfsStore()
 
@@ -250,7 +249,6 @@ export default {
       crfs.getTemplate(item.uid).then((resp) => {
         this.selectedTemplate = resp.data
         this.showForm = true
-        this.$emit('clearUid')
       })
     },
     async openTemplateHistory(template) {

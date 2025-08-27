@@ -3,18 +3,18 @@ import '@shelex/cypress-allure-plugin'
 import '@4tw/cypress-drag-drop'
 import './api_requests/authorisation_methods'
 import './api_requests/crf_requests'
+import './api_requests/ct_requests'
 import './api_requests/disease_milestones_requests'
 import './api_requests/library_activities'
 import './api_requests/library_syntax_templates'
 import './api_requests/library_units'
 import './api_requests/rest_client'
+import './api_requests/study_requests'
 import './api_requests/study_arm_requests'
 import './api_requests/study_criteria_requests'
 import './api_requests/study_epochs_requests'
-import './api_requests/study_objective_requests'
 import './api_requests/study_type_requests'
 import './api_requests/study_visits_requests'
-import './api_requests/various_requests'
 import './browser_operations/study_select_command'
 import './front_end_commands/buttons_commands'
 import './front_end_commands/colour_swatch_commands'
@@ -39,4 +39,5 @@ Cypress.on('uncaught:exception', (err, runnable) => {
 //Run that command once prior to the whole test suit
 before(function() {
     cy.prepareAuthTokens()
+    cy.createAndSetMainTestStudy('9876')
 });

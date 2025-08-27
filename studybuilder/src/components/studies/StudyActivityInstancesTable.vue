@@ -85,6 +85,11 @@
       @close="closeHistory"
     />
   </v-dialog>
+  <UpdateActivityInstanceForm
+    :activity="activeActivity"
+    :open="showUpdateForm"
+    @close="closeUpdateForm"
+  />
   <ConfirmDialog ref="confirmRef" :text-cols="6" :action-cols="5" />
 </template>
 <script setup>
@@ -99,6 +104,7 @@ import ActionsMenu from '@/components/tools/ActionsMenu.vue'
 import StudyActivityInstancesEditForm from './StudyActivityInstancesEditForm.vue'
 import HistoryTable from '@/components/tools/HistoryTable.vue'
 import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
+import UpdateActivityInstanceForm from './UpdateActivityInstanceForm.vue'
 import statuses from '@/constants/statuses'
 import { useRouter } from 'vue-router'
 
@@ -163,6 +169,7 @@ const activeActivity = ref({})
 const showEditForm = ref(false)
 const activityInstanceHistoryItems = ref([])
 const showHistory = ref(false)
+const showUpdateForm = ref(false)
 const actions = [
   {
     label: t('StudyActivityInstances.edit_relationship'),
@@ -186,9 +193,8 @@ const actions = [
     icon: 'mdi-update',
     iconColor: 'primary',
     condition: (item) =>
-      !studiesGeneralStore.selectedStudyVersion &&
-      item.latest_activity_instance,
-    click: updateInstance,
+      !studiesGeneralStore.selectedStudyVersion && isDifferent(item),
+    click: openUpdateForm,
     accessRole: roles.STUDY_WRITE,
   },
   {
@@ -384,21 +390,6 @@ async function deleteRelationship(item) {
   }
 }
 
-function updateInstance(item) {
-  activitiesStore
-    .updateStudyActivityInstanceToLatest(
-      studiesGeneralStore.selectedStudy.uid,
-      item.study_activity_instance_uid
-    )
-    .then(() => {
-      eventBusEmit('notification', {
-        msg: t('StudyActivityInstances.instance_updated'),
-        type: 'success',
-      })
-      tableRef.value.filterTable()
-    })
-}
-
 async function fetchStudyActivityInstancesHistory() {
   const resp = await study.getStudyActivityInstancesAuditTrail(
     studiesGeneralStore.selectedStudy.uid
@@ -422,13 +413,40 @@ function closeHistory() {
 }
 
 function actionsMenuBadge(item) {
-  if (item.latest_activity_instance) {
+  if (isDifferent(item)) {
     return {
-      color: 'error',
+      color: item.keep_old_version ? 'green' : 'error',
       icon: 'mdi-bell-outline',
     }
   }
   return undefined
+}
+
+function isDifferent(activity) {
+  if (activity.latest_activity_instance) {
+    return (
+      JSON.stringify(activity.activity_instance?.activity_instance_class) !==
+        JSON.stringify(
+          activity.latest_activity_instance?.activity_instance_class
+        ) ||
+      activity.activity_instance?.name !==
+        activity.latest_activity_instance?.name ||
+      activity.activity_instance?.topic_code !==
+        activity.latest_activity_instance?.topic_code
+    )
+  }
+  return false
+}
+
+function openUpdateForm(item) {
+  activeActivity.value = item
+  showUpdateForm.value = true
+}
+
+function closeUpdateForm() {
+  activeActivity.value = null
+  showUpdateForm.value = false
+  tableRef.value.filterTable()
 }
 </script>
 <style scoped>

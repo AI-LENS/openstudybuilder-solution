@@ -12,12 +12,12 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
     Scenario: User must be able to navigate to Study Activity Instance page using side menu
         Given The '/studies' page is opened
         When The 'Data Specification' submenu is clicked in the 'Define Study' section
-        Then The current URL is '/studies/Study_000001/data_specification/activity_instances'
+        Then The current URL is '/data_specification/activity_instances'
         And the tab 'Study Activity Instances' is displayed
 
     # Note, not all columns are implemented in current release, columns for next release is marked by a comment tag
     Scenario: User must be able to see the Study Activity Instances table with State/Action options listed
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         Then A table is visible with following options
             # Note, this page do not have an add study activity instances, as all study activities and related study activity instances is listed, and instances is added via edit
             | options                                                         |
@@ -69,12 +69,12 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
     # If no additional selections is possible, no extra row with blank activity instance columns should be listed.
 
     Scenario: User must be able to use column selection option
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When The first column is selected from Select Columns option for table with actions
         Then The table contain only selected column and actions column
 
     Scenario: User must be able to see the Study Activities without any related Study Activity Instances
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When Study Activities exists without any related Study Activity Instances
         Then these Study Activities is included in the table with values for the following columns
             | column | header            |
@@ -107,7 +107,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
 
     Scenario Outline: State/Actions must be displayed for all study activities and related study activity instances
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When the table of Activity Instances is displayed including the column 'State/Actions'
         Then the the row values for 'State/Actions' must be as <State Action Value> depending on the <Rule> rules for the Study Activity Instance
         Then the the row values for 'Actions' must list <Action> depending on the value of the status of Activity Instance in Library and Boolean attributes according to <Rule>
@@ -130,7 +130,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
     # Version only for State
     #Scenario Outline: State must be displayed as combination of Activity Instance Boolean attributes and current selections of study activity instances
-    #    Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+    #    Given The test study '/data_specification/activity_instances' page is opened
     #    When the table of Activity Instances is displayed including the column 'State'
     #    Then the the row values for 'State' must be as <State> depending on the value of the Activity Instance Boolean attributes and current selections of study activity instances
     #    Examples:
@@ -150,7 +150,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
     # Version only for Actions
     #Scenario Outline: Actions must be displayed based on Activity Instance status and rules related to Boolean variables
-    #    Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+    #    Given The test study '/data_specification/activity_instances' page is opened
     #    When the table of Activity Instances is displayed including the column 'Actions'
     #    Then the the row values for 'Actions' must list <Action> depending on the value of the status of Activity Instance in Library and Boolean attributes according to <Rule>
     #    And an <Indicator> is displayed next to the row action icon
@@ -171,7 +171,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
     # Old version - we will not use
     #Scenario Outline: Type must be displayed as combination of Activity Instance Boolean attributes
-    #    Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+    #    Given The test study '/data_specification/activity_instances' page is opened
     #    When the table of Activity Instances is displayed including the column 'Type'
     #    Then the the row values for 'Type' must be as <Type Value> depending on the value of the Activity Instance Boolean attributes
     #    Examples:
@@ -182,7 +182,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
     # Old version - we will not use
     #Scenario Outline: Actions must be displayed based on Activity Instance status and rules related to Boolean variables
-    #    Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+    #    Given The test study '/data_specification/activity_instances' page is opened
     #    When the table of Activity Instances is displayed including the column 'Actions'
     #    Then the the row values for 'Actions' must list <Action> depending on the value of the status of Activity Instance in Library and Boolean attributes according to <Rule>
     #    And an <Indicator> is displayed next to the row action icon
@@ -198,7 +198,7 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
     # Keep in E2E
     #Scenario Outline: Details must be displayed based on Activity Instance and selected information from Activity Items
-    #    Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+    #    Given The test study '/data_specification/activity_instances' page is opened
     #    When the table of Activity Instances is displayed including the column 'Details'
     #    Then the the row values for 'Details' must list <Detail Label> and <Detail Value> depending on the <Detail Source> value of the status of Activity Instance and selected related Activity Items in the Library
     #    Examples:
@@ -218,17 +218,17 @@ Feature: Studies - Define Study - Study Data Specifications - Study Activity Ins
 
 
     Scenario: User must be able to edit a Study Activity Instance selections for a Study Activity
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When The Study Activity and related Study Activity Instances is edited
         Then The edited Study Activity Instance selections is reflected within the Study Activity Instance table
 
     Scenario: User must be able to read change history of Study Activity Instances
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When The user opens page level version history
         Then The user is presented with version history of the output containing timestamp and username
 
     Scenario: User must be able to read change history of selected Study Activity Instance
-        Given The '/studies/Study_000001/data_specification/activity_instances' page is opened
+        Given The test study '/data_specification/activity_instances' page is opened
         When The user clicks on History for particular Study Activity Instance row
         Then The user is presented with history of changes for that Study Activity Instance
         And The history contains timestamps and usernames

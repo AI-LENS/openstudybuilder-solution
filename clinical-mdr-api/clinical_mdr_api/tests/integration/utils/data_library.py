@@ -2107,7 +2107,7 @@ MERGE (lib)-[:CONTAINS_CODELIST]->(cr3)
 
 STARTUP_CT_TERM_ATTRIBUTES_CYPHER = """
 MERGE (cc:CTCatalogue {name: "SDTM CT"})-[:HAS_CODELIST]->(cr:CTCodelistRoot {uid:"editable_cr"})-[:HAS_NAME_ROOT]
-->(codelist_ver_root:CTCodelistNameRoot)-[:HAS_VERSION{change_description: "Approved version",start_date: datetime(),status: "Final",author_id: "unknown-user",version : "1.0"}]->(codelist_ver_value:CTCodelistNameValue)
+->(codelist_ver_root:CTCodelistNameRoot)-[:HAS_VERSION{change_description: "Approved version",start_date: datetime(),status: "Final",author_id: "unknown-user",version : "1.0"}]->(codelist_ver_value:CTCodelistNameValue {name: "codelist attributes value1"})
 MERGE (cr)-[:HAS_ATTRIBUTES_ROOT]->(car:CTCodelistAttributesRoot)-[:LATEST]->(cav:CTCodelistAttributesValue {name: "codelist attributes value1", submission_value: "codelist submission value1", preferred_term: "codelist preferred term", definition: "codelist definition", extensible: true})
 
 CREATE (codelist_ver_root)-[:LATEST]->(codelist_ver_value)
@@ -2136,7 +2136,7 @@ MERGE (non_editable_lib:Library{ name:"CDISC", is_editable:false})-[:CONTAINS_CO
 MERGE (cr)-[has_term1:HAS_TERM]->(term_root:CTTermRoot {uid:"term_root_final"})-[:HAS_ATTRIBUTES_ROOT]->
     (term_ver_root:CTTermAttributesRoot)-[:LATEST]-(term_ver_value:CTTermAttributesValue 
         {code_submission_value: "code_submission_value1", name_submission_value:"name_submission_value1", 
-        preferred_term:"preferred_term", definition:"definition"})
+        preferred_term:"preferred_term1", definition:"definition"})
 MERGE (term_root)-[:HAS_NAME_ROOT]->(term_name_ver_root:CTTermNameRoot)-[:LATEST]-(term_name_ver_value:CTTermNameValue 
         {name:"term_value_name1", name_sentence_case:"term_value_name_sentence_case"})
 MERGE (editable_lib)-[:CONTAINS_TERM]->(term_root)
@@ -2165,7 +2165,7 @@ set hv3.version = "0.1"
 
 MERGE (cr)-[has_term2:HAS_TERM]->(term_root2:CTTermRoot {uid:"term_root_draft"})-[:HAS_ATTRIBUTES_ROOT]->
     (term_ver_root2:CTTermAttributesRoot)-[:LATEST]-(term_ver_value2:CTTermAttributesValue 
-        {code_submission_value: "code_submission_value2", name_submission_value:"name_submission_value2", preferred_term:"preferred_term", definition:"definition"})
+        {code_submission_value: "code_submission_value2", name_submission_value:"name_submission_value2", preferred_term:"preferred_term2", definition:"definition"})
 MERGE (term_ver_root2)-[ld:LATEST_DRAFT]->(term_ver_value2)
 MERGE (term_ver_root2)-[hv5:HAS_VERSION]->(term_ver_value2)
 MERGE (editable_lib)-[:CONTAINS_TERM]->(term_root2)
@@ -2178,7 +2178,7 @@ set hv5.version = "0.1"
 
 MERGE (cr2)-[has_term3:HAS_TERM]->(term_root3:CTTermRoot {uid:"term_root_final_non_edit"})-[:HAS_ATTRIBUTES_ROOT]->
     (term_ver_root3:CTTermAttributesRoot)-[:LATEST]-(term_ver_value3:CTTermAttributesValue 
-        {code_submission_value: "code_submission_value3", name_submission_value:"name_submission_value3", preferred_term:"preferred_term", definition:"definition"})
+        {code_submission_value: "code_submission_value3", name_submission_value:"name_submission_value3", preferred_term:"preferred_term3", definition:"definition"})
 MERGE (non_editable_lib)-[:CONTAINS_TERM]->(term_root3)
 MERGE (term_ver_root3)-[hv6:HAS_VERSION]->(term_ver_value3)
 MERGE (term_ver_root3)-[lf3:LATEST_FINAL]->(term_ver_value3)
@@ -2198,7 +2198,7 @@ set hv6.version = "0.1"
 
 MERGE (cr2)-[has_term4:HAS_TERM]->(term_root4:CTTermRoot {uid:"term_root_draft_non_edit"})-[:HAS_ATTRIBUTES_ROOT]->
     (term_ver_root4:CTTermAttributesRoot)-[:LATEST]-(term_ver_value4:CTTermAttributesValue 
-        {code_submission_value: "code_submission_value4", name_submission_value:"name_submission_value4", preferred_term:"preferred_term", definition:"definition"})
+        {code_submission_value: "code_submission_value4", name_submission_value:"name_submission_value4", preferred_term:"preferred_term4", definition:"definition"})
 MERGE (term_ver_root4)-[ld2:LATEST_DRAFT]->(term_ver_value4)
 MERGE (term_ver_root4)-[hv8:HAS_VERSION]->(term_ver_value4)
 MERGE (non_editable_lib)-[:CONTAINS_TERM]->(term_root4)

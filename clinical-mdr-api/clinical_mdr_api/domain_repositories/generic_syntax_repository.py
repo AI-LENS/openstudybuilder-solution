@@ -10,10 +10,6 @@ from clinical_mdr_api.domain_repositories.models.activities import (
     ActivityRoot,
     ActivitySubGroupRoot,
 )
-from clinical_mdr_api.domain_repositories.models.concepts import (
-    NumericValue,
-    NumericValueRoot,
-)
 from clinical_mdr_api.domain_repositories.models.controlled_terminology import (
     CTTermRoot,
 )
@@ -28,15 +24,7 @@ from clinical_mdr_api.domain_repositories.models.syntax import (
     SyntaxTemplateRoot,
     SyntaxTemplateValue,
 )
-from clinical_mdr_api.domain_repositories.models.template_parameter import (
-    ParameterTemplateRoot,
-    TemplateParameterComplexRoot,
-    TemplateParameterComplexValue,
-    TemplateParameterTermRoot,
-)
 from clinical_mdr_api.domains.libraries.parameter_term import (
-    ComplexParameterTerm,
-    NumericParameterTermVO,
     ParameterTermEntryVO,
     SimpleParameterTermVO,
 )
@@ -170,48 +158,6 @@ class GenericSyntaxRepository(
             page_size=page_size,
         )
 
-    def _maintain_complex_parameter(self, parameter_config: ComplexParameterTerm):
-        complex_value = TemplateParameterComplexValue.nodes.get_or_none(
-            name=parameter_config.value
-        )
-        if complex_value is None:
-            root: TemplateParameterComplexRoot = TemplateParameterComplexRoot(
-                is_active_parameter=True
-            )
-            root.save()
-            complex_value = TemplateParameterComplexValue(name=parameter_config.value)
-            complex_value.save()
-            root.latest_final.connect(complex_value)
-            root.has_latest_value.connect(complex_value)
-            parameter_root = ParameterTemplateRoot.get(uid=parameter_config.uid)
-            root.has_complex_value.connect(parameter_root)
-            template_root = ParameterTemplateRoot.nodes.get(uid=parameter_config.uid)
-            template_parameter = template_root.has_definition.get()
-            root.has_parameter_term.connect(template_parameter)
-        else:
-            root_uid = complex_value.get_root_uid_by_latest()
-            root = TemplateParameterComplexRoot.nodes.get(uid=root_uid)
-        for i, param in enumerate(parameter_config.parameters):
-            param_uid = param.uid
-            if isinstance(param, NumericParameterTermVO):
-                numeric_value = NumericValue.nodes.get_or_none(name=param.value)
-                if not numeric_value:
-                    numeric_value_root = NumericValueRoot(
-                        uid="NumericValue_" + str(param.value)
-                    )
-                    numeric_value_root.save()
-                    numeric_value = NumericValue(name=param.value)
-                    numeric_value.save()
-                    numeric_value_root.latest_final.connect(numeric_value, {})
-                    numeric_value_root.has_latest_value.connect(numeric_value)
-                    numeric_value_root = numeric_value_root.uid
-                else:
-                    numeric_value_root = numeric_value.get_root_uid_by_latest()
-                param_uid = numeric_value_root
-            tptr = TemplateParameterTermRoot.nodes.get(uid=param_uid)
-            complex_value.uses_parameter.connect(tptr, {"position": i + 1})
-        return root.element_id
-
     def _parse_parameter_terms(
         self, instance_parameters
     ) -> dict[int, list[ParameterTermEntryVO]]:
@@ -305,59 +251,22 @@ class GenericSyntaxRepository(
             parameter_list = []
             for item in term_set:
                 term_list = []
-                if item.get("definition"):
-                    tpcr = TemplateParameterComplexRoot.nodes.get(
-                        uid=item["parameter_uids"][0]["parameter_uid"]
-                    )
-                    defr: ParameterTemplateRoot = tpcr.has_complex_value.get()
-                    tpcv: TemplateParameterComplexValue = tpcr.latest_final.get()
-                    items = tpcv.get_all()
-                    cpx_params = []
-                    param_terms = []
-                    for itemp in items:
-                        param_terms.append(
-                            {
-                                "position": itemp[2],
-                                "value": itemp[3],
-                                "vv": itemp[4],
-                                "item": itemp[1],
-                            }
+                for value in sorted(
+                    item["parameter_uids"],
+                    key=lambda x: x["index"] or 0,
+                ):
+                    if value["parameter_uid"]:
+                        simple_parameter_term_vo = (
+                            self._parameter_from_repository_values(value)
                         )
-                    param_terms.sort(key=lambda x: x["position"])
-                    for param in param_terms:
-                        if param["value"] is not None:
-                            simple_template_parameter_term_vo = NumericParameterTermVO(
-                                uid=param["item"], value=param["value"]
-                            )
-                        else:
-                            simple_template_parameter_term_vo = SimpleParameterTermVO(
-                                uid=param["item"], value=param["vv"]
-                            )
-                        cpx_params.append(simple_template_parameter_term_vo)
-                    parameter_list.append(
-                        ComplexParameterTerm(
-                            uid=defr.uid,
-                            parameter_template=item["template"],
-                            parameters=cpx_params,
-                        )
-                    )
-                else:
-                    for value in sorted(
-                        item["parameter_uids"],
-                        key=lambda x: x["index"] or 0,
-                    ):
-                        if value["parameter_uid"]:
-                            simple_parameter_term_vo = (
-                                self._parameter_from_repository_values(value)
-                            )
-                            term_list.append(simple_parameter_term_vo)
-                    pve = ParameterTermEntryVO.from_repository_values(
-                        parameters=term_list,
-                        parameter_name=item["parameter_name"],
-                        conjunction=item.get("conjunction", ""),
-                        labels=item.get("labels", []),
-                    )
-                    parameter_list.append(pve)
+                        term_list.append(simple_parameter_term_vo)
+                pve = ParameterTermEntryVO.from_repository_values(
+                    parameters=term_list,
+                    parameter_name=item["parameter_name"],
+                    conjunction=item.get("conjunction", ""),
+                    labels=item.get("labels", []),
+                )
+                parameter_list.append(pve)
             return_dict[set_number] = parameter_list
         return return_dict
 

@@ -136,6 +136,17 @@ class CTCodelistGenericRepository(
     def is_repository_related_to_attributes(self) -> bool:
         raise NotImplementedError
 
+    def find_uid_by_name(self, name: str) -> str | None:
+        cypher_query = f"""
+            MATCH (codelist_root:CTCodelistRoot)-[:{cast(str, self.relationship_from_root).upper()}]->(:{self.root_class.__label__})-
+            [:LATEST_FINAL|LATEST_DRAFT|LATEST_RETIRED]->(:{self.value_class.__label__} {{name: $name}})
+            RETURN codelist_root.uid
+        """
+        items, _ = db.cypher_query(cypher_query, {"name": name})
+        if len(items) > 0:
+            return items[0][0]
+        return None
+
     def find_all(
         self,
         catalogue_name: str | None = None,

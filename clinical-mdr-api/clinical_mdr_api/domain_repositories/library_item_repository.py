@@ -1126,10 +1126,13 @@ class LibraryItemRepositoryImplBase(
         )
 
     def check_exists_final_version(self, uid: str) -> bool:
-        root_node = self.root_class.nodes.get_or_none(uid=uid)
-        if root_node is not None:
-            return root_node.latest_final.get_or_none() is not None
-        return False
+        query = f"""
+            MATCH (root:{self.root_class.__label__} {{uid: $uid}})-[:LATEST]->(value:{self.value_class.__label__})
+            WHERE (root)-[:LATEST_FINAL]->(value)
+            RETURN root
+            """
+        result, _ = db.cypher_query(query, {"uid": uid})
+        return len(result) > 0 and len(result[0]) > 0
 
     def close(self) -> None:
         # Our repository guidelines state that repos should have a close method
@@ -2174,10 +2177,10 @@ END
                     WITH root
                     MATCH (root)-[ver_rel:HAS_VERSION]->()
                     WITH * ORDER BY ver_rel.start_date DESC LIMIT 1
-                    {"""
+                    {'''
                         WHERE
                             $status <> "Final"                                      // WHEN THE USER DOESN'T ASK FOR FINAL --THEN--> PASS EVERYTHING
-                            OR (ver_rel.status <> 'Retired' AND $status = 'Final')  // WHEN USER ASKS FOR FINAL --THEN--> THE LATEST SHOULD NOT BE RETIRED"""
+                            OR (ver_rel.status <> 'Retired' AND $status = 'Final')  // WHEN USER ASKS FOR FINAL --THEN--> THE LATEST SHOULD NOT BE RETIRED'''
                     if not include_retired_versions
                     else ""}
                     MATCH (_root)-[ver_rel]->()

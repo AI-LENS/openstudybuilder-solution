@@ -18,7 +18,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         Then The current URL is '/study_structure/visits'
 
     Scenario: [Table][Options] User must be able to see the Study Visit table with following options
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         Then A table is visible with following options
             | options                                                         |
             | Add content                                                     |
@@ -30,7 +30,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
             | Add select boxes to table to allow selection of rows for export |
 
     Scenario: [Table][Columns][Names] User must be able to see the Study Visit table with following columns
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And A table is visible with following headers
             | headers                     |
             | Epoch                       |
@@ -65,7 +65,7 @@ Feature: Studies - Define Study - Study Structure - Study Visits
             | Modified by                 |
 
     Scenario: [Online help] User must be able to read online help for the page
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And The online help button is clicked
         Then The online help panel shows 'Study Visits' panel with content "A clinical encounter where the the subject interacts with the investigator. There can be one more visits in an Epoch. To edit visit(s) in the table view click on the pencil in the top-right menu."
 
@@ -75,7 +75,6 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         Then The table contain only selected column and actions column
 
     Scenario: [Create][Pre-condition] User must not be able to add a new Study Visit when no Study Epoch has been defined
-        Given The study without Study Epoch has been selected
         Given The '/studies/Study_000005/study_structure/visits' page is opened
         When The 'add-visit' button is clicked
         Then The the user is prompted with a notification message "To add visits, you need to difine the epochs first. Would you like to define epochs?"
@@ -86,15 +85,28 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         Given The study with uid 'Study_000001' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
         And The '/studies/Study_000001/study_structure/visits' page is opened
-        When The epoch for visit is not selected in new visit form
-        Then The validation appears under study period field
+        And User waits for epochs to load
+        When Add visit button is clicked
+        And Visit scheduling type is selected as 'SINGLE_VISIT'
+        And Form continue button is clicked
+        And Form continue button is clicked
+        Then The validation appears for missing study period
 
     Scenario: [Create][Mandatory fields] User must not be able to create an visit without type, contact mode, time reference and timing defined
         Given The study with uid 'Study_000001' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
         And The '/studies/Study_000001/study_structure/visits' page is opened
-        When The type, contact mode, time reference and timing is not selected in new visit form
-        Then The validation appears under given study details fields
+        And User waits for epochs to load
+        When Add visit button is clicked
+        And Visit scheduling type is selected as 'SINGLE_VISIT'
+        And Form continue button is clicked
+        And First available epoch is selected
+        And Form continue button is clicked
+        And Form save button is clicked
+        Then The validation appears for missing visit type
+        And The validation appears for missing contact mode
+        And The validation appears for missing time reference
+        And The validation appears for missing visit timing
     
     Scenario: [Create][Fields check] User must not be able to select time referece for an anchor visit
         Given The study with uid 'Study_000003' is selected
@@ -107,14 +119,28 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         And The study with uid 'Study_000003' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
         And The '/studies/Study_000003/study_structure/visits' page is opened
-        When The new Anchor Visit creation is initiated
+        And User waits for epochs to load
+        When Add visit button is clicked
+        And Visit scheduling type is selected as 'SINGLE_VISIT'
+        And Form continue button is clicked
+        And Epoch 'Screening' is selected for the visit
+        And Form continue button is clicked
+        And Anchor visit checkbox is checked
         Then It is not possible to edit Time Reference for anchor visit
 
     Scenario: [Create][Anchor visit][Positive case] User must be able to create an anchor visit
         Given The study with uid 'Study_000003' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
         And The '/studies/Study_000003/study_structure/visits' page is opened
-        When The new Anchor Visit is added
+        And User waits for epochs to load
+        When Add visit button is clicked
+        And Visit scheduling type is selected as 'SINGLE_VISIT'
+        And Form continue button is clicked
+        And Epoch 'Screening' is selected for the visit
+        And Form continue button is clicked
+        And Visit data is filled in: visit class 'single-visit', visit type 'Randomisation', contact mode 'On Site Visit', time unit 'day'
+        And Anchor visit checkbox is checked
+        When Form save button is clicked
         Then The new Anchor Visit is visible within the Study Visits table
 
     @manual_test
@@ -122,46 +148,62 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         Given The study with uid 'Study_000001' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
         When The '/studies/Study_000001/study_structure/visits' page is opened
+        Given A test study is selected
+        And The epoch exists in selected study
+        When The test study '/study_structure/visits' page is opened
         And The first scheduled visit is created with the visit type as an Information visit
         And The visit timing is set to the lowest timing of all existing visit when compared to the Global Anchor time reference
         Then The Information visit should be created with 0 as Visit number
         And No reordering of existing visits should happen
 
     Scenario: [Create][Anchor visit][Negative case] User must not be able to create an anchor visit if one already exists
-        Given The study with defined anchor visit is selected
         And The '/studies/Study_000003/study_structure/visits' page is opened
-        When The form for new study visit is opened
+        And User waits for epochs to load
+        When Add visit button is clicked
+        And Visit scheduling type is selected as 'SINGLE_VISIT'
+        And Form continue button is clicked
+        And Epoch 'Screening' is selected for the visit
+        And Form continue button is clicked
         Then The Anchor visit checkbox is disabled
 
     Scenario: [Actions][Edit] User must be able to edit the study visit
+        Given The study with uid 'Study_000003' is selected
+        And [API] The static visit data is fetched
+        And [API] The dynamic visit data is fetched: contact mode 'On Site Visit', time reference 'Global anchor visit', type 'Randomisation', epoch 'Screening'
+        And [API] The visit with following attributes is created: isGlobalAnchor 0, visitWeek 1
         Given The '/studies/Study_000003/study_structure/visits' page is opened
-        And The study with defined visit is selected
+        When User searches for 'V2'
         And The 'Edit' option is clicked from the three dot menu list
-        When The study visit is edited
-        Then The study visit data is reflected within the Study Visits table
+        And Form continue button is clicked
+        And Form continue button is clicked
+        And Visit description is changed to 'Testing edition'
+        And Form save button is clicked
+        Then Visit description is displayed in the table as 'Testing edition'
 
     Scenario: [Actions][Edit][Fields check] User must be able to update study visit epoch
         Given The '/studies/Study_000003/study_structure/visits' page is opened
-        When The user opens edit form for the study epoch for chosen study visit
+        When User searches for 'V2'
+        And The 'Edit' option is clicked from the three dot menu list
+        And Form continue button is clicked
         Then The study epoch field is enabled for editing
 
     Scenario: [Export][CSV] User must be able to export the data in CSV format
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And The user exports the data in 'CSV' format
         Then The study specific 'StudyVisits' file is downloaded in 'csv' format
 
     Scenario: [Export][Json] User must be able to export the data in JSON format
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And The user exports the data in 'JSON' format
         Then The study specific 'StudyVisits' file is downloaded in 'json' format
 
     Scenario: [Export][Xml] User must be able to export the data in XML format
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And The user exports the data in 'XML' format
         Then The study specific 'StudyVisits' file is downloaded in 'xml' format
 
     Scenario: [Export][Excel] User must be able to export the data in EXCEL format
-        Given The '/studies/Study_000001/study_structure/visits' page is opened
+        Given The test study '/study_structure/visits' page is opened
         And The user exports the data in 'EXCEL' format
         Then The study specific 'StudyVisits' file is downloaded in 'xlsx' format
 
@@ -191,7 +233,6 @@ Feature: Studies - Define Study - Study Structure - Study Visits
 
     Scenario: [Actions][Delete] User must be able to delete the study visit
         Given The '/studies/Study_000003/study_structure/visits' page is opened
-        And The study with defined visit is selected
         And The 'Delete' option is clicked from the three dot menu list
         Then The pop up displays 'Visit deleted'
 

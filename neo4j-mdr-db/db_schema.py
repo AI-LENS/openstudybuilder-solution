@@ -107,6 +107,8 @@ INDEXES = [
     ("TemplateParameterValue", "name"),
     ("TextValue", "name"),
     ("WeekInStudyValue", "name"),
+    ("DatasetScenario", "uid"),
+    ("StudyStandardVersion", "uid"),
 ]
 
 # array of text indexes to create [label, property]
@@ -118,6 +120,7 @@ TEXT_INDEXES = [
     ("ClinicalProgramme", "name"),
     ("Project", "name"),
     ("Brand", "name"),
+    ("DatasetScenarioInstance", "label"),
 ]
 
 # array of relation indexes to create [type, property]

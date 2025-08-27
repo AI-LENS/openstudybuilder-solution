@@ -19,7 +19,6 @@ Data Export (MIT) | studybuilder-export
 Standards Import (GPLv3) | mdr-standards-import
 DB Schema Migration (MIT) | db-schema-migration
 System Tests (MIT) | system-tests
-StudyBuilder Word Add-In (MIT) | studybuilder-word-addin
 
 ## License Terms (GPLv3)
 

@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Any, Callable, Self
 
 from pydantic import Field
 
@@ -334,7 +334,7 @@ class StudyPharmaCM(BaseModel):
 class StudyPharmaCMXML(BaseModel):
 
     @classmethod
-    def from_pharma_cm_data(cls, study_pharma_cm: StudyPharmaCM) -> Self:
+    def from_pharma_cm_data(cls, study_pharma_cm: StudyPharmaCM) -> dict[str, Any]:
         return {
             "study_collection": {
                 "clinical_study": {
