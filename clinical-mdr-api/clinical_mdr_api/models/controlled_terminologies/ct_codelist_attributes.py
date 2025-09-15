@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -113,6 +113,7 @@ class CTCodelistAttributes(BaseModel):
 
 
 class CTCodelistAttributesSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_codelist_uid(
         cls,
@@ -120,7 +121,26 @@ class CTCodelistAttributesSimpleModel(BaseModel):
         find_codelist_attribute_by_codelist_uid: Callable[
             [str], CTCodelistAttributesAR | None
         ],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_codelist_uid(
+        cls,
+        uid: None,
+        find_codelist_attribute_by_codelist_uid: Callable[
+            [str], CTCodelistAttributesAR | None
+        ],
+    ) -> None: ...
+    @classmethod
+    def from_codelist_uid(
+        cls,
+        uid: str | None,
+        find_codelist_attribute_by_codelist_uid: Callable[
+            [str], CTCodelistAttributesAR | None
+        ],
     ) -> Self | None:
+        simple_codelist_attribute_model = None
+
         if uid is not None:
             codelist_attribute = find_codelist_attribute_by_codelist_uid(uid)
 
@@ -138,8 +158,6 @@ class CTCodelistAttributesSimpleModel(BaseModel):
                     submission_value=None,
                     preferred_term=None,
                 )
-        else:
-            simple_codelist_attribute_model = None
         return simple_codelist_attribute_model
 
     uid: Annotated[str, Field()]
@@ -165,5 +183,5 @@ class CTCodelistAttributesEditInput(PatchInputModel):
     submission_value: Annotated[str | None, Field(min_length=1)] = None
     nci_preferred_name: Annotated[str | None, Field(min_length=1)] = None
     definition: Annotated[str | None, Field(min_length=1)] = None
-    extensible: Annotated[bool | None, Field()] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    extensible: Annotated[bool, Field()] = False
+    change_description: Annotated[str, Field(min_length=1)]

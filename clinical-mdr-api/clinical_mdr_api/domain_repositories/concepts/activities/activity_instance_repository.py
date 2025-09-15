@@ -43,7 +43,6 @@ from clinical_mdr_api.domains.concepts.activities.activity_item import (
     ActivityItemVO,
     LibraryItem,
 )
-from clinical_mdr_api.domains.concepts.concept_base import _AggregateRootType
 from clinical_mdr_api.domains.versioned_object_aggregate import (
     LibraryItemMetadataVO,
     LibraryItemStatus,
@@ -58,9 +57,6 @@ from clinical_mdr_api.models.concepts.activities.activity_item import (
     CompactOdmItemGroup,
     CompactUnitDefinition,
 )
-from clinical_mdr_api.models.concepts.unit_definitions.unit_definition import (
-    UnitDefinitionSimpleModel,
-)
 from common.config import settings
 from common.exceptions import BusinessLogicException
 from common.utils import convert_to_datetime, version_string_to_tuple
@@ -73,7 +69,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
     value_object_class = ActivityInstanceVO
     return_model = ActivityInstance
 
-    def _create_new_value_node(self, ar: _AggregateRootType) -> ActivityInstanceValue:
+    def _create_new_value_node(self, ar: ActivityInstanceAR) -> ActivityInstanceValue:
         value_node: ActivityInstanceValue = super()._create_new_value_node(ar=ar)
         value_node.is_research_lab = ar.concept_vo.is_research_lab
         value_node.molecular_weight = ar.concept_vo.molecular_weight
@@ -317,25 +313,25 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> ActivityInstanceAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         return self.aggregate_class.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=self.value_object_class.from_repository_values(
                 nci_concept_id=input_dict.get("nci_concept_id"),
                 nci_concept_name=input_dict.get("nci_concept_name"),
-                name=input_dict.get("name"),
-                name_sentence_case=input_dict.get("name_sentence_case"),
+                name=input_dict["name"],
+                name_sentence_case=input_dict["name_sentence_case"],
                 activity_instance_class_uid=input_dict.get(
                     "activity_instance_class"
                 ).get("uid"),
                 activity_instance_class_name=input_dict.get(
                     "activity_instance_class"
                 ).get("name"),
-                definition=input_dict.get("definition"),
+                definition=input_dict["definition"],
                 abbreviation=input_dict.get("abbreviation"),
                 is_research_lab=input_dict.get("is_research_lab", False),
                 molecular_weight=input_dict.get("molecular_weight"),
-                topic_code=input_dict.get("topic_code"),
+                topic_code=input_dict["topic_code"],
                 adam_param_code=input_dict.get("adam_param_code"),
                 is_required_for_activity=input_dict.get(
                     "is_required_for_activity", False
@@ -424,17 +420,17 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
                 activity_name=input_dict.get("activity_name"),
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=convert_to_datetime(value=input_dict.get("end_date")),
                 major_version=int(major),
                 minor_version=int(minor),
@@ -444,7 +440,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: ActivityInstanceRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: ActivityInstanceValue,
         **_kwargs,
@@ -472,7 +468,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
                     dimension_name = None
 
                 unit_definitions.append(
-                    UnitDefinitionSimpleModel(
+                    CompactUnitDefinition(
                         uid=unit.uid,
                         name=unit.has_version.single().name,
                         dimension_name=dimension_name,
@@ -616,7 +612,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -624,7 +620,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
     def _create_ar(
         self,
         root: ActivityInstanceRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: ActivityInstanceValue,
         **_kwargs,
@@ -640,7 +636,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
             odm_items = []
             for unit in activity_item["unit_definitions"]:
                 unit_definitions.append(
-                    UnitDefinitionSimpleModel(
+                    CompactUnitDefinition(
                         uid=unit["uid"],
                         name=unit["name"],
                     )
@@ -749,7 +745,7 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -984,7 +980,16 @@ class ActivityInstanceRepository(ConceptGenericRepository[ActivityInstanceAR]):
             hierarchy,
             activity_items,
             has_version,
-            apoc.coll.dropDuplicateNeighbors(apoc.coll.sort(all_versions)) AS all_versions
+            apoc.coll.dropDuplicateNeighbors(
+                [v in apoc.coll.sortMulti(
+                    [v in all_versions | {
+                        version: v,
+                        major: toInteger(split(v, '.')[0]),
+                        minor: toInteger(split(v, '.')[1])
+                    }],
+                    ['major', 'minor']
+                ) | v.version]
+            ) AS all_versions
         RETURN *
         """
         )

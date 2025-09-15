@@ -17,7 +17,7 @@ class StudyDiseaseMilestoneEditInput(PatchInputModel):
     disease_milestone_type: Annotated[
         str | None, Field(description="Study Disease Milestone Type uid")
     ] = None
-    repetition_indicator: Annotated[bool | None, Field()] = None
+    repetition_indicator: Annotated[bool, Field()] = False
 
 
 class StudyDiseaseMilestoneCreateInput(PostInputModel):
@@ -51,7 +51,7 @@ class StudyDiseaseMilestoneOGM(BaseModel, StudyDiseaseMilestoneVO):
             description="The ordering of the selection",
             json_schema_extra={"source": "order", "nullable": True},
         ),
-    ] = None
+    ] = None  # type: ignore[assignment]
     status: Annotated[
         StudyStatus,
         Field(
@@ -66,7 +66,7 @@ class StudyDiseaseMilestoneOGM(BaseModel, StudyDiseaseMilestoneVO):
         return StudyStatus[value]
 
     start_date: Annotated[
-        datetime | None,
+        datetime,
         Field(
             description="The most recent point in time when the study disease_milestone was edited."
             "The format is ISO 8601 in UTC±0, e.g.: '2020-10-31T16:00:00+00:00' for October 31, 2020 at 6pm in UTC+2 timezone.",
@@ -74,13 +74,13 @@ class StudyDiseaseMilestoneOGM(BaseModel, StudyDiseaseMilestoneVO):
         ),
     ]
     author_id: Annotated[
-        str | None,
+        str,
         Field(
             description="ID of user that created last modification",
             json_schema_extra={"source": "has_after.author_id", "nullable": True},
         ),
     ]
-    author_username: Annotated[str | None, Field(json_schema_extra={"nullable": True})]
+    author_username: Annotated[str | None, Field(json_schema_extra={"nullable": True})]  # type: ignore[assignment]
 
     disease_milestone_type: Annotated[
         str,
@@ -113,6 +113,8 @@ class StudyDiseaseMilestoneOGM(BaseModel, StudyDiseaseMilestoneVO):
     repetition_indicator: Annotated[
         bool, Field(json_schema_extra={"source": "repetition_indicator"})
     ]
+
+    accepted_version: Annotated[bool, Field()] = False
 
 
 class StudyDiseaseMilestoneOGMVer(StudyDiseaseMilestoneOGM):

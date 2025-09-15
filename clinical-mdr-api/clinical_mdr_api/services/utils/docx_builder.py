@@ -32,7 +32,7 @@ class DocxBuilder:
     def __init__(
         self,
         styles: Mapping | None = None,
-        landscape: bool | None = False,
+        landscape: bool = False,
         margins: list[float] | None = None,
         template: str | None = None,
     ):
@@ -141,7 +141,7 @@ class DocxBuilder:
         tc_pr.append(text_direction)
 
     @staticmethod
-    def merge_cells(cells: list[_Cell]) -> _Cell:
+    def merge_cells(cells: tuple[_Cell, ...]) -> _Cell:
         return reduce(lambda c1, c2: c1.merge(c2), cells)
 
     def get_document_stream(self) -> io.BytesIO:

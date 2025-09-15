@@ -99,7 +99,7 @@ class DictionaryCodelistAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         dictionary_codelist_vo: DictionaryCodelistVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         dictionary_codelist_ar = cls(
@@ -117,7 +117,7 @@ class DictionaryCodelistAR(LibraryItemAggregateRootBase):
         author_id: str,
         dictionary_codelist_vo: DictionaryCodelistVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -136,7 +136,7 @@ class DictionaryCodelistAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         dictionary_codelist_vo: DictionaryCodelistVO,
         codelist_exists_by_name_callback: Callable[[str], bool],
     ) -> None:

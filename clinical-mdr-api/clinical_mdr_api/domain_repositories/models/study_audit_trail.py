@@ -1,3 +1,5 @@
+import datetime
+
 from neomodel import One, RelationshipFrom, RelationshipTo, StringProperty, ZeroOrOne
 
 from clinical_mdr_api.domain_repositories.models.generic import (
@@ -12,7 +14,7 @@ class StudyAction(ClinicalMdrNode):
     audit_trail = RelationshipFrom(
         ".study.StudyRoot", "AUDIT_TRAIL", model=ClinicalMdrRel
     )
-    date = ZonedDateTimeProperty()
+    date: datetime.datetime = ZonedDateTimeProperty()
     status = StringProperty()
     author_id = StringProperty()
     has_before = RelationshipTo(

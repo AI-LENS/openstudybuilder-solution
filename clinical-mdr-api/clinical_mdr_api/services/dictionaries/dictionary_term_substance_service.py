@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any
 
 from neomodel import db
 
@@ -17,17 +17,13 @@ from clinical_mdr_api.models.dictionaries.dictionary_term import (
 )
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import FilterOperator
-from clinical_mdr_api.services._meta_repository import MetaRepository  # type: ignore
+from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services.dictionaries.dictionary_term_generic_service import (
     DictionaryTermGenericService,
 )
 
-_AggregateRootType = TypeVar("_AggregateRootType")
 
-
-class DictionaryTermSubstanceService(
-    DictionaryTermGenericService[DictionaryTermSubstanceAR]
-):
+class DictionaryTermSubstanceService(DictionaryTermGenericService):
     @classmethod
     def get_input_or_previous_property(
         cls, input_property: Any, previous_property: Any
@@ -38,7 +34,7 @@ class DictionaryTermSubstanceService(
     version_class = DictionaryTermVersion
     repository_interface = DictionaryTermSubstanceRepository
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     @property
     def repository(self) -> DictionaryTermSubstanceRepository:
@@ -82,9 +78,11 @@ class DictionaryTermSubstanceService(
             change_description=term_input.change_description,
             dictionary_term_vo=DictionaryTermSubstanceVO.from_input_values(
                 codelist_uid=item.dictionary_term_vo.codelist_uid,
-                name=term_input.name,
-                dictionary_id=term_input.dictionary_id,
-                name_sentence_case=term_input.name_sentence_case,
+                name=term_input.name or item.name,
+                dictionary_id=term_input.dictionary_id
+                or item.dictionary_term_vo.dictionary_id,
+                name_sentence_case=term_input.name_sentence_case
+                or item.dictionary_term_vo.name_sentence_case,
                 abbreviation=term_input.abbreviation,
                 definition=term_input.definition,
                 pclass_uid=term_input.pclass_uid,
@@ -101,11 +99,11 @@ class DictionaryTermSubstanceService(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         codelist_name: str = "",
     ) -> GenericFilteringReturn[DictionaryTermSubstance]:
-        items, total = self.repository.find_all(
+        item_ars, total = self.repository.find_all(
             codelist_name=codelist_name,
             sort_by=sort_by,
             filter_by=filter_by,
@@ -115,10 +113,8 @@ class DictionaryTermSubstanceService(
             total_count=total_count,
         )
 
-        all_dictionary_terms = GenericFilteringReturn.create(items, total)
-        all_dictionary_terms.items = [
+        items = [
             self._transform_aggregate_root_to_pydantic_model(dictionary_term_ar)
-            for dictionary_term_ar in all_dictionary_terms.items
+            for dictionary_term_ar in item_ars
         ]
-
-        return all_dictionary_terms
+        return GenericFilteringReturn(items=items, total=total)

@@ -38,7 +38,7 @@ Then("The Required Activity Item Classes field is displayed", () => cy.contains(
 
 Then("Warning is displayed for mandatory field {string}", (fieldName) => warningIsDisplayed(fieldName))
 
-Then("Warning about not matching name and sentence case name is displayed", () => warningIsDisplayed('Sentence case name', "Sentence case name value must be identical to name value"))
+Then("Warning about not matching name and sentence case name is displayed", () => warningIsDisplayed('Sentence case name', "Sentence case name can only differ in case compared to name value"))
 
 Then("Warning about already existing topic code is displayed", () => cy.checkSnackbarMessage(`Activity Instance with Topic Code '${topicCode}' already exists`))
 

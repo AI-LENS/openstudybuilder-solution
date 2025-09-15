@@ -588,6 +588,7 @@ def test_edit_activity_item_class(api_client):
                     "is_adam_param_specific_enabled": False,
                 }
             ],
+            "change_description": "updated item class",
         },
     )
     res = response.json()

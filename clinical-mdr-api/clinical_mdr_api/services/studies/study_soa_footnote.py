@@ -6,9 +6,6 @@ from neomodel import db
 from clinical_mdr_api.domain_repositories.study_selections.study_soa_footnote_repository import (
     StudySoAFootnoteRepository,
 )
-from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import (
-    StudyStatus,
-)
 from clinical_mdr_api.domains.study_selections.study_soa_footnote import (
     ReferencedItemVO,
     StudySoAFootnoteVO,
@@ -66,7 +63,13 @@ class StudySoAFootnoteService:
         study_soa_footnote_vo: StudySoAFootnoteVO,
         study_value_version: str | None = None,
         order: int | None = None,
+        minimal_response: bool = False,
     ) -> StudySoAFootnote:
+        if minimal_response:
+            return StudySoAFootnote.minimal_response_from_study_soa_footnote_vo(
+                study_soa_footnote_vo=study_soa_footnote_vo,
+                order=order,
+            )
         return StudySoAFootnote.from_study_soa_footnote_vo(
             study_soa_footnote_vo=study_soa_footnote_vo,
             study_value_version=study_value_version,
@@ -86,7 +89,7 @@ class StudySoAFootnoteService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
     ) -> GenericFilteringReturn[StudySoAFootnote]:
@@ -114,8 +117,8 @@ class StudySoAFootnoteService:
             page_number=page_number,
             page_size=page_size,
         )
-        all_items = GenericFilteringReturn.create(
-            filtered_items.items, filtered_items.total
+        all_items = GenericFilteringReturn(
+            items=filtered_items.items, total=filtered_items.total
         )
         return all_items
 
@@ -127,18 +130,22 @@ class StudySoAFootnoteService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
+        minimal_response: bool = False,
     ) -> GenericFilteringReturn[StudySoAFootnote]:
         items = self.repository.find_all_footnotes(
-            study_uids=study_uid, study_value_version=study_value_version
+            study_uids=study_uid,
+            study_value_version=study_value_version,
+            full_query=not minimal_response,
         )
         items = [
             self._transform_vo_to_pydantic_model(
                 study_soa_footnote_vo=item,
                 study_value_version=study_value_version,
                 order=idx,
+                minimal_response=minimal_response,
             )
             for idx, item in enumerate(items, start=1)
         ]
@@ -151,8 +158,8 @@ class StudySoAFootnoteService:
             page_number=page_number,
             page_size=page_size,
         )
-        all_items = GenericFilteringReturn.create(
-            filtered_items.items, filtered_items.total
+        all_items = GenericFilteringReturn(
+            items=filtered_items.items, total=filtered_items.total
         )
         return all_items
 
@@ -160,9 +167,9 @@ class StudySoAFootnoteService:
         self,
         study_uid: str | None,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         study_value_version: str | None = None,
     ) -> list[Any]:
@@ -197,7 +204,7 @@ class StudySoAFootnoteService:
             study_uids=study_uid, study_value_version=study_value_version
         )
 
-        study_soa_footnote_to_ret: StudySoAFootnote = None
+        study_soa_footnote_to_ret: StudySoAFootnote | None = None
         for idx, item in enumerate(items, start=1):
             if item.uid == uid:
                 study_soa_footnote_to_ret = self._transform_vo_to_pydantic_model(
@@ -214,9 +221,9 @@ class StudySoAFootnoteService:
     def instantiate_study_soa_vo(
         self,
         study_uid: str,
-        footnote_uid: str,
-        footnote_template_uid: str,
-        referenced_items: list[ReferencedItem],
+        footnote_uid: str | None,
+        footnote_template_uid: str | None,
+        referenced_items: list[ReferencedItem] | list[ReferencedItemVO],
         uid: str | None = None,
         accepted_version: bool = False,
         footnote_version: str | None = None,
@@ -256,14 +263,17 @@ class StudySoAFootnoteService:
             generate_uid_callback=(
                 self.repository.generate_soa_footnote_uid if not uid else lambda: uid
             ),
-            status=StudyStatus.DRAFT,
             author_id=self.author_id,
             accepted_version=accepted_version,
         )
         return footnote_vo
 
     def create_with_underlying_footnote(
-        self, study_uid: str, footnote_input: StudySoAFootnoteCreateFootnoteInput
+        self,
+        study_uid: str,
+        footnote_input: (
+            StudySoAFootnoteCreateInput | StudySoAFootnoteCreateFootnoteInput
+        ),
     ) -> StudySoAFootnote:
         footnote_template = self._repos.footnote_template_repository.find_by_uid(
             uid=footnote_input.footnote_data.footnote_template_uid
@@ -329,7 +339,11 @@ class StudySoAFootnoteService:
         return soa_footnote
 
     def manage_create(
-        self, study_uid: str, footnote_input: StudySoAFootnoteCreateInput
+        self,
+        study_uid: str,
+        footnote_input: (
+            StudySoAFootnoteCreateInput | StudySoAFootnoteCreateFootnoteInput
+        ),
     ) -> StudySoAFootnote:
         footnote_vo = self.instantiate_study_soa_vo(
             study_uid=study_uid,
@@ -470,8 +484,8 @@ class StudySoAFootnoteService:
                     ),
                     msg="Nothing is changed",
                 )
-        footnote_uid: str = None
-        footnote_version: str = None
+        footnote_uid: str | None = None
+        footnote_version: str | None = None
         if footnote_edit_input.footnote_uid:
             footnote_uid = footnote_edit_input.footnote_uid
         elif soa_footnote.footnote_uid:
@@ -555,7 +569,6 @@ class StudySoAFootnoteService:
     ) -> list[StudySoAFootnoteBatchOutput]:
         results = []
         for edit_payload in edit_payloads:
-            result = {}
             try:
                 item = self.non_transactional_edit(
                     study_uid=study_uid,
@@ -563,10 +576,11 @@ class StudySoAFootnoteService:
                     footnote_edit_input=edit_payload,
                 )
                 response_code = status.HTTP_200_OK
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(StudySoAFootnoteBatchOutput(**result))
+                results.append(
+                    StudySoAFootnoteBatchOutput(
+                        response_code=response_code, content=item
+                    )
+                )
             except MDRApiBaseException as error:
                 results.append(
                     StudySoAFootnoteBatchOutput.model_construct(
@@ -582,7 +596,7 @@ class StudySoAFootnoteService:
         footnote_service: FootnoteService = FootnoteService()
         footnote_ar = footnote_service.create_ar_from_input_values(
             footnote_create_input.footnote_data,
-            generate_uid_callback=(lambda: "preview"),
+            generate_uid_callback=lambda: "preview",
             study_uid=study_uid,
         )
         footnote_ar.approve(self.author_id)
@@ -632,6 +646,10 @@ class StudySoAFootnoteService:
         study_soa_footnote_vo: StudySoAFootnoteVO,
     ):
         soa_footnote_uid = study_soa_footnote_vo.footnote_uid
+        if soa_footnote_uid is None:
+            raise BusinessLogicException(
+                msg="Cannot update footnote without footnote_uid."
+            )
         soa_footnote_ar = self._repos.footnote_repository.find_by_uid(soa_footnote_uid)
         if soa_footnote_ar.item_metadata.status == LibraryItemStatus.DRAFT:
             soa_footnote_ar.approve(self.author_id)

@@ -55,7 +55,6 @@ def edit_study_element(
 ):
     study_selection_element_edit_input = StudySelectionElementInput(
         element_uid=element_uid,
-        study_uid=study_uid,
         short_name=new_short_name,
     )
     item = StudyElementSelectionService().patch_selection(
@@ -102,7 +101,6 @@ def create_study_arm(
     short_name,
     code,
     description,
-    colour_code,
     randomization_group,
     number_of_subjects,
     arm_type_uid,
@@ -112,7 +110,6 @@ def create_study_arm(
         short_name=short_name,
         code=code,
         description=description,
-        colour_code=colour_code,
         randomization_group=randomization_group,
         number_of_subjects=number_of_subjects,
         arm_type_uid=arm_type_uid,
@@ -148,7 +145,6 @@ def create_study_branch_arm(
     short_name,
     code,
     description,
-    colour_code,
     randomization_group,
     number_of_subjects,
     arm_uid,
@@ -158,7 +154,6 @@ def create_study_branch_arm(
         short_name=short_name,
         code=code,
         description=description,
-        colour_code=colour_code,
         randomization_group=randomization_group,
         number_of_subjects=number_of_subjects,
         arm_uid=arm_uid,
@@ -176,6 +171,7 @@ def patch_study_branch_arm(branch_arm_uid: str, study_uid: str):
     )
     item = StudyBranchArmSelectionService().patch_selection(
         study_uid=study_uid,
+        study_selection_uid=branch_arm_uid,
         selection_update_input=study_selection_branch_arm_edit_input,
     )
     return item
@@ -187,7 +183,6 @@ def create_study_cohort(
     short_name,
     code,
     description,
-    colour_code,
     number_of_subjects,
     arm_uids,
 ):
@@ -196,7 +191,6 @@ def create_study_cohort(
         short_name=short_name,
         code=code,
         description=description,
-        colour_code=colour_code,
         number_of_subjects=number_of_subjects,
         arm_uids=arm_uids,
     )

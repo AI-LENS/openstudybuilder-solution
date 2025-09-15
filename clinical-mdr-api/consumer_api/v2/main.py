@@ -26,7 +26,7 @@
 #     "/studies",
 #     dependencies=[security, rbac.STUDY_READ],
 # )
-# async def get_studies(
+# def get_studies(
 #     request: Request,
 #     sort_by: models.SortByStudies = models.SortByStudies.UID,
 #     sort_order: models.SortOrder = models.SortOrder.ASC,

@@ -58,8 +58,8 @@ def test_reorder_term(api_client):
 
 def test_patch_term_names_draft_term(api_client):
     data = {
-        "sponsor_preferred_name": "sponsor_preferred_name",
-        "sponsor_preferred_name_sentence_case": "sponsor_preferred_name_sentence_case",
+        "sponsor_preferred_name": "Sponsor_Preferred_Name",
+        "sponsor_preferred_name_sentence_case": "sponsor_preferred_name",
         "change_description": "Term name update",
     }
     response = api_client.patch("/ct/terms/term_root_draft/names", json=data)
@@ -73,11 +73,8 @@ def test_patch_term_names_draft_term(api_client):
     assert res["codelists"] == [
         {"codelist_uid": "editable_cr", "order": 5, "library_name": "Sponsor"}
     ]
-    assert res["sponsor_preferred_name"] == "sponsor_preferred_name"
-    assert (
-        res["sponsor_preferred_name_sentence_case"]
-        == "sponsor_preferred_name_sentence_case"
-    )
+    assert res["sponsor_preferred_name"] == "Sponsor_Preferred_Name"
+    assert res["sponsor_preferred_name_sentence_case"] == "sponsor_preferred_name"
     assert res["change_description"] == "Term name update"
     assert res["library_name"] == "Sponsor"
     assert res["end_date"] is None
@@ -101,11 +98,8 @@ def test_post_names_approve_term(api_client):
     assert res["codelists"] == [
         {"codelist_uid": "editable_cr", "order": 5, "library_name": "Sponsor"}
     ]
-    assert res["sponsor_preferred_name"] == "sponsor_preferred_name"
-    assert (
-        res["sponsor_preferred_name_sentence_case"]
-        == "sponsor_preferred_name_sentence_case"
-    )
+    assert res["sponsor_preferred_name"] == "Sponsor_Preferred_Name"
+    assert res["sponsor_preferred_name_sentence_case"] == "sponsor_preferred_name"
     assert res["change_description"] == "Approved version"
     assert res["library_name"] == "Sponsor"
     assert res["end_date"] is None
@@ -129,11 +123,8 @@ def test_delete_names_activations_term(api_client):
     assert res["codelists"] == [
         {"codelist_uid": "editable_cr", "order": 5, "library_name": "Sponsor"}
     ]
-    assert res["sponsor_preferred_name"] == "sponsor_preferred_name"
-    assert (
-        res["sponsor_preferred_name_sentence_case"]
-        == "sponsor_preferred_name_sentence_case"
-    )
+    assert res["sponsor_preferred_name"] == "Sponsor_Preferred_Name"
+    assert res["sponsor_preferred_name_sentence_case"] == "sponsor_preferred_name"
     assert res["change_description"] == "Inactivated version"
     assert res["library_name"] == "Sponsor"
     assert res["end_date"] is None
@@ -157,11 +148,8 @@ def test_post_names_reactivate_term(api_client):
     assert res["codelists"] == [
         {"codelist_uid": "editable_cr", "order": 5, "library_name": "Sponsor"}
     ]
-    assert res["sponsor_preferred_name"] == "sponsor_preferred_name"
-    assert (
-        res["sponsor_preferred_name_sentence_case"]
-        == "sponsor_preferred_name_sentence_case"
-    )
+    assert res["sponsor_preferred_name"] == "Sponsor_Preferred_Name"
+    assert res["sponsor_preferred_name_sentence_case"] == "sponsor_preferred_name"
     assert res["change_description"] == "Reactivated version"
     assert res["library_name"] == "Sponsor"
     assert res["end_date"] is None
@@ -185,11 +173,8 @@ def test_post_names_versions(api_client):
     assert res["codelists"] == [
         {"codelist_uid": "editable_cr", "order": 5, "library_name": "Sponsor"}
     ]
-    assert res["sponsor_preferred_name"] == "sponsor_preferred_name"
-    assert (
-        res["sponsor_preferred_name_sentence_case"]
-        == "sponsor_preferred_name_sentence_case"
-    )
+    assert res["sponsor_preferred_name"] == "Sponsor_Preferred_Name"
+    assert res["sponsor_preferred_name_sentence_case"] == "sponsor_preferred_name"
     assert res["change_description"] == "New draft created"
     assert res["library_name"] == "Sponsor"
     assert res["end_date"] is None

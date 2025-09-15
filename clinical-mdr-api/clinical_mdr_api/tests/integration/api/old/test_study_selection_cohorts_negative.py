@@ -42,7 +42,6 @@ def test_data():
         short_name="Cohort_Short_Name_1",
         code="Cohort_code_1",
         description="desc...",
-        colour_code="desc...",
         number_of_subjects=100,
         arm_uids=[arm_uid1],
     )
@@ -52,7 +51,6 @@ def test_data():
         short_name="Cohort_Short_Name_2",
         code="Cohort_code_2",
         description="desc...",
-        colour_code="desc...",
         number_of_subjects=100,
         arm_uids=[arm_uid1],
     )
@@ -62,7 +60,6 @@ def test_data():
         short_name="Branch_Arm_Short_Name_1",
         code="Branch_Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Branch_Arm_randomizationGroup",
         number_of_subjects=100,
         arm_uid=arm_uid1,
@@ -94,7 +91,6 @@ def test_patch_specific_everything_to_a_new_name(api_client):
         "short_name": "Cohort_Short_Name_4",
         "code": "Cohort_code_4",
         "description": "desc...",
-        "colour_code": "desc...",
     }
     response = api_client.patch(
         "/studies/study_root/study-cohorts/StudyCohort_000001", json=data
@@ -123,7 +119,6 @@ def test_patch_specific_everything_to_a_new_name(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -163,7 +158,6 @@ def test_patch_specific_everything_to_a_new_name(api_client):
     assert res["arm_roots"][0]["change_type"] is None
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 100
     assert res["author_username"] == "unknown-user@example.com"
 
@@ -187,7 +181,6 @@ def test_all_history_of_specific_selection6(api_client):
     assert res[0]["short_name"] == "Cohort_Short_Name_4"
     assert res[0]["code"] == "Cohort_code_4"
     assert res[0]["description"] == "desc..."
-    assert res[0]["colour_code"] == "desc..."
     assert res[0]["number_of_subjects"] == 100
     assert res[0]["author_username"] == "unknown-user@example.com"
     assert res[0]["end_date"] is None
@@ -216,7 +209,6 @@ def test_all_history_of_specific_selection6(api_client):
     assert res[1]["short_name"] == "Cohort_Short_Name_1"
     assert res[1]["code"] == "Cohort_code_1"
     assert res[1]["description"] == "desc..."
-    assert res[1]["colour_code"] == "desc..."
     assert res[1]["number_of_subjects"] == 100
     assert res[1]["author_username"] == "unknown-user@example.com"
     assert res[1]["end_date"]
@@ -234,7 +226,6 @@ def test_patch_specific_patch_a_name_that_is_in_history_not_actual(api_client):
         "short_name": "Cohort_Short_Name_5",
         "code": "Cohort_code_5",
         "description": "desc...",
-        "colour_code": "desc...",
     }
     response = api_client.patch(
         "/studies/study_root/study-cohorts/StudyCohort_000001", json=data
@@ -252,7 +243,6 @@ def test_patch_specific_patch_a_name_that_is_in_history_not_actual(api_client):
     assert res["short_name"] == "Cohort_Short_Name_5"
     assert res["code"] == "Cohort_code_5"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 100
     assert res["branch_arm_roots"] is None
     assert res["arm_roots"][0]["study_uid"] == "study_root"
@@ -262,7 +252,6 @@ def test_patch_specific_patch_a_name_that_is_in_history_not_actual(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -316,7 +305,6 @@ def test_patch_specific_patch_some_name_that_is_already_used_on_another_cohort(
         "short_name": "Cohort_Short_Name_8",
         "code": "Cohort_code_8",
         "description": "desc...",
-        "colour_code": "desc...",
     }
     response = api_client.patch(
         "/studies/study_root/study-cohorts/StudyCohort_000001", json=data
@@ -341,7 +329,6 @@ def test_patch_specific_patch_some_name_that_is_already_used_on_another_cohort1(
         "short_name": "Cohort_Short_Name_8",
         "code": "Cohort_code_2",
         "description": "desc...",
-        "colour_code": "desc...",
     }
     response = api_client.patch(
         "/studies/study_root/study-cohorts/StudyCohort_000001", json=data

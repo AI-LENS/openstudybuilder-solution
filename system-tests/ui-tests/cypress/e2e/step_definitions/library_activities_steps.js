@@ -58,7 +58,7 @@ Then('The validation message appears for activity name', () => cy.checkIfValidat
 
 Then('The validation message appears for activity subgroup', () => cy.checkIfValidationAppears('activityform-activity-subgroup-class'))
 
-Then('The validation message appears for sentance case name that it is not identical to name', () => cy.checkIfValidationAppears('sentence-case-name-class', 'Sentence case name value must be identical to name value'))
+Then('The validation message appears for sentance case name that it is not identical to name', () => cy.checkIfValidationAppears('sentence-case-name-class', 'Sentence case name can only differ in case compared to name value'))
 
 When('Select a value for Activity group field', () => cy.selectFirstVSelect('activityform-activity-group-dropdown'))
 

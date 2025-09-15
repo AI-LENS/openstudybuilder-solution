@@ -8,8 +8,8 @@ from clinical_mdr_api.domains.concepts.medicinal_product import MedicinalProduct
 from clinical_mdr_api.domains.concepts.pharmaceutical_product import (
     PharmaceuticalProductAR,
 )
-from clinical_mdr_api.domains.concepts.simple_concepts.numeric_value import (
-    NumericValueAR,
+from clinical_mdr_api.domains.concepts.simple_concepts.numeric_value_with_unit import (
+    NumericValueWithUnitAR,
 )
 from clinical_mdr_api.domains.concepts.unit_definitions.unit_definition import (
     UnitDefinitionAR,
@@ -69,7 +69,7 @@ class MedicinalProduct(VersionProperties):
         cls,
         medicinal_product_ar: MedicinalProductAR,
         find_term_by_uid: Callable[[str], CTTermNameAR | None],
-        find_numeric_value_by_uid: Callable[[str], NumericValueAR | None],
+        find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_compound_by_uid: Callable[[str], CompoundAR | None],
         find_pharmaceutical_product_by_uid: Callable[
@@ -79,7 +79,7 @@ class MedicinalProduct(VersionProperties):
         return cls(
             uid=medicinal_product_ar.uid,
             external_id=medicinal_product_ar.concept_vo.external_id,
-            name=medicinal_product_ar.concept_vo.name,
+            name=medicinal_product_ar.concept_vo.name or "",
             name_sentence_case=medicinal_product_ar.concept_vo.name_sentence_case,
             compound=SimpleCompound.from_uid(
                 uid=medicinal_product_ar.concept_vo.compound_uid,

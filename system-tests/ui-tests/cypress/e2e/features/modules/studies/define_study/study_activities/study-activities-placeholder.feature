@@ -116,7 +116,7 @@ Feature: Studies - Define Study - Study Activities - Study Activities Placeholde
         And Activity placeholder is found
         And The updated notification icon and update option are not present
 
-    Scenario: [Update][Positive Case][Shared Activity Request] User must not be notified of changes when Rationale for activity request has been updated
+    Scenario: [Update][Positive Case][Shared Activity Request] User must not be notified of changes when Data Collection flag has been updated
         When Study activity add button is clicked
         And Activity from placeholder is selected
         And Form continue button is clicked

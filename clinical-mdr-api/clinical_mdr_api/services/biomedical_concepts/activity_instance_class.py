@@ -10,6 +10,7 @@ from clinical_mdr_api.domains.biomedical_concepts.activity_instance_class import
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryVO
 from clinical_mdr_api.models.biomedical_concepts.activity_instance_class import (
     ActivityInstanceClass,
+    ActivityInstanceClassEditInput,
     ActivityInstanceClassInput,
     ActivityInstanceClassMappingInput,
     ActivityInstanceClassVersion,
@@ -39,7 +40,7 @@ class ActivityInstanceClassService(NeomodelExtGenericService[ActivityInstanceCla
         return ActivityInstanceClassAR.from_input_values(
             author_id=self.author_id,
             activity_instance_class_vo=ActivityInstanceClassVO.from_repository_values(
-                name=item_input.name,
+                name=item_input.name or "",
                 order=item_input.order,
                 definition=item_input.definition,
                 is_domain_specific=item_input.is_domain_specific,
@@ -50,17 +51,19 @@ class ActivityInstanceClassService(NeomodelExtGenericService[ActivityInstanceCla
             library=library,
             generate_uid_callback=self.repository.generate_uid,
             activity_instance_class_exists_by_name_callback=self._repos.activity_instance_class_repository.check_exists_by_name,
-            dataset_class_exists_by_uid=self._repos.dataset_class_repository.find_by_uid,
+            dataset_class_exists_by_uid=self._repos.dataset_class_repository.find_by_uid,  # type: ignore[arg-type]
         )
 
     def _edit_aggregate(
-        self, item: ActivityInstanceClassAR, item_edit_input: ActivityInstanceClassInput
+        self,
+        item: ActivityInstanceClassAR,
+        item_edit_input: ActivityInstanceClassEditInput,
     ) -> ActivityInstanceClassAR:
         item.edit_draft(
             author_id=self.author_id,
             change_description=item_edit_input.change_description,
             activity_instance_class_vo=ActivityInstanceClassVO.from_repository_values(
-                name=item_edit_input.name,
+                name=item_edit_input.name or item.activity_instance_class_vo.name,
                 order=item_edit_input.order,
                 definition=item_edit_input.definition,
                 is_domain_specific=item_edit_input.is_domain_specific,
@@ -69,7 +72,7 @@ class ActivityInstanceClassService(NeomodelExtGenericService[ActivityInstanceCla
                 activity_item_classes=[],
             ),
             activity_instance_class_exists_by_name_callback=self._repos.activity_instance_class_repository.check_exists_by_name,
-            dataset_class_exists_by_uid=self._repos.dataset_class_repository.find_by_uid,
+            dataset_class_exists_by_uid=self._repos.dataset_class_repository.find_by_uid,  # type: ignore[arg-type]
         )
         return item
 
@@ -117,7 +120,7 @@ class ActivityInstanceClassService(NeomodelExtGenericService[ActivityInstanceCla
 
     @ensure_transaction(db)
     def edit_draft(
-        self, uid: str, item_edit_input: ActivityInstanceClassInput
+        self, uid: str, item_edit_input: ActivityInstanceClassEditInput
     ) -> ActivityInstanceClass:
         self._find_by_uid_or_raise_not_found(uid=uid, for_update=False)
 

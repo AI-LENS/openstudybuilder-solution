@@ -44,7 +44,7 @@ from clinical_mdr_api.models.biomedical_concepts.activity_item_class import (
 )
 
 
-class ActivityItemClassRepository(
+class ActivityItemClassRepository(  # type: ignore[misc]
     NeomodelExtBaseRepository, LibraryItemRepositoryImplBase[_AggregateRootType]
 ):
     root_class = ActivityItemClassRoot
@@ -256,7 +256,7 @@ RETURN collect(DISTINCT m.uid)
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

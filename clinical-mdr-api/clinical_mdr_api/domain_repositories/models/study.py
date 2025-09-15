@@ -1,4 +1,10 @@
-from neomodel import RelationshipFrom, RelationshipTo, StringProperty, ZeroOrMore
+from neomodel import (
+    RelationshipFrom,
+    RelationshipTo,
+    StringProperty,
+    ZeroOrMore,
+    ZeroOrOne,
+)
 
 from clinical_mdr_api.domain_repositories.models.generic import (
     ClinicalMdrNode,
@@ -170,7 +176,18 @@ class StudyValue(ClinicalMdrNode, AuditTrailMixin):
         cardinality=ZeroOrMore,
         model=HasProtocolSoAFootnoteRel,
     )
-
+    has_study_design_class = RelationshipTo(
+        StudySelection,
+        "HAS_STUDY_DESIGN_CLASS",
+        cardinality=ZeroOrOne,
+        model=ClinicalMdrRel,
+    )
+    has_study_source_variable = RelationshipTo(
+        StudySelection,
+        "HAS_STUDY_SOURCE_VARIABLE",
+        cardinality=ZeroOrOne,
+        model=ClinicalMdrRel,
+    )
     latest_value = RelationshipFrom("StudyRoot", "LATEST", model=ClinicalMdrRel)
 
     has_version = RelationshipFrom(

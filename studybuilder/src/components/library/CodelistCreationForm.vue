@@ -89,7 +89,6 @@
               :label="$t('CodelistAttributesForm.nci_pref_name')"
               density="compact"
               clearable
-              :rules="[formRules.required]"
             />
           </v-col>
         </v-row>
@@ -124,96 +123,96 @@
   <ConfirmDialog ref="confirm" :text-cols="6" :action-cols="5" />
 </template>
 
-<script>
-import { computed } from 'vue'
+<script setup>
+import { computed, inject, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCtCataloguesStore } from '@/stores/library-ctcatalogues'
 import controlledTerminology from '@/api/controlledTerminology'
 import StepperForm from '@/components/tools/StepperForm.vue'
 import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
 
-export default {
-  components: {
-    StepperForm,
-    ConfirmDialog,
-  },
-  inject: ['formRules'],
-  emits: ['close', 'created'],
-  setup() {
-    const ctCataloguesStore = useCtCataloguesStore()
+const emit = defineEmits(['close', 'created'])
 
-    return {
-      catalogues: computed(() => ctCataloguesStore.catalogues),
+const formRules = inject('formRules')
+
+const ctCataloguesStore = useCtCataloguesStore()
+const { t } = useI18n()
+
+const catalogues = computed(() => ctCataloguesStore.catalogues)
+
+const form = ref({
+  extensible: false,
+  library_name: 'Sponsor',
+  template_parameter: false,
+})
+const confirm = ref()
+const observer_1 = ref()
+const observer_2 = ref()
+const observer_3 = ref()
+const stepper = ref()
+
+const helpItems = [
+  'CodelistCreationForm.catalogue',
+  'CodelistSponsorValuesForm.pref_name',
+  'CodelistSponsorValuesForm.tpl_parameter',
+  'CodelistAttributesForm.name',
+  'CodelistAttributesForm.subm_value',
+  'CodelistAttributesForm.nci_pref_name',
+  'CodelistAttributesForm.extensible',
+  'CodelistAttributesForm.definition',
+]
+const steps = [
+  {
+    name: 'catalogue',
+    title: t('CodelistCreationForm.step1_title'),
+  },
+  { name: 'names', title: t('CodelistCreationForm.step2_title') },
+  {
+    name: 'attributes',
+    title: t('CodelistCreationForm.step3_title'),
+  },
+]
+
+async function cancel() {
+  if (form.value.catalogue_name === 'All') {
+    close()
+  } else {
+    const options = {
+      type: 'warning',
+      cancelLabel: t('_global.cancel'),
+      agreeLabel: t('_global.continue'),
     }
-  },
-  data() {
-    return {
-      form: {
-        extensible: false,
-        library_name: 'Sponsor',
-        template_parameter: false,
-      },
-      helpItems: [
-        'CodelistCreationForm.catalogue',
-        'CodelistSponsorValuesForm.pref_name',
-        'CodelistSponsorValuesForm.tpl_parameter',
-        'CodelistAttributesForm.name',
-        'CodelistAttributesForm.subm_value',
-        'CodelistAttributesForm.nci_pref_name',
-        'CodelistAttributesForm.extensible',
-        'CodelistAttributesForm.definition',
-      ],
-      steps: [
-        {
-          name: 'catalogue',
-          title: this.$t('CodelistCreationForm.step1_title'),
-        },
-        { name: 'names', title: this.$t('CodelistCreationForm.step2_title') },
-        {
-          name: 'attributes',
-          title: this.$t('CodelistCreationForm.step3_title'),
-        },
-      ],
+    if (await confirm.value.open(t('_global.cancel_changes'), options)) {
+      close()
     }
-  },
-  methods: {
-    async cancel() {
-      if (this.form.catalogue_name === 'All') {
-        this.close()
-      } else {
-        const options = {
-          type: 'warning',
-          cancelLabel: this.$t('_global.cancel'),
-          agreeLabel: this.$t('_global.continue'),
-        }
-        if (
-          await this.$refs.confirm.open(
-            this.$t('_global.cancel_changes'),
-            options
-          )
-        ) {
-          this.close()
-        }
-      }
-    },
-    close() {
-      this.$emit('close')
-      this.form = {}
-      this.$refs.stepper.reset()
-    },
-    getObserver(step) {
-      return this.$refs[`observer_${step}`]
-    },
-    async submit() {
-      this.form.terms = []
-      const data = JSON.parse(JSON.stringify(this.form))
-      try {
-        const resp = await controlledTerminology.createCodelist(data)
-        this.$emit('created', resp.data)
-        this.close()
-      } finally {
-        this.$refs.stepper.loading = false
-      }
-    },
-  },
+  }
+}
+
+function close() {
+  emit('close')
+  form.value = {}
+  stepper.value.reset()
+}
+
+function getObserver(step) {
+  if (step === 1) {
+    return observer_1.value
+  }
+  if (step === 2) {
+    return observer_2.value
+  }
+  return observer_3.value
+}
+
+async function submit() {
+  form.value.terms = []
+  const data = JSON.parse(JSON.stringify(form.value))
+  try {
+    const resp = await controlledTerminology.createCodelist(data)
+    emit('created', resp.data)
+    close()
+  } finally {
+    stepper.value.loading = false
+  }
 }
 </script>

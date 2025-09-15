@@ -67,13 +67,13 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             template_name_plain=strip_html(self.template_name),
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         objective_template_ar = ObjectiveTemplateAR.from_input_values(
             author_id=self.author_id,
             template=template_vo,
             library=library_vo,
-            generate_uid_callback=(lambda: self.template_uid),
+            generate_uid_callback=lambda: self.template_uid,
         )
         # Create template
         with db.transaction:
@@ -102,7 +102,7 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             )
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         self.object_ar = ObjectiveAR.from_input_values(
             author_id=self.author_id,

@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from functools import cached_property
-from types import MappingProxyType
 
 # pylint: disable=wrong-import-order # disagreement between isort and pylint
 import ctrxml
@@ -50,19 +49,16 @@ class CTRXMLService:
 
     serializer = XmlSerializer(config=SerializerConfig(pretty_print=True))
 
-    namespaces = MappingProxyType(
-        {
-            None: "http://www.cdisc.org/ns/odm/v1.3",
-            "ctr": "http://www.cdisc.org/ns/ctr/v1.0",
-            "ct": "http://eudract.emea.europa.eu/schema/clinical_trial",
-            "sdm": "http://www.cdisc.org/ns/studydesign/v1.0",
-        }
-    )
+    namespaces = {
+        None: "http://www.cdisc.org/ns/odm/v1.3",
+        "ctr": "http://www.cdisc.org/ns/ctr/v1.0",
+        "ct": "http://eudract.emea.europa.eu/schema/clinical_trial",
+        "sdm": "http://www.cdisc.org/ns/studydesign/v1.0",
+    }
 
     def get_ctr_odm(self, study_uid: str):
         odm_builder = ODMBuilder(study_uid)
         odm = odm_builder.get_odm()
-        # noinspection PyTypeChecker
         return self.serializer.render(odm, ns_map=self.namespaces)
 
 
@@ -154,6 +150,8 @@ class ODMBuilder:
             creation_date_time=XmlDateTime.from_datetime(datetime.now(timezone.utc)),
             as_of_date_time=XmlDateTime.from_datetime(
                 self.study_version_metadata.version_timestamp
+                if self.study_version_metadata.version_timestamp is not None
+                else datetime.now(timezone.utc)
             ),
             # originator="FIXME",  # TODO: Submission sponsor name "Company XYZ"
             source_system="OpenStudyBuilder",
@@ -204,8 +202,9 @@ class ODMBuilder:
     def get_odm_meta_data_version(self) -> ctrxml.MetaDataVersion:
         return ctrxml.MetaDataVersion(
             oid=(
-                self.study_version_metadata.version_number
-                or self.study_version_metadata.version_timestamp.isoformat()
+                str(self.study_version_metadata.version_number)
+                if self.study_version_metadata.version_number is not None
+                else self.study_version_metadata.version_timestamp.isoformat()
             ),
             name=self.study_version_metadata.study_status,
             description=self.study_version_metadata.version_description,
@@ -232,7 +231,6 @@ class ODMBuilder:
     def odm_forms(self) -> list[OdmForm]:
         # TODO: add filtering by StudyUID when it gets implemented in database schema
         result = OdmFormService().get_all_concepts()
-        # noinspection PyTypeChecker
         return result.items
 
     def get_odm_form_defs(self) -> list[ctrxml.FormDef]:
@@ -240,12 +238,14 @@ class ODMBuilder:
             ctrxml.FormDef(
                 oid=form.oid,
                 name=form.name,
-                repeating=form.repeating.upper() if form.repeating else None,
+                repeating=(
+                    ctrxml.YesOrNo[form.repeating.upper()] if form.repeating else None
+                ),
                 description=ctrxml.Description(
                     translated_text=[
                         ctrxml.TranslatedText(
-                            value=description.description,
-                            lang=iso639_shortest(description.language),
+                            value=description.description or "",
+                            lang=iso639_shortest(description.language or "en"),
                         )
                         for description in form.descriptions
                     ]
@@ -254,7 +254,11 @@ class ODMBuilder:
                     ctrxml.ItemGroupRef(
                         item_group_oid=item_group.oid,
                         order_number=item_group.order_number,
-                        mandatory=item_group.mandatory and item_group.mandatory.upper(),
+                        mandatory=(
+                            ctrxml.YesOrNo[item_group.mandatory.upper()]
+                            if item_group.mandatory
+                            else None
+                        ),
                         collection_exception_condition_oid=item_group.collection_exception_condition_oid,
                     )
                     for item_group in form.item_groups
@@ -278,7 +282,6 @@ class ODMBuilder:
         result = OdmItemGroupService().get_all_concepts(
             filter_by={"uid": {"v": uids, "op": "eq"}}
         )
-        # noinspection PyTypeChecker
         return result.items
 
     def get_odm_item_group_defs(self) -> list[ctrxml.ItemGroupDef]:
@@ -286,10 +289,15 @@ class ODMBuilder:
             ctrxml.ItemGroupDef(
                 oid=item_group.oid,
                 name=item_group.name,
-                repeating=(item_group.repeating and item_group.repeating.upper()),
+                repeating=(
+                    ctrxml.YesOrNo[item_group.repeating.upper()]
+                    if item_group.repeating
+                    else None
+                ),
                 is_reference_data=(
-                    item_group.is_reference_data
-                    and item_group.is_reference_data.upper()
+                    ctrxml.YesOrNo[item_group.is_reference_data.upper()]
+                    if item_group.is_reference_data
+                    else None
                 ),
                 domain=item_group.origin,  # FIXME! confirm whether 'domain' is 'origin' in SB model
                 purpose=item_group.purpose,
@@ -297,8 +305,8 @@ class ODMBuilder:
                 description=ctrxml.Description(
                     translated_text=[
                         ctrxml.TranslatedText(
-                            value=description.description,
-                            lang=iso639_shortest(description.language),
+                            value=description.description or "",
+                            lang=iso639_shortest(description.language or "en"),
                         )
                         for description in item_group.descriptions
                     ]
@@ -307,7 +315,11 @@ class ODMBuilder:
                     ctrxml.ItemRef(
                         item_oid=item.oid,
                         order_number=item.order_number,
-                        mandatory=(item.mandatory and item.mandatory.upper()),
+                        mandatory=(
+                            ctrxml.YesOrNo[item.mandatory.upper()]
+                            if item.mandatory
+                            else None
+                        ),
                         role=item.role,
                         role_code_list_oid=item.role_codelist_oid,
                     )
@@ -329,7 +341,6 @@ class ODMBuilder:
         result = OdmItemService().get_all_concepts(
             filter_by={"uid": {"v": uids, "op": "eq"}}
         )
-        # noinspection PyTypeChecker
         return result.items
 
     def get_odm_item_defs(self) -> list[ctrxml.ItemDef]:
@@ -337,14 +348,15 @@ class ODMBuilder:
             ctrxml.ItemDef(
                 oid=item.oid,
                 name=item.name,
-                data_type=item.datatype,
+                data_type=item.datatype,  # type: ignore[arg-type]
                 length=item.length,
                 significant_digits=item.significant_digits,
                 origin=item.origin,
                 comment=item.comment,
                 code_list_ref=(
-                    item.codelist
-                    and ctrxml.CodeListRef(code_list_oid=item.codelist.uid)
+                    ctrxml.CodeListRef(code_list_oid=item.codelist.uid)
+                    if item.codelist
+                    else None
                 ),
                 alias=[
                     ctrxml.Alias(name=alias.name, context=alias.context)

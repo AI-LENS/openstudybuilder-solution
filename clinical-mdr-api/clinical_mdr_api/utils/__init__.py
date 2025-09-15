@@ -1,7 +1,7 @@
 import json
 import re
 import string
-from typing import Any, Iterable
+from typing import Any, Iterable, overload
 
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
@@ -77,12 +77,16 @@ def camel_case_data(datadict):
     return return_value
 
 
+@overload
+def normalize_string(val: None) -> None: ...
+@overload
+def normalize_string(val: str) -> str: ...
 def normalize_string(val: str | None) -> str | None:
     """
     Normalizes a string by stripping whitespace and returning None if the resulting string is empty.
 
     Args:
-        string (str | None): The string to normalize.
+        val (str | None): The string to normalize.
 
     Returns:
         str | None: The normalized string, or None if the resulting string is empty.
@@ -96,7 +100,7 @@ def normalize_string(val: str | None) -> str | None:
     return val or None
 
 
-def is_attribute_in_model(attribute: str, model: BaseModel) -> bool:
+def is_attribute_in_model(attribute: str, model: type[BaseModel]) -> bool:
     """
     Checks if given string is an attribute defined in a model (in the Pydantic sense).
     This works for the model's own attributes and inherited attributes.

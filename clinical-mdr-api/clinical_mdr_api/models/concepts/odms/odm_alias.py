@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -38,10 +38,28 @@ class OdmAlias(ConceptModel):
 
 
 class OdmAliasSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_alias_uid(
-        cls, uid: str, find_odm_alias_by_uid: Callable[[str], ConceptARBase | None]
+        cls,
+        uid: str,
+        find_odm_alias_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_alias_uid(
+        cls,
+        uid: None,
+        find_odm_alias_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_alias_uid(
+        cls,
+        uid: str | None,
+        find_odm_alias_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_alias_model = None
+
         if uid is not None:
             odm_alias = find_odm_alias_by_uid(uid)
 
@@ -54,15 +72,13 @@ class OdmAliasSimpleModel(BaseModel):
                 )
             else:
                 simple_odm_alias_model = cls(
-                    uid=uid, name=None, context=None, version=None
+                    uid=uid, name=None, context="", version=None
                 )
-        else:
-            simple_odm_alias_model = None
         return simple_odm_alias_model
 
     uid: Annotated[str, Field()]
     name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
-    context: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    context: Annotated[str, Field()]
     version: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
 
 
@@ -71,12 +87,13 @@ class OdmAliasPostInput(ConceptPostInput):
 
 
 class OdmAliasPatchInput(ConceptPatchInput):
-    context: Annotated[str | None, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
+    context: Annotated[str, Field(min_length=1)]
 
 
 class OdmAliasBatchPatchInput(ConceptPatchInput):
     uid: Annotated[str, Field(min_length=1)]
-    context: Annotated[str | None, Field(min_length=1)]
+    context: Annotated[str, Field(min_length=1)]
 
 
 class OdmAliasBatchInput(BatchInputModel):

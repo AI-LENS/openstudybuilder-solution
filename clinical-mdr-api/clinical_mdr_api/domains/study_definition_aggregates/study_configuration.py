@@ -115,9 +115,8 @@ def from_database():
     repo = CTConfigRepository()
     items = repo.find_all()
     for item in items:
-        line = item
-        linedata = line.model_dump()
-        data = {}
+        linedata = item.model_dump()
+        data: dict[str, Any] = {}
         for k, value in linedata.items():
             if k in fieldnames:
                 if k == "study_field_data_type":
@@ -143,8 +142,7 @@ def from_database():
                         raise exceptions.ValidationException(
                             msg=f"Unknown field '{value}'"
                         )
-        item = StudyFieldConfigurationEntry(**data)
-        dataset.append(item)
+        dataset.append(StudyFieldConfigurationEntry(**data))  # type: ignore[arg-type]
     return dataset
 
 

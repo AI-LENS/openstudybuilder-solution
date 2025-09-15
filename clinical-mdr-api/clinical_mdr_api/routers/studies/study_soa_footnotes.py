@@ -38,10 +38,10 @@ def get_all_study_soa_footnotes_from_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -56,10 +56,10 @@ def get_all_study_soa_footnotes_from_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySoAFootnote]:
     service = StudySoAFootnoteService()
@@ -71,7 +71,7 @@ def get_all_study_soa_footnotes_from_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_footnotes.items,
         total=all_footnotes.total,
         page=page_number,
@@ -84,6 +84,7 @@ def get_all_study_soa_footnotes_from_all_studies(
     dependencies=[security, rbac.STUDY_READ],
     summary="List all study soa footnotes currently defined for the study",
     status_code=200,
+    response_model_exclude_unset=True,
     responses={
         403: _generic_descriptions.ERROR_403,
         404: {
@@ -98,10 +99,10 @@ def get_all_study_soa_footnotes(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -116,14 +117,20 @@ def get_all_study_soa_footnotes(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
+    minimal_response: Annotated[
+        bool,
+        Query(
+            description="Specifies whether minimal version of SoAFootnote should be returned"
+        ),
+    ] = False,
 ) -> CustomPage[StudySoAFootnote]:
     service = StudySoAFootnoteService()
     all_footnotes = service.get_all_by_study_uid(
@@ -135,8 +142,9 @@ def get_all_study_soa_footnotes(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
         study_value_version=study_value_version,
+        minimal_response=minimal_response,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_footnotes.items,
         total=all_footnotes.total,
         page=page_number,
@@ -165,7 +173,7 @@ def get_distinct_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -175,10 +183,10 @@ def get_distinct_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -216,7 +224,7 @@ def get_distinct_values_for_header_top_level(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -226,10 +234,10 @@ def get_distinct_values_for_header_top_level(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudySoAFootnoteService()

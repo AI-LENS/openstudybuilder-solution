@@ -111,7 +111,7 @@ def _convert_data_to_rows(data: dict[Any, Any], headers: list[Any]):
     dict_headers = _convert_headers_to_dict(headers)
     yield list(dict_headers.keys())
     for value in _extract_values_from_data(data, dict_headers):
-        rs = []
+        rs: list[str | bool | float | int] = []
         for x in value.values():
             if isinstance(x, str):
                 rs.append(x.replace("\n", " ").replace("\r", " "))

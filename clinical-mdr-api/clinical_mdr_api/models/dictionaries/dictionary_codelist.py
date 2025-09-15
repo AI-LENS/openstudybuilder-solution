@@ -67,13 +67,13 @@ class DictionaryCodelist(BaseModel):
 
 class DictionaryCodelistEditInput(PatchInputModel):
     name: Annotated[str | None, Field(min_length=1)] = None
-    template_parameter: Annotated[bool | None, Field()] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    template_parameter: Annotated[bool, Field()] = False
+    change_description: Annotated[str, Field(min_length=1)]
 
 
 class DictionaryCodelistCreateInput(PostInputModel):
-    name: Annotated[str | None, Field(min_length=1)] = None
-    template_parameter: Annotated[bool | None, Field()] = None
+    name: Annotated[str, Field(min_length=1)]
+    template_parameter: Annotated[bool, Field()] = False
     library_name: Annotated[str, Field(min_length=1)]
 
 

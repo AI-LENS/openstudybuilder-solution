@@ -1,6 +1,6 @@
 import abc
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any, Generic, Literal, TypeVar, overload
 
 from clinical_mdr_api.domain_repositories.library_item_repository import (
     LibraryItemRepositoryImplBase,
@@ -43,7 +43,9 @@ _AggregateRootType = TypeVar("_AggregateRootType", bound=LibraryItemAggregateRoo
 
 
 class GenericSyntaxRepository(
-    LibraryItemRepositoryImplBase[_AggregateRootType], abc.ABC
+    LibraryItemRepositoryImplBase[_AggregateRootType],
+    Generic[_AggregateRootType],
+    abc.ABC,
 ):
 
     def find_by_uid_2(
@@ -54,7 +56,7 @@ class GenericSyntaxRepository(
         status: LibraryItemStatus | None = None,
         at_specific_date: datetime | None = None,
         for_update: bool = False,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         return_instantiation_counts: bool = False,
     ):
         "Use find_by_uid instead"
@@ -64,7 +66,7 @@ class GenericSyntaxRepository(
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
     ):
         "Use get_all instead"
 
@@ -91,18 +93,42 @@ class GenericSyntaxRepository(
     ) -> TemplateAggregateRootBase:
         raise NotImplementedError
 
+    @overload
     def find_by_uid(
         self,
-        uid: str,
+        uid: str | None,
         for_update=False,
         *,
         library_name: str | None = None,
         status: LibraryItemStatus | None = None,
         version: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
+        for_audit_trail: Literal[False] = False,
+    ) -> _AggregateRootType: ...
+    @overload
+    def find_by_uid(
+        self,
+        uid: str | None,
+        for_update=False,
+        *,
+        library_name: str | None = None,
+        status: LibraryItemStatus | None = None,
+        version: str | None = None,
+        return_study_count: bool = False,
+        for_audit_trail: Literal[True] = True,
+    ) -> list[_AggregateRootType]: ...
+    def find_by_uid(
+        self,
+        uid: str | None,
+        for_update=False,
+        *,
+        library_name: str | None = None,
+        status: LibraryItemStatus | None = None,
+        version: str | None = None,
+        return_study_count: bool = False,
         for_audit_trail: bool = False,
     ) -> _AggregateRootType | list[_AggregateRootType]:
-        return self.find_by_uid_optimized(
+        return self.find_by_uid_optimized(  # type: ignore[call-overload]
             uid=uid,
             for_update=for_update,
             library_name=library_name,
@@ -117,12 +143,12 @@ class GenericSyntaxRepository(
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         for_audit_trail: bool = False,
     ) -> tuple[list[Any], int]:
@@ -144,9 +170,9 @@ class GenericSyntaxRepository(
         *,
         field_name: str,
         status: LibraryItemStatus | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         return self.get_headers_optimized(
@@ -215,12 +241,12 @@ class GenericSyntaxRepository(
                 "parameter_uids": [],
                 "conjunction": next(
                     filter(
-                        lambda x, param=param: x[0] == param["position"]
+                        lambda x, y=param: x[0] == y["position"]  # type: ignore[arg-type,misc]
                         and (
                             len(x[2]) == 0
                             or (
                                 "set_number" in x[2][0]
-                                and x[2][0]["set_number"] == param["set_number"]
+                                and x[2][0]["set_number"] == y["set_number"]
                             )
                         ),
                         instance_parameters,
@@ -248,7 +274,7 @@ class GenericSyntaxRepository(
         return_dict = {}
         for set_number, term_set in data_dict.items():
             term_set = [x[1] for x in sorted(term_set.items(), key=lambda x: x[0])]
-            parameter_list = []
+            parameter_list: list[ParameterTermEntryVO] = []
             for item in term_set:
                 term_list = []
                 for value in sorted(

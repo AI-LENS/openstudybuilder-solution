@@ -248,32 +248,3 @@ def test_patching_aproved_endpoint_with_missing_field(api_client):
             },
         }
     ]
-
-
-def test_patching_approved_objective(api_client):
-    data = {
-        "change_description": "Change test",
-        "name": "test{test-uid}",
-        "parameter_terms": [
-            {
-                "conjunction": ",",
-                "name": "Indication",
-                "terms": [
-                    {
-                        "index": 1,
-                        "type": "Indication",
-                        "uid": "Indication-99991",
-                        "name": "type 2 diabetes",
-                    }
-                ],
-            }
-        ],
-    }
-    response = api_client.patch("/endpoints/Endpoint_000001", json=data)
-
-    assert_response_status_code(response, 400)
-
-    res = response.json()
-
-    assert res["type"] == "BusinessLogicException"
-    assert res["message"] == "The object isn't in draft status."

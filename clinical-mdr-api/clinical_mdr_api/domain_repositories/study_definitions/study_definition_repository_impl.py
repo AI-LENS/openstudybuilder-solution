@@ -2,7 +2,7 @@ import copy
 from dataclasses import dataclass, fields
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Mapping, MutableSequence, Sequence, cast
+from typing import Any, Mapping, MutableSequence, Sequence, cast, overload
 
 from neomodel import NodeSet
 from neomodel.exceptions import DoesNotExist
@@ -174,6 +174,8 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         latest_locked_relationship: VersionRelationship | None,
         locked_snapshot: StudyDefinitionSnapshot.StudyMetadataSnapshot | None,
     ):
+        current_metadata_snapshot: StudyDefinitionSnapshot.StudyMetadataSnapshot | None
+
         # some parts of current metadata metadata (those regarding version info) are stored in different way
         # in the underlying DB depending whether current version is draft version or locked
         # so we must retrieve those in different way
@@ -249,7 +251,7 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         # now we have all locked metadata snapshot in locked_metadata_snapshots list. However in indeterminate order
         # and aggregate want them chronological. So we need to sort the list by version_timestamp
         locked_metadata_snapshots.sort(
-            key=(lambda _: cast(datetime, _.version_timestamp))
+            key=lambda _: cast(datetime, _.version_timestamp)
         )
 
         return locked_metadata_snapshots
@@ -909,11 +911,13 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
 
             # update and reconnect LATEST_LOCKED relationship if there is one
             if latest_locked is not None:
+                if current_snapshot.current_metadata.version_timestamp is None:
+                    raise ValueError("Version timestamp must not be None.")
+
                 latest_locked.start_date = (
                     current_snapshot.current_metadata.version_timestamp
                 )
                 latest_locked.author_id = self.audit_info.author_id
-                latest_locked.end_date = None
                 latest_locked.change_description = (
                     current_snapshot.current_metadata.version_description
                 )
@@ -948,6 +952,9 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         # if this is study in DRAFT state we need to update LATEST_DRAFT attributes and possibly reconnect
         if current_snapshot.study_status == StudyStatus.DRAFT.value:
             # we need to update attributes of latest DRAFT
+            if current_snapshot.current_metadata.version_timestamp is None:
+                raise ValueError("Version timestamp must not be None.")
+
             latest_draft_relationship.start_date = (
                 current_snapshot.current_metadata.version_timestamp
             )
@@ -1819,6 +1826,16 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
                 )
         return StudyDefinitionSnapshot.StudyMetadataSnapshot(**snapshot_dict)
 
+    @overload
+    @classmethod
+    def _study_metadata_snapshot_from_cypher_res(
+        cls, metadata_section: dict[Any, Any]
+    ) -> StudyDefinitionSnapshot.StudyMetadataSnapshot: ...
+    @overload
+    @classmethod
+    def _study_metadata_snapshot_from_cypher_res(
+        cls, metadata_section: None
+    ) -> None: ...
     @classmethod
     def _study_metadata_snapshot_from_cypher_res(
         cls, metadata_section: dict[Any, Any] | None
@@ -1843,7 +1860,7 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
                 value=metadata_section["version_timestamp"]
             ),
             "version_author": UserInfoService.get_author_username_from_id(
-                metadata_section.get("version_author_id")
+                metadata_section["version_author_id"]
             ),
             "version_description": metadata_section.get("version_description"),
             "version_number": metadata_section.get("version_number"),
@@ -1946,7 +1963,7 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         study_value_node_after: StudyField | None,
         study_value_node_before: StudyField | None,
         change_status: str | None,
-        author_id: str,
+        author_id: str | None,
         date: datetime,
     ) -> StudyAction:
         if study_value_node_before is None:
@@ -1972,9 +1989,9 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         self, snapshot: StudyDefinitionSnapshot
     ) -> Mapping[str, Any]:
         assert snapshot.current_metadata is not None
-        assert (
-            snapshot.current_metadata.version_author is None
-            or snapshot.current_metadata.version_author
+        assert snapshot.current_metadata.version_author is None or (
+            self.audit_info.author_id
+            and snapshot.current_metadata.version_author
             == UserInfoService.get_author_username_from_id(self.audit_info.author_id)
         )
         data = {
@@ -1996,7 +2013,7 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
     ) -> list[StudyFieldAuditTrailEntryAR] | None:
         query = """
         MATCH (root:StudyRoot {uid: $studyuid})-[:AUDIT_TRAIL]->(action)
- 
+
         OPTIONAL MATCH (action)-[:BEFORE]->(before)
         WHERE "StudyField" in labels(before) or "StudyValue" in labels(before)
         OPTIONAL MATCH (action)-[:AFTER]->(after)
@@ -2120,13 +2137,13 @@ class StudyDefinitionRepositoryImpl(StudyDefinitionRepository, RepositoryImpl):
         For a given field name, find what logical section of the study properties it belongs to.
         """
         if (
-            field in [field.name for field in fields(StudyIdentificationMetadataVO)]
+            field in [field.name for field in fields(StudyIdentificationMetadataVO)]  # type: ignore[arg-type]
             or field == "study_id"
         ):
             return "identification_metadata"
         if field in [field.name for field in fields(RegistryIdentifiersVO)]:
             return "registry_identifiers"
-        if field in [field.name for field in fields(StudyVersionMetadataVO)]:
+        if field in [field.name for field in fields(StudyVersionMetadataVO)]:  # type: ignore[arg-type]
             return "version_metadata"
         if field in [field.name for field in fields(HighLevelStudyDesignVO)]:
             return "high_level_study_design"
@@ -2321,9 +2338,9 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
-        study_selection_object_node_id: int | None = None,
+        study_selection_object_node_id: int | str | None = None,
         study_selection_object_node_type: NodeMeta | None = None,
         deleted: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionSnapshot]:
@@ -2342,6 +2359,9 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
 
         if sort_by is None:
             sort_by = {"uid": True}
+
+        if filter_by is None:
+            filter_by = {}
 
         # Specific filtering
         filter_query_parameters: dict[Any, Any] = {}
@@ -2369,7 +2389,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=StudyDefinitionSnapshot,
@@ -2399,7 +2419,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         else:
             total = 0
 
-        return GenericFilteringReturn.create(
+        return GenericFilteringReturn(
             items=self._retrieve_all_snapshots_from_cypher_query_result(
                 studies, deleted=deleted
             ),
@@ -2413,7 +2433,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionSnapshot]:
         exceptions.ValidationException.raise_if(
@@ -2521,7 +2541,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=StudyDefinitionSnapshot,
@@ -2550,7 +2570,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         else:
             total = 0
 
-        return GenericFilteringReturn.create(
+        return GenericFilteringReturn(
             items=self._retrieve_all_snapshots_from_cypher_query_result(studies),
             total=total,
         )
@@ -2564,7 +2584,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         study_field_node_after: StudyField | None,
         study_field_node_before: StudyField | None,
         change_status: str | None,
-        author_id: str,
+        author_id: str | None,
         date: datetime,
         to_delete: bool = False,
     ) -> StudyAction:
@@ -2949,6 +2969,8 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         if field_names is None:
             field_names = settings.study_soa_preferences_fields
 
+        filters: dict[str, Any]
+
         if study_value_version:
             filters = {
                 "has_boolean_field__has_version__uid": study_uid,
@@ -3018,7 +3040,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
         for node in nodes:
             latest_study_value.has_boolean_field.disconnect(node)
 
-        nodes = {node.field_name: node for node in nodes}
+        _nodes = {node.field_name: node for node in nodes}
 
         for name, value in prefs.items():
             field_sf = StudyBooleanField.create({"field_name": name, "value": value})[0]
@@ -3027,7 +3049,7 @@ MATCH (sr:StudyRoot)-[:LATEST]->(sv)
             self._generate_study_field_audit_node(
                 study_root_node=study_root,
                 study_field_node_after=field_sf,
-                study_field_node_before=nodes.get(name),
+                study_field_node_before=_nodes.get(name, None),
                 change_status=None,
                 author_id=self.audit_info.author_id,
                 date=datetime.now(timezone.utc),

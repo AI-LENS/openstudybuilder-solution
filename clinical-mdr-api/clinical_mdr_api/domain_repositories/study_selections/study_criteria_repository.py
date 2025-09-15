@@ -38,7 +38,7 @@ class SelectionHistory:
     change_type: str
     start_date: datetime.datetime
     criteria_type_uid: str | None
-    criteria_type_order: int | None
+    criteria_type_order: int
     status: str | None
     end_date: datetime.datetime | None
     syntax_object_version: str | None
@@ -57,7 +57,7 @@ class StudySelectionCriteriaRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionCriteriaVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_uids:
             if isinstance(study_uids, str):
                 study_uid_statement = "{uid: $uids}"
@@ -196,7 +196,7 @@ class StudySelectionCriteriaRepository:
         for_update: bool = False,
         study_value_version: str | None = None,
         criteria_type_name: str | None = None,
-    ) -> StudySelectionCriteriaAR | None:
+    ) -> StudySelectionCriteriaAR:
         """
         Finds all the selected study criteria for a given study, and creates the aggregate
         :param study_uid:
@@ -584,7 +584,7 @@ class StudySelectionCriteriaRepository:
         study_uid: str,
         criteria_type_uid: str | None = None,
         study_selection_uid: str | None = None,
-    ) -> list[dict | None]:
+    ) -> list[SelectionHistory]:
         """
         Simple method to return all versions of a study criteria for a study.
         Optionally a specific selection uid is given to see only the response for a specific selection.

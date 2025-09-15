@@ -2,7 +2,8 @@ import { activityName } from "./library_activities_steps";
 import { getCurrentStudyId } from "./../../support/helper_functions";
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
-let activity_placeholder_name, activity_library, activity_soa_group, activity_group, activity_sub_group, activity_activity, edit_placeholder_name, current_study
+export let activity_activity
+let activity_placeholder_name, activity_library, activity_soa_group, activity_group, activity_sub_group, edit_placeholder_name, current_study
 
 When('Study activity add button is clicked', () => cy.clickButton('add-study-activity'))
 
@@ -144,6 +145,10 @@ Then('The activity request changes not applied', () => {
 Then('The activity request is removed from the study', () => {
     cy.searchAndCheckPresence(edit_placeholder_name, false)
     cy.searchAndCheckPresence(activity_placeholder_name, false)
+})
+
+Then('[API] All Activities are deleted from study', () => {
+    cy.getExistingStudyActivities(Cypress.env('TEST_STUDY_UID')).then(uids => uids.forEach(uid => cy.deleteActivityFromStudy(Cypress.env('TEST_STUDY_UID'), uid)))
 })
 
 function getActivityData(rowIndex, getSoAGroupValue) {

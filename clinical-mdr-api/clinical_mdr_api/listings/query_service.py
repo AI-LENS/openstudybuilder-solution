@@ -82,7 +82,7 @@ class QueryService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn:
         """Query to get the legacy dataset topic_cd_def."""
@@ -144,7 +144,7 @@ class QueryService:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
         )
@@ -164,7 +164,7 @@ class QueryService:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=result, total=total)
+        return GenericFilteringReturn(items=result, total=total)
 
     def get_cdisc_ct_ver(
         self,
@@ -174,7 +174,7 @@ class QueryService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn:
         """Query to get the legacy dataset cdisc_ct_ver."""
@@ -200,7 +200,7 @@ class QueryService:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
         )
@@ -218,7 +218,7 @@ class QueryService:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=result, total=total)
+        return GenericFilteringReturn(items=result, total=total)
 
     def get_cdisc_ct_pkg(
         self,
@@ -228,7 +228,7 @@ class QueryService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn:
         """Query to get the legacy dataset cdisc_ct_pkg."""
@@ -252,7 +252,7 @@ class QueryService:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
         )
@@ -271,7 +271,7 @@ class QueryService:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=result, total=total)
+        return GenericFilteringReturn(items=result, total=total)
 
     def get_cdisc_ct_list(
         self,
@@ -282,7 +282,7 @@ class QueryService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn:
         """Query to get the legacy dataset cdisc_ct_list."""
@@ -323,7 +323,7 @@ class QueryService:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
         )
@@ -342,7 +342,7 @@ class QueryService:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=result, total=total)
+        return GenericFilteringReturn(items=result, total=total)
 
     def get_cdisc_ct_val(
         self,
@@ -353,7 +353,7 @@ class QueryService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn:
         """Query to get the legacy dataset cdisc_ct_val."""
@@ -392,7 +392,7 @@ class QueryService:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
         )
@@ -411,7 +411,7 @@ class QueryService:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=result, total=total)
+        return GenericFilteringReturn(items=result, total=total)
 
     def get_tv(
         self,
@@ -425,13 +425,27 @@ class QueryService:
         query = (
             query
             + """
+        // Query to retrieve TV data from the Study Visit table
+        // We are looking for the latest visit name, study day, and study week values associated with a specific study value version or all (latest) study versions.
+        // The query filters by domain (TV), selecting the 'StudID', 'VisitNum', 'StudyDayValue' (or 'StudyWeekValue'), 'ArmCD', 'Arm', and any other fields we want to include.
+        // We use optional matches for the visit name, day, and week to avoid errors in case these fields are missing. We also add a condition to handle the situation when only one of these fields is present.
         MATCH (sv)-[:HAS_STUDY_VISIT]->(v:StudyVisit)
         OPTIONAL MATCH  (v)-->(nr:VisitNameRoot)-[:LATEST]->(nv:VisitNameValue),
-                        (v)-->(dr:StudyDayRoot)-[:LATEST]->(dv:StudyDayValue)
+                        (v)-->(dr:StudyDayRoot)-[:LATEST]->(dv:StudyDayValue),
+                        (v)-->(wr:StudyWeekRoot)-[:LATEST]->(wv:StudyWeekValue)
+        OPTIONAL MATCH (udv:UnitDefinitionValue)-[:LATEST_FINAL]-(udr:UnitDefinitionRoot)--(stf:StudyTimeField)--(sv)
+            WHERE stf.field_name = "soa_preferred_time_unit"
+
         RETURN toUpper(sv.study_id_prefix + '-' + sv.study_number) AS STUDYID,
             'TV' AS DOMAIN,
             toInteger(v.unique_visit_number) AS VISITNUM,
-            toUpper(nv.name) AS VISIT,
+            CASE
+                // WEEK
+                WHEN udv.name = "week" THEN toUpper(nv.name + " (" +udv.name + " "+toInteger(wv.value)+")")
+                // DAY
+                WHEN udv.name = "day" THEN toUpper(nv.name + " (" +udv.name + " "+toInteger(dv.value)+")")
+            ELSE toUpper(nv.name)
+            END AS VISIT,
             toInteger(dv.value) AS VISITDY,
             NULL AS ARMCD,
             NULL AS ARM,
@@ -467,17 +481,114 @@ class QueryService:
         OPTIONAL MATCH  (v)-->(dr:StudyDayRoot)-[:LATEST]->(dv:StudyDayValue)
         OPTIONAL MATCH  (v)-->(wr:StudyWeekRoot)-[:LATEST]->(wv:StudyWeekValue)
         OPTIONAL MATCH  (v)-[:HAS_VISIT_TYPE]->(:CTTermRoot)-[:HAS_NAME_ROOT]->(:CTTermNameRoot)-[:LATEST]-(vtnv:CTTermNameValue)
-        RETURN 
+        OPTIONAL MATCH (udv:UnitDefinitionValue)-[:LATEST_FINAL]-(udr:UnitDefinitionRoot)--(stf:StudyTimeField)--(sv)
+            WHERE stf.field_name = "soa_preferred_time_unit"
+        RETURN
             toUpper(sv.study_id_prefix + '-' + sv.study_number) AS STUDYID,
             toInteger(v.unique_visit_number) AS VISIT_NUM,
             toUpper(nv.name) AS VISIT_NAME,
+            CASE
+                // WEEK
+                WHEN udv.name = "week" THEN nv.name + " (" +udv.name + " "+toInteger(wv.value)+")"
+                // DAY
+                WHEN udv.name = "day" THEN nv.name + " (" +udv.name + " "+toInteger(dv.value)+")"
+            ELSE NULL
+            END AS AVISIT,
             toInteger(dv.value) AS DAY_VALUE,
             v.short_visit_label as VISIT_SHORT_LABEL,
             dv.name AS DAY_NAME,
             wv.name AS WEEK_NAME,
-            toInteger(wv.value) AS WEEK_VALUE,   
+            toInteger(wv.value) AS WEEK_VALUE,
             vtnv.name as VISIT_TYPE_NAME
         ORDER BY VISIT_NUM;
+        """
+        )
+        result_array = db.cypher_query(
+            query=query,
+            params={
+                "study_uid": str(study_uid),
+                "study_value_version": str(study_value_version),
+            },
+        )
+
+        return utils.db_result_to_list(result_array)
+
+    def get_mdflow(
+        self,
+        study_uid: str,
+        study_value_version: str | None = None,
+    ) -> list[Any]:
+        if study_value_version:
+            query = MATCH_SPECIFIC_STUDY_VERSION
+        else:
+            query = MATCH_LATEST_STUDY
+        query = (
+            query
+            + """
+        MATCH (sv)--(sact_schedule:StudyActivitySchedule)
+        MATCH (sact_schedule)--(v:StudyVisit)--(sv)
+        OPTIONAL MATCH (v)-[:HAS_VISIT_TYPE]-(:CTTermRoot)-[:HAS_NAME_ROOT]-(:CTTermNameRoot)-[:LATEST_FINAL]-(ctterm_name_value_visit_type:CTTermNameValue)
+            where v.is_global_anchor_visit = True
+        OPTIONAL MATCH  (v)-->(nr:VisitNameRoot)-[:LATEST_FINAL]->(nv:VisitNameValue)
+        MATCH (sact_schedule)--(sact:StudyActivity)--(sv)
+        OPTIONAL MATCH (sact)--(sactins:StudyActivityInstance)--(sv)
+        OPTIONAL MATCH (sactins)--(act_inst_value:ActivityInstanceValue)
+        OPTIONAL MATCH (act_inst_value)-[:ACTIVITY_INSTANCE_CLASS]-(aicr:ActivityInstanceClassRoot)-[:LATEST_FINAL]-(aicv:ActivityInstanceClassValue)
+            WHERE aicv.name = "NumericFinding" 
+                OR aicv.name = "CategoricFinding" 
+                OR aicv.name = "TextualFinding" 
+
+        OPTIONAL MATCH (act_inst_value:ActivityInstanceValue)--(act_item:ActivityItem)--(unit_definition_root:UnitDefinitionRoot)-[:LATEST]-(unit_definition_value:UnitDefinitionValue)
+            WHERE aicv.name = "NumericFinding" 
+
+        OPTIONAL MATCH  (v)-->(dr:StudyDayRoot)-[:LATEST]->(dv:StudyDayValue)
+        OPTIONAL MATCH  (v)-->(wr:StudyWeekRoot)-[:LATEST]->(wv:StudyWeekValue)
+        OPTIONAL MATCH (udv:UnitDefinitionValue)-[:LATEST_FINAL]-(udr:UnitDefinitionRoot)--(stf:StudyTimeField)--(sv)
+            WHERE stf.field_name = "soa_preferred_time_unit"
+        WITH  toUpper(sv.study_id_prefix + '-' + sv.study_number) AS STUDYID_FLOWCHART,
+            v.unique_visit_number AS AVISITN,
+            act_inst_value.adam_param_code AS PARAMCD,
+            CASE 
+                // WEEK
+                WHEN udv.name = "week" THEN nv.name + " (" +udv.name + " "+toInteger(wv.value)+")"
+                // DAY
+                WHEN udv.name = "day" THEN nv.name + " (" +udv.name + " "+toInteger(dv.value)+")"
+            ELSE NULL
+            END AS AVISIT,
+            CASE 
+                WHEN (NOT aicv IS NULL) THEN 
+                    CASE 
+                        WHEN aicv.name = "NumericFinding" AND NOT unit_definition_value IS NULL THEN act_inst_value.adam_param_code+" ("+unit_definition_value.name+")"
+                    ELSE act_inst_value.adam_param_code
+                    END
+                ELSE NULL
+            END AS PARAM,
+            sact.order AS PARAMN,
+            NULL AS ATPTN,
+            NULL AS ATPT,
+            act_inst_value.topic_code AS TOPICCD,
+            CASE 
+                WHEN v.is_global_anchor_visit THEN ctterm_name_value_visit_type.name 
+                ELSE NULL
+            END AS BASETYPE,
+            CASE
+                WHEN v.is_global_anchor_visit THEN "Y"
+                ELSE NULL
+            END AS ABLFL,
+            ctterm_name_value_visit_type.name AS ASSMTYPE
+        RETURN distinct  STUDYID_FLOWCHART,
+            AVISITN,
+            PARAMCD,
+            AVISIT,
+            PARAM,
+            PARAMN,
+            ATPTN,
+            ATPT,
+            TOPICCD,
+            BASETYPE,
+            ABLFL,
+            ASSMTYPE
+        ORDER BY STUDYID_FLOWCHART, AVISITN, PARAMN;
         """
         )
         result_array = db.cypher_query(
@@ -549,7 +660,7 @@ class QueryService:
             COLLECT(DISTINCT activity_group_tem_par_value.name) as activity_group_tem_par_root_uid_collected,
             COLLECT(DISTINCT activity_instance_tem_par_value.name) as activity_instance_tem_par_root_uid_collected
         return 
-            s_r.uid as STUDYID, 
+            DISTINCT s_r.uid as STUDYID_OBJ, 
             obj_lev.name AS OBJTVLVL,
             obj_val.name AS OBJTV,
             obj_val.name_plain AS OBJTVPT,
@@ -565,7 +676,7 @@ class QueryService:
             activity_subgroup_tem_par_root_uid_collected AS RACTSGRP,
             activity_group_tem_par_root_uid_collected AS RACTGRP,
             activity_instance_tem_par_root_uid_collected AS RACTINST
-        ORDER BY STUDYID, OBJTV, ENDPNT, TMFRM
+        ORDER BY STUDYID_OBJ, OBJTV, ENDPNT, TMFRM
         """
         )
         result_array = db.cypher_query(

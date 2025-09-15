@@ -216,6 +216,9 @@ from clinical_mdr_api.domain_repositories.study_selections.study_criteria_reposi
 from clinical_mdr_api.domain_repositories.study_selections.study_design_cell_repository import (
     StudyDesignCellRepository,
 )
+from clinical_mdr_api.domain_repositories.study_selections.study_design_class_repository import (
+    StudyDesignClassRepository,
+)
 from clinical_mdr_api.domain_repositories.study_selections.study_disease_milestone_repository import (
     StudyDiseaseMilestoneRepository,
 )
@@ -236,6 +239,9 @@ from clinical_mdr_api.domain_repositories.study_selections.study_soa_footnote_re
 )
 from clinical_mdr_api.domain_repositories.study_selections.study_soa_group_repository import (
     StudySoAGroupRepository,
+)
+from clinical_mdr_api.domain_repositories.study_selections.study_source_variable_repository import (
+    StudySourceVariableRepository,
 )
 from clinical_mdr_api.domain_repositories.study_selections.study_standard_version_repository import (
     StudyStandardVersionRepository,
@@ -763,3 +769,11 @@ class MetaRepository:
     @property
     def study_cohort_repository(self) -> StudySelectionCohortRepository:
         return StudySelectionCohortRepository()
+
+    @property
+    def study_design_class_repository(self) -> StudyDesignClassRepository:
+        return StudyDesignClassRepository()
+
+    @property
+    def study_source_variable_repository(self) -> StudySourceVariableRepository:
+        return StudySourceVariableRepository()

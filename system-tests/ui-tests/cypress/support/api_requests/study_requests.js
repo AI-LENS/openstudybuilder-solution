@@ -33,6 +33,19 @@ Cypress.Commands.add('createAndSetMainTestStudy', (study_number) => {
   })
 })
 
+Cypress.Commands.add('createTestStudy', (study_number, study_acronym_set) => {
+  cy.sendGetRequest(studiesInfoUrl).then((response) => {
+    let test_study_id = response.body.items.find(study => study.current_metadata.identification_metadata.study_number == study_number)
+    if (test_study_id == undefined) {
+      cy.request('POST', Cypress.env('API') + '/studies', {
+        project_number: "CDISC DEV",
+        study_acronym: study_acronym_set,
+        study_number: study_number,
+      })
+    }
+  })
+})
+
 Cypress.Commands.add('nullRegistryIdentifiersForStudy', () => {
   cy.request({
     method: 'PATCH',

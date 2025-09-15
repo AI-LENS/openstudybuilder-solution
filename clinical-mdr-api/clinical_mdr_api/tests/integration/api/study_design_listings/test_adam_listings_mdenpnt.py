@@ -128,7 +128,7 @@ def test_adam_listing_mdendpnt(api_client):
     assert res is not None
 
     expected_output = StudyEndpntAdamListing(
-        STUDYID="Study_000002",
+        STUDYID_OBJ="Study_000002",
         OBJTVLVL="term_value_name1",
         OBJTV="objective_1",
         OBJTVPT="objective_1",

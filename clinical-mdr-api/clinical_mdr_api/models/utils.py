@@ -3,7 +3,7 @@ import json
 import re
 from copy import copy
 from types import NoneType, UnionType
-from typing import Annotated, Any, Callable, Generic, Iterable, Self, TypeVar
+from typing import Annotated, Any, Callable, Generic, Self, Sequence, TypeVar
 
 import nh3
 from annotated_types import MinLen
@@ -50,7 +50,7 @@ EXCLUDE_PROPERTY_ATTRIBUTES_FROM_SCHEMA = {
 
 def from_duration_object_to_value_and_unit(
     duration: str,
-    find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+    find_all_study_time_units: Callable[..., tuple[list[UnitDefinitionAR], int]],
 ):
     duration_code = duration[-1].lower()
     # cut off the first 'P' and last unit letter
@@ -139,7 +139,7 @@ class BaseModel(PydanticBaseModel):
         ret: list[Any] = []
         for name, field in cls.model_fields.items():
             jse = field.json_schema_extra or {}
-            source: str = jse.get("source")
+            source: str | None = jse.get("source", None)  # type: ignore[assignment]
             if jse.get("exclude_from_model_validate"):
                 continue
             if not source:
@@ -271,7 +271,8 @@ class InputModel(BaseModel):
 
         # Clear HTML
         if (
-            (field_info := cls.model_fields.get(validation_info.field_name))
+            validation_info.field_name
+            and (field_info := cls.model_fields.get(validation_info.field_name))
             and field_info.json_schema_extra
             and field_info.json_schema_extra.get("format", "").lower() == "html"
         ):
@@ -318,19 +319,19 @@ class CustomPage(BaseModel, Generic[T]):
     A generic class used as a return type for paginated queries.
 
     Attributes:
-        items (list[T]): The items returned by the query.
+        items (Sequence[T]): The items returned by the query.
         total (int): The total number of items that match the query.
         page (int): The number of the current page.
         size (int): The maximum number of items per page.
     """
 
-    items: Annotated[list[T], Field()]
+    items: Annotated[Sequence[T], Field()]
     total: Annotated[int, Field(ge=0)]
     page: Annotated[int, Field(ge=0)]
     size: Annotated[int, Field(ge=0)]
 
     @classmethod
-    def create(cls, items: list[T], total: int, page: int, size: int) -> Self:
+    def create(cls, items: Sequence[T], total: int, page: int, size: int) -> Self:
         return cls(total=total, items=items, page=page, size=size)
 
 
@@ -351,8 +352,8 @@ class GenericFilteringReturn(BaseModel, Generic[T]):
         return cls(items=items, total=total)
 
 
-EmptyGenericFilteringResult: GenericFilteringReturn = GenericFilteringReturn.create(
-    [], 0
+EmptyGenericFilteringResult: GenericFilteringReturn = GenericFilteringReturn(
+    items=[], total=0
 )
 
 

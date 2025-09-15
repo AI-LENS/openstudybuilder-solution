@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Any, Callable, Self, Sequence
+from typing import Annotated, Any, Callable, Self, Sequence, overload
 
 import neo4j.time
 from pydantic import Field, field_validator
@@ -138,28 +138,44 @@ class CTTermNameAndAttributes(BaseModel):
     catalogue_name: Annotated[str, Field()]
     codelists: list[CTTermCodelist] = Field(default_factory=list)
 
-    library_name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
+    library_name: Annotated[str, Field()]
 
     name: Annotated[CTTermName, Field()]
 
     attributes: Annotated[CTTermAttributes, Field()]
 
+    @overload
     @classmethod
     def from_ct_term_ars(
         cls, ct_term_name_ar: CTTermNameAR, ct_term_attributes_ar: CTTermAttributesAR
-    ) -> Self:
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_ct_term_ars(
+        cls, ct_term_name_ar: None, ct_term_attributes_ar: CTTermAttributesAR
+    ) -> None: ...
+    @overload
+    @classmethod
+    def from_ct_term_ars(
+        cls, ct_term_name_ar: CTTermNameAR, ct_term_attributes_ar: None
+    ) -> None: ...
+    @overload
+    @classmethod
+    def from_ct_term_ars(
+        cls, ct_term_name_ar: None, ct_term_attributes_ar: None
+    ) -> None: ...
+    @classmethod
+    def from_ct_term_ars(
+        cls,
+        ct_term_name_ar: CTTermNameAR | None,
+        ct_term_attributes_ar: CTTermAttributesAR | None,
+    ) -> Self | None:
         if not ct_term_name_ar or not ct_term_attributes_ar:
             return None
         term_name_and_attributes = cls(
             term_uid=ct_term_attributes_ar.uid,
             catalogue_name=ct_term_attributes_ar.ct_term_vo.catalogue_name,
-            library_name=(
-                Library.from_library_vo(ct_term_attributes_ar.library).name
-                if ct_term_attributes_ar.library
-                else None
-            ),
+            library_name=ct_term_attributes_ar.library.name,
             name=CTTermName.from_ct_term_ar_without_common_term_fields(ct_term_name_ar),
             attributes=CTTermAttributes.from_ct_term_ar_without_common_term_fields(
                 ct_term_attributes_ar
@@ -192,11 +208,22 @@ class SimpleCTTermAttributes(BaseModel):
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
 
+    @overload
     @classmethod
     def from_term_uid(
         cls, uid: str, find_term_by_uid: Callable[[str], Any | None]
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_term_uid(
+        cls, uid: None, find_term_by_uid: Callable[[str], Any | None]
+    ) -> None: ...
+    @classmethod
+    def from_term_uid(
+        cls, uid: str | None, find_term_by_uid: Callable[[str], Any | None]
     ) -> Self | None:
         term_model = None
+
         if uid is not None:
             term = find_term_by_uid(uid)
             if term is not None:
@@ -209,8 +236,6 @@ class SimpleCTTermAttributes(BaseModel):
                 term_model = cls(
                     uid=uid, code_submission_value=None, preferred_term=None
                 )
-        else:
-            term_model = None
         return term_model
 
 
@@ -234,13 +259,29 @@ class SimpleCTTermNameWithConflictFlag(BaseModel):
             return value.to_native()
         return value
 
+    @overload
     @classmethod
     def from_ct_code(
         cls,
         c_code: str,
         find_term_by_uid: Callable[[str], Any | None],
         at_specific_date=None,
-    ) -> Self | Sequence[Self] | None:
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_ct_code(
+        cls,
+        c_code: None,
+        find_term_by_uid: Callable[[str], Any | None],
+        at_specific_date=None,
+    ) -> None: ...
+    @classmethod
+    def from_ct_code(
+        cls,
+        c_code: str | None,
+        find_term_by_uid: Callable[..., Any | None],
+        at_specific_date=None,
+    ) -> Self | None:
         simple_ctterm_model = None
         if c_code is not None:
             if "ct_term_generic_repository" in find_term_by_uid.__module__:
@@ -258,21 +299,20 @@ class SimpleCTTermNameWithConflictFlag(BaseModel):
                     )
             else:
                 simple_ctterm_model = cls(term_uid=c_code)
-        else:
-            simple_ctterm_model = None
         return simple_ctterm_model
 
     @classmethod
     def from_ct_codes(
         cls,
         c_codes: Sequence[str],
-        find_term_by_uids: Callable[[str], Any | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         at_specific_date=None,
-    ) -> Self | Sequence[Self] | None:
+    ) -> list[Self]:
         simple_ctterm_models = []
         if c_codes:
-            terms: Sequence[CTTermNameAR] = find_term_by_uids(
-                term_uids=c_codes, at_specific_date=at_specific_date
+            terms: list[CTTermNameAR] | None = (
+                find_term_by_uids(term_uids=c_codes, at_specific_date=at_specific_date)
+                or []
             )
             for term in terms:
                 if hasattr(term, "ct_term_vo"):
@@ -318,14 +358,30 @@ class SimpleTermModel(BaseModel):
     term_uid: Annotated[str, Field()]
     name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
 
+    @overload
     @classmethod
     def from_ct_code(
         cls,
         c_code: str,
         find_term_by_uid: Callable[[str], Any | None],
         at_specific_date=None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_ct_code(
+        cls,
+        c_code: None,
+        find_term_by_uid: Callable[[str], Any | None],
+        at_specific_date=None,
+    ) -> None: ...
+    @classmethod
+    def from_ct_code(
+        cls,
+        c_code: str | None,
+        find_term_by_uid: Callable[..., Any | None],
+        at_specific_date=None,
     ) -> Self | None:
-        simple_term_model = None
+        simple_term_model: Self | SimpleDictionaryTermModel | None = None
         if c_code is not None:
             if "ct_term_generic_repository" in find_term_by_uid.__module__:
                 term = find_term_by_uid(c_code, at_specific_date=at_specific_date)
@@ -345,8 +401,7 @@ class SimpleTermModel(BaseModel):
                     )
             else:
                 simple_term_model = cls(term_uid=c_code, name=None)
-        else:
-            simple_term_model = None
+
         return simple_term_model
 
 

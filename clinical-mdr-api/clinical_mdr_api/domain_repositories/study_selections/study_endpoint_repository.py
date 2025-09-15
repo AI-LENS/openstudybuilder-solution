@@ -48,7 +48,7 @@ class StudySelectionEndpointRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionEndpointVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
 
         if study_uids:
             if isinstance(study_uids, str):
@@ -244,7 +244,7 @@ class StudySelectionEndpointRepository:
         study_uid: str,
         for_update: bool = False,
         study_value_version: str | None = None,
-    ) -> StudySelectionEndpointsAR | None:
+    ) -> StudySelectionEndpointsAR:
         """
         Finds all the selected study endpoints for a given study, and creates the aggregate
         :param study_uid:
@@ -470,6 +470,8 @@ class StudySelectionEndpointRepository:
                 endpoint_root_node: EndpointRoot = EndpointRoot.nodes.get(
                     uid=selection.endpoint_uid
                 )
+                if selection.endpoint_version is None:
+                    raise ValueError("endpoint_version must not be None")
                 latest_endpoint_value_node = endpoint_root_node.get_value_for_version(
                     selection.endpoint_version
                 )
@@ -481,6 +483,8 @@ class StudySelectionEndpointRepository:
                 endpoint_template_root_node: EndpointTemplateRoot = (
                     EndpointTemplateRoot.nodes.get(uid=selection.endpoint_uid)
                 )
+                if selection.endpoint_version is None:
+                    raise ValueError("endpoint_version must not be None")
                 latest_endpoint_template_value_node = (
                     endpoint_template_root_node.get_value_for_version(
                         selection.endpoint_version
@@ -703,7 +707,10 @@ class StudySelectionEndpointRepository:
         pass
 
     def quantity_of_study_endpoints_in_study_objective_uid(
-        self, study_uid: str, study_objective_uid: str, study_value_version: str = None
+        self,
+        study_uid: str,
+        study_objective_uid: str,
+        study_value_version: str | None = None,
     ) -> int:
         if study_value_version:
             root_match = "MATCH (sr:StudyRoot{uid:$study_uid})-[:HAS_VERSION{version:$study_value_version}]-(sv:StudyValue)"

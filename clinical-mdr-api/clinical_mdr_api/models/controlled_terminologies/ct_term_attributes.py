@@ -66,7 +66,7 @@ class CTTermAttributes(BaseModel):
             author_username=ct_term_attributes_ar.item_metadata.author_username,
         )
 
-    term_uid: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    term_uid: Annotated[str, Field()] = ""
 
     catalogue_name: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
@@ -131,4 +131,4 @@ class CTTermAttributesEditInput(PatchInputModel):
     name_submission_value: Annotated[str | None, Field(min_length=1)] = None
     nci_preferred_name: Annotated[str | None, Field(min_length=1)] = None
     definition: Annotated[str | None, Field()] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    change_description: Annotated[str, Field(min_length=1)]

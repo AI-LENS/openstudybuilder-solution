@@ -130,7 +130,7 @@ class ActivityItemClassAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         activity_item_class_vo: ActivityItemClassVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         activity_item_class_ar = cls(
@@ -151,7 +151,7 @@ class ActivityItemClassAR(LibraryItemAggregateRootBase):
         activity_instance_class_exists: Callable[[str], bool],
         activity_item_class_exists_by_name_callback: Callable[[str], bool],
         ct_term_exists: Callable[[str], bool],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -176,7 +176,7 @@ class ActivityItemClassAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         activity_item_class_vo: ActivityItemClassVO,
         activity_instance_class_exists: Callable[[str], bool],
         activity_item_class_exists_by_name_callback: Callable[[str], bool],

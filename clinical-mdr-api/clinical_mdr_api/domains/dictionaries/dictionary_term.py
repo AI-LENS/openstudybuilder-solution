@@ -108,7 +108,7 @@ class DictionaryTermAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         dictionary_term_vo: DictionaryTermVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         dictionary_codelist_ar = cls(
@@ -126,7 +126,7 @@ class DictionaryTermAR(LibraryItemAggregateRootBase):
         author_id: str,
         dictionary_term_vo: DictionaryTermVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         term_exists_by_name_callback: Callable[[str, str], bool],
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
@@ -151,7 +151,7 @@ class DictionaryTermAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         dictionary_term_vo: DictionaryTermVO,
         term_exists_by_name_callback: Callable[[str, str], bool],
     ) -> None:

@@ -17,6 +17,7 @@ from clinical_mdr_api.tests.integration.utils.api import inject_and_clear_db
 from clinical_mdr_api.tests.integration.utils.data_library import (
     STARTUP_CT_CATALOGUE_CYPHER,
     STARTUP_STUDY_LIST_CYPHER,
+    fix_study_preferred_time_unit,
     get_codelist_with_term_cypher,
 )
 from clinical_mdr_api.tests.integration.utils.method_library import (
@@ -50,6 +51,7 @@ class TestTVListing(unittest.TestCase):
         create_some_visits()
 
     def test_tv_listing(self):
+        fix_study_preferred_time_unit(study_uid="study_root")
         listing_service: ListingsService = ListingsService()
         output = listing_service.list_tv(study_uid="study_root").items
         expected_output = [
@@ -57,7 +59,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=100,
-                VISIT="VISIT 1",
+                VISIT="VISIT 1 (DAY 1)",
                 VISITDY=1,
                 ARMCD=None,
                 ARM=None,
@@ -68,7 +70,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=200,
-                VISIT="VISIT 2",
+                VISIT="VISIT 2 (DAY 11)",
                 VISITDY=11,
                 ARMCD=None,
                 ARM=None,
@@ -79,7 +81,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=300,
-                VISIT="VISIT 3",
+                VISIT="VISIT 3 (DAY 13)",
                 VISITDY=13,
                 ARMCD=None,
                 ARM=None,
@@ -90,7 +92,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=400,
-                VISIT="VISIT 4",
+                VISIT="VISIT 4 (DAY 31)",
                 VISITDY=31,
                 ARMCD=None,
                 ARM=None,
@@ -101,7 +103,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=410,
-                VISIT="VISIT 4",
+                VISIT="VISIT 4 (DAY 62)",
                 VISITDY=62,
                 ARMCD=None,
                 ARM=None,
@@ -112,7 +114,7 @@ class TestTVListing(unittest.TestCase):
                 STUDYID="SOME_ID-0",
                 DOMAIN="TV",
                 VISITNUM=500,
-                VISIT="VISIT 5",
+                VISIT="VISIT 5 (DAY 36)",
                 VISITDY=36,
                 ARMCD=None,
                 ARM=None,
@@ -182,7 +184,6 @@ class TestTAListing(unittest.TestCase):
             short_name="Arm_Short_Name_1",
             code="Arm_code_1",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -193,7 +194,6 @@ class TestTAListing(unittest.TestCase):
             short_name="Arm_Short_Name_2",
             code="Arm_code_2",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup2",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -204,7 +204,6 @@ class TestTAListing(unittest.TestCase):
             short_name="Arm_Short_Name_3",
             code="Arm_code_3",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup3",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -216,7 +215,6 @@ class TestTAListing(unittest.TestCase):
             short_name="Arm_Short_Name_9",
             code="Arm_code_9",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup9",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -225,13 +223,13 @@ class TestTAListing(unittest.TestCase):
         self.design_cell = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch.uid,
-            study_arm_uid="StudyArm_000003",
+            study_arm_uid="StudyArm_000002",
             study_uid=self.study.uid,
         )
         self.design_cell2 = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch2.uid,
-            study_arm_uid="StudyArm_000003",
+            study_arm_uid="StudyArm_000002",
             study_uid=self.study.uid,
         )
 
@@ -248,10 +246,9 @@ class TestTAListing(unittest.TestCase):
             short_name="Branch_Arm_Short_Name_1",
             code="Branch_Arm_code_1",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Branch_Arm_randomizationGroup",
             number_of_subjects=100,
-            arm_uid="StudyArm_000003",
+            arm_uid="StudyArm_000002",
         )
         self.branch_arm = patch_study_branch_arm(
             branch_arm_uid=self.branch_arm.branch_arm_uid, study_uid=self.study.uid
@@ -260,7 +257,7 @@ class TestTAListing(unittest.TestCase):
         self.design_cell3 = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch2.uid,
-            study_arm_uid="StudyArm_000005",
+            study_arm_uid="StudyArm_000003",
             study_uid=self.study.uid,
         )
 
@@ -270,7 +267,6 @@ class TestTAListing(unittest.TestCase):
             short_name="Cohort_Short_Name_1",
             code="Cohort_code_1",
             description="desc...",
-            colour_code="desc...",
             number_of_subjects=100,
             arm_uids=["StudyArm_000001"],
         )
@@ -533,7 +529,6 @@ class TestTSListing(unittest.TestCase):
             short_name="Arm_Short_Name_1",
             code="Arm_code_1",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -544,7 +539,6 @@ class TestTSListing(unittest.TestCase):
             short_name="Arm_Short_Name_2",
             code="Arm_code_2",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup2",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -555,7 +549,6 @@ class TestTSListing(unittest.TestCase):
             short_name="Arm_Short_Name_3",
             code="Arm_code_3",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup3",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -567,7 +560,6 @@ class TestTSListing(unittest.TestCase):
             short_name="Arm_Short_Name_9",
             code="Arm_code_9",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Arm_randomizationGroup9",
             number_of_subjects=100,
             arm_type_uid=arm_type.uid,
@@ -576,13 +568,13 @@ class TestTSListing(unittest.TestCase):
         self.design_cell = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch.uid,
-            study_arm_uid="StudyArm_000003",
+            study_arm_uid="StudyArm_000002",
             study_uid=self.study.uid,
         )
         self.design_cell2 = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch2.uid,
-            study_arm_uid="StudyArm_000003",
+            study_arm_uid="StudyArm_000002",
             study_uid=self.study.uid,
         )
 
@@ -599,10 +591,9 @@ class TestTSListing(unittest.TestCase):
             short_name="Branch_Arm_Short_Name_1",
             code="Branch_Arm_code_1",
             description="desc...",
-            colour_code="colour...",
             randomization_group="Branch_Arm_randomizationGroup",
             number_of_subjects=100,
-            arm_uid="StudyArm_000003",
+            arm_uid="StudyArm_000002",
         )
         self.branch_arm = patch_study_branch_arm(
             branch_arm_uid=self.branch_arm.branch_arm_uid, study_uid=self.study.uid
@@ -611,7 +602,7 @@ class TestTSListing(unittest.TestCase):
         self.design_cell3 = create_study_design_cell(
             study_element_uid=self.study_elements[0].element_uid,
             study_epoch_uid=self.study_epoch2.uid,
-            study_arm_uid="StudyArm_000005",
+            study_arm_uid="StudyArm_000003",
             study_uid=self.study.uid,
         )
 
@@ -621,7 +612,6 @@ class TestTSListing(unittest.TestCase):
             short_name="Cohort_Short_Name_1",
             code="Cohort_code_1",
             description="desc...",
-            colour_code="desc...",
             number_of_subjects=100,
             arm_uids=["StudyArm_000001"],
         )

@@ -38,11 +38,10 @@ class CompactFootnote(BaseModel):
 
     @classmethod
     def footnote_from_study_soa_footnote_vo(
-        cls,
-        study_soa_footnote_vo: StudySoAFootnoteVO,
+        cls, study_soa_footnote_vo: StudySoAFootnoteVO
     ) -> Self:
         return cls(
-            uid=study_soa_footnote_vo.footnote_uid,
+            uid=study_soa_footnote_vo.footnote_uid or "",
             name=study_soa_footnote_vo.footnote_name,
             name_plain=study_soa_footnote_vo.footnote_name_plain,
             version=study_soa_footnote_vo.footnote_version,
@@ -52,16 +51,28 @@ class CompactFootnote(BaseModel):
         )
 
     @classmethod
+    def minimal_response_footnote_from_study_soa_footnote_vo(
+        cls, study_soa_footnote_vo: StudySoAFootnoteVO
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_uid or "",
+            name=study_soa_footnote_vo.footnote_name,
+            name_plain=study_soa_footnote_vo.footnote_name_plain,
+        )
+
+    @classmethod
     def latest_footnote_from_study_soa_footnote_vo(
         cls,
         study_soa_footnote_vo: StudySoAFootnoteVO,
     ) -> Self:
         return cls(
-            uid=study_soa_footnote_vo.footnote_uid,
+            uid=study_soa_footnote_vo.footnote_uid or "",
             name_plain=study_soa_footnote_vo.latest_footnote_name_plain,
+            name=None,
             version=study_soa_footnote_vo.latest_footnote_version,
             library_name=study_soa_footnote_vo.footnote_library_name,
             template_uid=study_soa_footnote_vo.footnote_template_uid,
+            template_name=None,
         )
 
     @classmethod
@@ -70,7 +81,7 @@ class CompactFootnote(BaseModel):
         study_soa_footnote_vo: StudySoAFootnoteVOHistory,
     ) -> Self:
         return cls(
-            uid=study_soa_footnote_vo.footnote_uid,
+            uid=study_soa_footnote_vo.footnote_uid or "",
             name_plain=study_soa_footnote_vo.footnote_name_plain,
             version=study_soa_footnote_vo.footnote_version,
             template_uid=study_soa_footnote_vo.footnote_template_uid,
@@ -89,11 +100,10 @@ class CompactFootnoteTemplate(BaseModel):
 
     @classmethod
     def footnote_template_from_study_soa_footnote_vo(
-        cls,
-        study_soa_footnote_vo: StudySoAFootnoteVO,
+        cls, study_soa_footnote_vo: StudySoAFootnoteVO
     ) -> Self:
         return cls(
-            uid=study_soa_footnote_vo.footnote_template_uid,
+            uid=study_soa_footnote_vo.footnote_template_uid or "",
             name=study_soa_footnote_vo.footnote_template_name,
             name_plain=study_soa_footnote_vo.footnote_template_name_plain,
             version=study_soa_footnote_vo.footnote_template_version,
@@ -102,12 +112,22 @@ class CompactFootnoteTemplate(BaseModel):
         )
 
     @classmethod
+    def minimal_response_footnote_template_from_study_soa_footnote_vo(
+        cls, study_soa_footnote_vo: StudySoAFootnoteVO
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.footnote_template_uid or "",
+            name=study_soa_footnote_vo.footnote_template_name,
+            name_plain=study_soa_footnote_vo.footnote_template_name_plain,
+        )
+
+    @classmethod
     def footnote_template_from_study_soa_footnote_history_vo(
         cls,
         study_soa_footnote_vo: StudySoAFootnoteVOHistory,
     ) -> Self:
         return cls(
-            uid=study_soa_footnote_vo.footnote_template_uid,
+            uid=study_soa_footnote_vo.footnote_template_uid or "",
             name_plain=study_soa_footnote_vo.footnote_template_name_plain,
             version=study_soa_footnote_vo.footnote_template_version,
         )
@@ -182,7 +202,7 @@ class StudySoAFootnote(BaseModel):
             ],
             footnote=(
                 CompactFootnote.footnote_from_study_soa_footnote_vo(
-                    study_soa_footnote_vo=study_soa_footnote_vo
+                    study_soa_footnote_vo=study_soa_footnote_vo,
                 )
                 if study_soa_footnote_vo.footnote_uid
                 else None
@@ -197,7 +217,7 @@ class StudySoAFootnote(BaseModel):
             ),
             template=(
                 CompactFootnoteTemplate.footnote_template_from_study_soa_footnote_vo(
-                    study_soa_footnote_vo=study_soa_footnote_vo
+                    study_soa_footnote_vo=study_soa_footnote_vo,
                 )
                 if not study_soa_footnote_vo.footnote_uid
                 else None
@@ -205,6 +225,39 @@ class StudySoAFootnote(BaseModel):
             modified=study_soa_footnote_vo.modified,
             accepted_version=study_soa_footnote_vo.accepted_version,
             author_username=study_soa_footnote_vo.author_username,
+        )
+
+    @classmethod
+    def minimal_response_from_study_soa_footnote_vo(
+        cls,
+        study_soa_footnote_vo: StudySoAFootnoteVO,
+        order: int | None = None,
+    ) -> Self:
+        return cls(
+            uid=study_soa_footnote_vo.uid,
+            study_uid=study_soa_footnote_vo.study_uid,
+            order=order,
+            referenced_items=[
+                ReferencedItem(
+                    item_uid=ref_item.item_uid,
+                    item_type=ref_item.item_type,
+                )
+                for ref_item in study_soa_footnote_vo.referenced_items
+            ],
+            footnote=(
+                CompactFootnote.minimal_response_footnote_from_study_soa_footnote_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo,
+                )
+                if study_soa_footnote_vo.footnote_uid
+                else None
+            ),
+            template=(
+                CompactFootnoteTemplate.minimal_response_footnote_template_from_study_soa_footnote_vo(
+                    study_soa_footnote_vo=study_soa_footnote_vo,
+                )
+                if not study_soa_footnote_vo.footnote_uid
+                else None
+            ),
         )
 
 

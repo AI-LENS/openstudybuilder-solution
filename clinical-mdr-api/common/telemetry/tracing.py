@@ -75,8 +75,8 @@ def trace_calls(
                 pass
 
         2. Specifying args and/or kwargs: will trace the first two positional arguments `name` and `age`,
-           and the keyword arguments `age` and `gender`. `age` can get traced either way,
-           depending on the function call.
+        and the keyword arguments `age` and `gender`. `age` can get traced either way,
+        depending on the function call.
 
             @trace_calls(args=[0, 1], kwargs=['age', 'gender'])
             def my_function(name, age, gender):
@@ -145,7 +145,7 @@ def trace_calls(
 
         return wrapper
 
-    if isinstance(args, Callable):
+    if callable(args):
         # Called as @trace_calls without arguments or empty parenthesis
         func = args
         args = []

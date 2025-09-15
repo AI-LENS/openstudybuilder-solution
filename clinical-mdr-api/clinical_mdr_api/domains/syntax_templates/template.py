@@ -182,10 +182,10 @@ class TemplateAggregateRootBase(LibraryItemAggregateRootBase):
         author_id: str,
         template: TemplateVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
         next_available_sequence_id_callback: Callable[
-            [str, LibraryVO | None], str | None
-        ] = lambda uid, library: None,
+            ..., str
+        ] = lambda uid, library: "",
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id

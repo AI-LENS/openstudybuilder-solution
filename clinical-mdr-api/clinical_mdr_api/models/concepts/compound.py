@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -58,15 +58,27 @@ class Compound(Concept):
 
 
 class SimpleCompound(BaseModel):
+    @overload
     @classmethod
     def from_uid(
         cls, uid: str, find_by_uid: Callable[[str], CompoundAR | None]
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls, uid: None, find_by_uid: Callable[[str], CompoundAR | None]
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls, uid: str | None, find_by_uid: Callable[[str], CompoundAR | None]
     ) -> Self | None:
         simple_compound_model = None
         if uid is not None:
-            compound_ar: CompoundAR = find_by_uid(uid)
+            compound_ar: CompoundAR | None = find_by_uid(uid)
             if compound_ar is not None:
-                simple_compound_model = cls(uid=uid, name=compound_ar.concept_vo.name)
+                simple_compound_model = cls(
+                    uid=uid, name=compound_ar.concept_vo.name or ""
+                )
 
         return simple_compound_model
 
@@ -87,7 +99,7 @@ class CompoundCreateInput(ExtendedConceptPostInput):
 
 
 class CompoundEditInput(ExtendedConceptPatchInput):
-    is_sponsor_compound: Annotated[bool | None, Field()] = None
+    is_sponsor_compound: Annotated[bool, Field()] = False
     external_id: Annotated[str | None, Field(min_length=1)] = None
     change_description: Annotated[str, Field(min_length=1)]
 

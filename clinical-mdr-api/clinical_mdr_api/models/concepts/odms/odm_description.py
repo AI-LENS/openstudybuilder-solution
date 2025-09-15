@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field, field_validator
 
@@ -51,12 +51,28 @@ class OdmDescription(ConceptModel):
 
 
 class OdmDescriptionSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_description_uid(
         cls,
         uid: str,
         find_odm_description_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_description_uid(
+        cls,
+        uid: None,
+        find_odm_description_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_description_uid(
+        cls,
+        uid: str | None,
+        find_odm_description_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_description_model = None
+
         if uid is not None:
             odm_description = find_odm_description_by_uid(uid)
 
@@ -80,8 +96,6 @@ class OdmDescriptionSimpleModel(BaseModel):
                     sponsor_instruction=None,
                     version=None,
                 )
-        else:
-            simple_odm_description_model = None
         return simple_odm_description_model
 
     uid: Annotated[str, Field()]
@@ -115,7 +129,8 @@ class OdmDescriptionPostInput(ConceptPostInput):
 
 
 class OdmDescriptionPatchInput(ConceptPatchInput):
-    language: Annotated[str | None, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
+    language: Annotated[str, Field(min_length=1)]
     description: Annotated[str | None, Field(min_length=1)]
     instruction: Annotated[str | None, Field(min_length=1)]
     sponsor_instruction: Annotated[str | None, Field(min_length=1)]

@@ -42,32 +42,35 @@ class CompoundVO(ConceptVO):
 
     def validate(
         self,
-        uid: str | None,
-        compound_uid_by_property_value_callback: Callable[[str, str], str],
+        uid: str,
+        compound_uid_by_property_value_callback: Callable[[str, str], str | None],
     ):
-        self.validate_uniqueness(
-            lookup_callback=compound_uid_by_property_value_callback,
-            uid=uid,
-            property_name="name",
-            value=self.name,
-            error_message=f"Compound with Name '{self.name}' already exists.",
-        )
+        if self.name is not None:
+            self.validate_uniqueness(
+                lookup_callback=compound_uid_by_property_value_callback,
+                uid=uid,
+                property_name="name",
+                value=self.name,
+                error_message=f"Compound with Name '{self.name}' already exists.",
+            )
 
-        self.validate_uniqueness(
-            lookup_callback=compound_uid_by_property_value_callback,
-            uid=uid,
-            property_name="name_sentence_case",
-            value=self.name_sentence_case,
-            error_message=f"Compound with Name Sentence Case '{self.name_sentence_case}' already exists.",
-        )
+        if self.name_sentence_case is not None:
+            self.validate_uniqueness(
+                lookup_callback=compound_uid_by_property_value_callback,
+                uid=uid,
+                property_name="name_sentence_case",
+                value=self.name_sentence_case,
+                error_message=f"Compound with Name Sentence Case '{self.name_sentence_case}' already exists.",
+            )
 
-        self.validate_uniqueness(
-            lookup_callback=compound_uid_by_property_value_callback,
-            uid=uid,
-            property_name="external_id",
-            value=self.external_id,
-            error_message=f"Compound with external_id '{self.external_id}' already exists.",
-        )
+        if self.external_id is not None:
+            self.validate_uniqueness(
+                lookup_callback=compound_uid_by_property_value_callback,
+                uid=uid,
+                property_name="external_id",
+                value=self.external_id,
+                error_message=f"Compound with external_id '{self.external_id}' already exists.",
+            )
 
 
 class CompoundAR(ConceptARBase):
@@ -76,6 +79,10 @@ class CompoundAR(ConceptARBase):
     @property
     def concept_vo(self) -> CompoundVO:
         return self._concept_vo
+
+    @concept_vo.setter
+    def concept_vo(self, value: CompoundVO) -> None:
+        self._concept_vo = value
 
     @property
     def name(self) -> str:
@@ -87,8 +94,8 @@ class CompoundAR(ConceptARBase):
         author_id: str,
         concept_vo: CompoundVO,
         library: LibraryVO,
-        compound_uid_by_property_value_callback: Callable[[str, str], str],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        compound_uid_by_property_value_callback: Callable[[str, str], str | None],
+        generate_uid_callback: Callable[[], str],
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -116,12 +123,14 @@ class CompoundAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: CompoundVO,
-        concept_exists_by_callback: Callable[[str, str, bool], bool] | None = None,
-        compound_uid_by_property_value_callback: (
-            Callable[[str, str], str] | None
-        ) = None,
+        concept_exists_by_callback: Callable[
+            [str, str, bool], bool
+        ] = lambda x, y, z: False,
+        compound_uid_by_property_value_callback: Callable[
+            [str, str], str | None
+        ] = lambda x, y: None,
     ) -> None:
         """
         Creates a new draft version for the object.

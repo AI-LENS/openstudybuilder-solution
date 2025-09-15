@@ -1,7 +1,7 @@
 import datetime
 from typing import Any
 
-import neo4j
+import neo4j.time
 
 from common.utils import convert_to_datetime
 

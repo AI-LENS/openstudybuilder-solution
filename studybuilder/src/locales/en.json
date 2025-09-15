@@ -155,7 +155,9 @@
         "author": "Author",
         "role": "Role",
         "data_type": "Data type",
-        "multi_error_title": "One or more errors were encountered during operation"
+        "multi_error_title": "One or more errors were encountered during operation",
+        "save_exit": "Save & exit",
+        "save_continue": "Save & continue"
     },
     "_errors": {
         "exclusive_select": "Field and Null Flavor can't be selected at the same time.",
@@ -168,7 +170,7 @@
         "validation_error": "Data validation error:",
         "select_at_least_one": "Select a value or a reason for missing",
         "no_parameter_values_selected": "No value(s) selected",
-        "identical_name": "Sentence case name value must be identical to name value"
+        "identical_name": "Sentence case name can only differ in case compared to name value"
     },
     "_help": {
         "CrfTemplates": {
@@ -917,6 +919,21 @@
             "step2_description": "Select an activity instance class and a data domain. These selections will determine the required and optional metadata to be defined for SDTM",
             "step3_description": "Specify additional details to be used for the generation of PARAM and PARAMCD. The selection of values will autogenerate a suggestion for a unique name for the activity instance, PARAMCD and topic code. Its possible to manually modify the names.",
             "step4_description": "Specify optional activity items that are not part of PARAM/PARAMCD but will be in SDTM. These values are used to specify data that can be collected on a CRF or a external specification. Examples are methods, anatomical locations or evaluator information that will increase the value of secondary use of data."
+        },
+        "CohortsStepper": {
+            "select_class":"“Study with cohorts, branches and subpopulations” will bring up the full stepper, helping you set up cohorts and branches in an easy and controlled way. Study participants must be as-signed to each branch and are then automatically assigned to cohorts and arms as well. “Study with arms only” will only bring up the first page of the stepper and participants must be assigned to arms directly. It is still possible to add cohorts and branches manually after-wards.",
+            "set_arms_for_study": "You can add as many arms as required in your study using the “Add arm” button.",
+            "study_arm_type": "There are four options available for study arm type: Comparator arm, Investigational arm, Observational arm and Placebo arm.",
+            "arm_name": "Arm name can be filled in with free text but is most commonly the name of the investigation, e.g. “Semaglutide” or “Placebo”.",
+            "arm_short_name": "Arm short name can be filled in with free text but is most commonly the same as the arm name.",
+            "rand_group": "Randomisation group should be filled out when known. Randomisation group must be filled out with capital letters (e.g. A). If multiple groups apply for one arm, they must be separated using pipes (e.g. AIBID).",
+            "arm_code": "Arm code is generated automatically within Novo Nordisk but may be applicable for open-source users.",
+            "set_cohorts_for_study": "You can add as many cohorts/subpop as required in your study using the “Add Co-horts/subpop.” button.",
+            "source_var": "There are three options available for source variable: Cohort, Subgroup or Stratum.",
+            "cohort_code": "Cohort code must be filled out with a numerical value (e.g. 1). Most common approach is numbering each cohort in numerical order.",
+            "cohort_name": "Cohort/subpop. name can be filled in with free text but is most commonly the name of the investigation + dose level, e.g. “Semaglutide 2.4 mg” or “Placebo 2.4 mg”.",
+            "cohort_short_name": "Cohort/subpop. short name can be filled in with free text but is most commonly the same as the cohort/subpop. name or sometimes just the dose level.",
+            "link_arms_cohorts": "Enter the number of participants per branch. It is possible to copy the number of participants from the first row to all other rows. Branch name and branch short name is automatically generated based on the cohort and arm that the branch is assigned to. Using the Edit button, it is possible to rename the branch name and branch short name."
         }
     },
     "Topbar": {
@@ -1607,10 +1624,18 @@
         "branch_arms": "Branch arms",
         "number_of_subjects": "Number of subjects",
         "epochs": "Epochs",
-        "arms_number": "Number of arms:",
-        "planned_subjects": "Planned number of subjects:",
-        "study_design_class": "Study Design Class:",
-        "table_caption": "Study structure overview table"
+        "arms_number": "Number of Arms",
+        "planned_subjects": "Planned number of subjects",
+        "study_design_class": "Study Design Class",
+        "table_caption": "Study structure overview table",
+        "number_arms": "Number of Arms",
+        "number_branches": "Number of Branch Arms",
+        "number_cohorts": "Number of Cohorts",
+        "number_elements": "Number of Study Elements",
+        "study_structure": "Study structure",
+        "cohorts": "Cohorts",
+        "subjects": "subjects",
+        "total_subjects": " subjects in total per cohort"
     },
     "NullFlavorSelect": {
         "label": "Reason for missing"
@@ -3486,16 +3511,18 @@
         "type": "Type",
         "name": "Arm name",
         "short_name": "Arm short name",
-        "code": "Arm code",
-        "randomisation_group": "Randomisation group",
-        "number_of_subjects": "Number of subjects",
+        "code": "Random. code",
+        "randomisation_group": "Random. group",
+        "number_of_subjects": "No. of subjects",
         "connected_branches": "Connected Branches",
         "description": "Description",
         "arm_deleted": "Arm deleted",
         "arm_delete_notification": "There are some Branch arms, Design Cells or Cohorts related to this Arm. Are you sure you want to delete it?",
         "study_arm": "Study arm",
         "global_history_title": "Study arms history",
-        "study_arm_history_title": "History for study arm [{armUid}]"
+        "study_arm_history_title": "History for study arm [{armUid}]",
+        "number_of_participants": "No. of participants",
+        "cohorts_stepper": "Cohorts Stepper"
     },
     "StudyArmsForm": {
         "study_arm": "Study Arm",
@@ -3774,12 +3801,12 @@
     },
     "StudyBranchArms": {
         "no_data": "No data available - Create Study Arm first",
-        "name": "Branch arm name",
-        "short_name": "Branch arm short name",
+        "name": "Branch name",
+        "short_name": "Short name",
         "arm_name": "Arm name",
-        "code": "Branch Code",
-        "randomisation_group": "Randomisation group",
-        "number_of_subjects": "Number of subjects",
+        "code": "Random. Code",
+        "randomisation_group": "Random. group",
+        "number_of_subjects": "No. of subjects",
         "description": "Description",
         "branch_deleted": "Branch Arm deleted",
         "add_arm_message": "To add Study Branch Arm, you need to define the Study Arm first. Would you like to define Study Arm?",
@@ -3799,11 +3826,19 @@
         "number_of_subjects_exceeds": "Number of subjects in a branch cannot exceed total number of subjects in the arm",
         "branch_delete_notification": "There are some Design Cells related to this Branch. Are you sure you want to delete it?",
         "global_history_title": "Study branch arms history",
-        "study_branch_history_title": "History for study branch arm [{branchUid}]"
+        "study_branch_history_title": "History for study branch arm [{branchUid}]",
+        "number_of_participants": "No. of participants",
+        "cohort_name": "Cohort name",
+        "cohort_code": "Cohort code",
+        "cohorts_stepper":"Cohorts Stepper",
+        "branch": "Branch",
+        "branch_short_name": "Branch short name",
+        "branch_rand_group": "Branch Randomisation group",
+        "branch_code": "Branch Code"
     },
     "StudyCohorts": {
         "code": "Code",
-        "number_of_subjects": "Number of subjects",
+        "number_of_subjects": "No. of subjects",
         "colour": "Colour",
         "cohort_deleted": "Cohort deleted",
         "cohort_updated": "Study Cohort updated",
@@ -3811,9 +3846,9 @@
         "study_arm": "Study Arm",
         "study_branch_arm": "Study Branch Arm",
         "arm_name": "Arm name",
-        "branch_arm_name": "Branch Arm name",
+        "branch_arm_name": "Branch name",
         "cohort_name": "Cohort Name",
-        "cohort_short_name": "Cohort Short Name",
+        "cohort_short_name": "Short Name",
         "cohort_code": "Cohort Code",
         "planned_number_of_subjects": "Planned number of subjects in Cohort",
         "edit_cohort": "Edit Cohort",
@@ -3828,7 +3863,9 @@
         "cohort_code_error": "This field can only contain numbers from 1-99",
         "description": "Description",
         "connected_arms": "Connected Arms",
-        "connected_branches": "Connected Branch Arms"
+        "connected_branches": "Connected Branch Arms",
+        "number_of_participants": "No. of participants",
+        "cohorts_stepper": "Cohorts Stepper"
     },
     "CrfTemplates": {
         "add_template": "Add Template",
@@ -4002,7 +4039,8 @@
     },
     "AnalysisStudyMetadata": {
         "mdvisit": "MDVISIT",
-        "mdendpnt": "MDENDPNT"
+        "mdendpnt": "MDENDPNT",
+        "mdflow": "MDFLOW"
     },
     "AnalysisMetadataTable": {
         "study_id": "Study Identifier",
@@ -4028,7 +4066,16 @@
         "related_activity_groups": "Related Activity Groups",
         "related_activity_subgroups": "Related Activity Subgroups",
         "related_activities": "Related Activities",
-        "related_activity_instances": "Related Activity Instances"
+        "related_activity_instances": "Related Activity Instances",
+        "param_code": "Parameter code",
+        "param": "ADaM PARAM",
+        "paramn": "Parameter (N)",
+        "analysis_tpn": "Analysis timepoint (N)",
+        "analysis_tp": "Analysis timepoint",
+        "topic_code": "Topic code",
+        "baseline_type": "Baseline type",
+        "baseline_record_flag": "Baseline record flag",
+        "assessment_type": "Assessment type"
     },
     "ActivitiesTable": {
         "inactivate_activities_success": "Activity inactivated",
@@ -4538,5 +4585,59 @@
         "topic_code": "Topic code",
         "adam_param_code": "ADaM parameter code",
         "nci_code": "NCI Code (optional)"
+    },
+    "CohortsStepper" : {
+        "select_class": "Select study design class",
+        "full_stepper": "Study with cohorts, branches and subpopulations",
+        "arms_only_stepper": "Study with arms only",
+        "manual": "Manual",
+        "set_arms_for_study": "Set up the Arms of your study",
+        "study_arm_type": "Study arm type",
+        "arm_name": "Arm name",
+        "arm_short_name": "Arm short name",
+        "no_participants": "Number of participants",
+        "rand_group": "Randomisation group",
+        "rand_group_optional": "Randomisation group (optional)",
+        "arm_code": "Arm code",
+        "arm_code_optional": "Arm code (optional)",
+        "desc": "Description (optional)",
+        "merge_branch": "Merge branch arms for this arm for SDTM/ADaM",
+        "add_arm": "Add Arm",
+        "set_cohorts_for_study": "Set up the Cohorts/subpop. of your study",
+        "source_var": "Source variable",
+        "source_var_optional": "Source variable (optional)",
+        "source_var_desc": "Source variable description (optional)",
+        "cohort_code": "Cohort/subpop. code",
+        "cohort_name": "Cohort/subpop. name",
+        "cohort_short_name": "Cohort /subpop. short name",
+        "add_cohort": "Add Cohort/subpop.",
+        "link_arms_cohorts": "Link Arms and Cohorts/subpop. to create Branches",
+        "link_info": "If there is no connection or no participants in a Cohort/subpop.-arm relation, then leave the participant number at 0. The system will automatically create the Branch relation between Cohorts/subpop and Arms. only when number of participants is greater then 0.",
+        "total_amount": "Total amount",
+        "total": "Total",
+        "copy_row": "Copy row to all",
+        "set_arms": "Set up Arms",
+        "set_cohorts": "Set up Cohorts/subpop.",
+        "linking": "Linking",
+        "cohort": "Cohort",
+        "subgroup": "Subgroup",
+        "stratum": "Stratum",
+        "update_structure": "Update Study Design Structure",
+        "create_stucture": "Create Study Design Structure",
+        "keep_class": "Keep study design class",
+        "change_class": "Change study design class",
+        "change_class_warning_1": "Changing Study design class will remove all branch arms. Do you want to continue?",
+        "change_class_warning_2": "Changing Study design class will remove all cohorts and branch arms. Do you want to continue?",
+        "error_update_class": "Error updating design class",
+        "error_update_arms": "Error updating arms",
+        "error_update_cohorts": "Error updating cohorts",
+        "error_update_branches": "Error updating branches",
+        "keep_arm": "Keep arm",
+        "remove_arm": "Remove arm",
+        "remove_arm_warning": "You are about to remove an arm and all its participants. This will decrease the total numbers of participants in the study.",
+        "keep_cohort": "Keep cohort",
+        "remove_cohort": "Remove cohort",
+        "remove_cohort_warning": "You are about to remove a cohort and all its participants. This will decrease the total numbers of participants in the study.",
+        "create_arms": "Create arms"
     }
 }

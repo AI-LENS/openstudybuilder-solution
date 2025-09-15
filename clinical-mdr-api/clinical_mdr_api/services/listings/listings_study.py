@@ -150,7 +150,7 @@ class StudyMetadataListingService:
             result = StudyMetadataListingModel.from_study_metadata_vo(
                 api_ver=api_ver,
                 study_id=full_study_id,
-                study_ver=version,
+                study_ver=version or "",
                 specified_dt=datetime,
                 study_metadata_vo=study_definition.version_specific_metadata,
                 study_selection_arm_ar=self.arm_repo.find_by_study(

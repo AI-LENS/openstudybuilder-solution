@@ -46,7 +46,7 @@
           clearable
           multiple
         >
-          <template v-slot:selection="{ item, index }">
+          <template #selection="{ item, index }">
             <v-chip
               v-if="index < 2"
               :text="item.title"
@@ -76,9 +76,9 @@
           :disabled="!data.target_uid"
           color="primary"
           :label="$t('_global.load')"
-          @click="loadXml"
           size="large"
           block
+          @click="loadXml"
         >
           {{ $t('OdmViewer.load') }}
         </v-btn>
@@ -151,7 +151,7 @@
     <div v-show="doc && !showOdmXml" class="mt-4">
       <iframe />
     </div>
-    <div class="mt-4" v-show="doc && showOdmXml">
+    <div v-show="doc && showOdmXml" class="mt-4">
       <v-card color="primary" style="overflow-x: auto">
         <pre v-show="!loading" class="ml-6 mt-6 pre" style="color: #ff0">{{
           xmlString

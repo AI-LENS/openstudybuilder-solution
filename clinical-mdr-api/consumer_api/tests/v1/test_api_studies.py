@@ -297,10 +297,10 @@ def test_data(api_client):
         name="Randomized activity instance class"
     )
 
-    studies = [study]
+    studies = [study]  # type: ignore[list-item]
     for _idx in range(1, total_studies):
         rand = TestUtils.random_str(4)
-        studies.append(TestUtils.create_study(acronym=f"ACR-{rand}"))
+        studies.append(TestUtils.create_study(acronym=f"ACR-{rand}"))  # type: ignore[arg-type]
 
     study_epoch = create_study_epoch("EpochSubType_0001", study_uid=studies[0].uid)
 
@@ -309,7 +309,7 @@ def test_data(api_client):
     for _idx in range(0, total_study_visits):
         visit_to_create.update({"time_value": _idx})
         study_visits.append(
-            TestUtils.create_study_visit(
+            TestUtils.create_study_visit(  # type: ignore[arg-type]
                 study_uid=studies[0].uid,
                 study_epoch_uid=study_epoch.uid,
                 **visit_to_create,
@@ -346,7 +346,7 @@ def test_data(api_client):
 
         activity_instance = TestUtils.create_activity_instance(
             name=f"Activity instance {idx}",
-            activity_instance_class_uid=activity_instance_class.uid,
+            activity_instance_class_uid=activity_instance_class.uid,  # type: ignore[arg-type]
             name_sentence_case=f"activity instance {idx}",
             topic_code=f"randomized activity instance topic code {idx}",
             adam_param_code=f"randomized adam_param_code {idx}",
@@ -366,7 +366,7 @@ def test_data(api_client):
             activity_instance_uid=activity_instance.uid,
         )
 
-        study_activities.append(study_activity)
+        study_activities.append(study_activity)  # type: ignore[arg-type]
 
     for idx in range(0, total_study_operational_soa):
         TestUtils.create_study_activity_schedule(

@@ -88,7 +88,6 @@ class OdmAliasService(OdmGenericService[OdmAliasAR]):
     ) -> list[OdmAliasBatchOutput]:
         results = []
         for operation in operations:
-            result = {}
             item = None
 
             try:
@@ -100,10 +99,9 @@ class OdmAliasService(OdmGenericService[OdmAliasAR]):
                     response_code = status.HTTP_200_OK
                 else:
                     raise exceptions.MethodNotAllowedException(method=operation.method)
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(OdmAliasBatchOutput(**result))
+                results.append(
+                    OdmAliasBatchOutput(response_code=response_code, content=item)  # type: ignore[arg-type]
+                )
             except exceptions.MDRApiBaseException as error:
                 results.append(
                     OdmAliasBatchOutput.model_construct(

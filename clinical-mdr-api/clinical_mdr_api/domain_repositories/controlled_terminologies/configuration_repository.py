@@ -51,7 +51,7 @@ class CTConfigRepository(LibraryItemRepositoryImplBase):
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
     ) -> list[CTConfigOGM]:
         all_configurations = [
             CTConfigOGM.model_validate(sas_node)

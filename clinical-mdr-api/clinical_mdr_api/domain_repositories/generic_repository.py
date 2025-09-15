@@ -84,7 +84,7 @@ class RepositoryImpl:
         root: ClinicalMdrNode,
         value: ClinicalMdrNode,
         rel_properties: Mapping[str, Any],
-        save_root: bool | None = True,
+        save_root: bool = True,
     ):
         """
         Creates versioned root and versioned object nodes.
@@ -213,7 +213,7 @@ def manage_previous_connected_study_selection_relationships(
     previous_item: Any,
     study_value_node: Any,
     new_item: Any,
-    exclude_study_selection_relationships: list[list[str | Any] | Any] | None = None,
+    exclude_study_selection_relationships: list[Any] | None = None,
 ):
     """
     Method for preserving the previous version's connected StudySelection(s) relationships to the current version.

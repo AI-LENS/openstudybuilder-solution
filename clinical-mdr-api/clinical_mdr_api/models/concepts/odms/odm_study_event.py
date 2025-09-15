@@ -41,7 +41,7 @@ class OdmStudyEvent(ConceptModel):
     ) -> Self:
         return cls(
             uid=odm_study_event_ar._uid,
-            name=odm_study_event_ar.concept_vo.name,
+            name=odm_study_event_ar.name,
             oid=odm_study_event_ar.concept_vo.oid,
             effective_date=odm_study_event_ar.concept_vo.effective_date,
             retired_date=odm_study_event_ar.concept_vo.retired_date,
@@ -80,6 +80,7 @@ class OdmStudyEventPostInput(ConceptPostInput):
 
 
 class OdmStudyEventPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     effective_date: Annotated[date | None, Field()]
     retired_date: Annotated[date | None, Field()]

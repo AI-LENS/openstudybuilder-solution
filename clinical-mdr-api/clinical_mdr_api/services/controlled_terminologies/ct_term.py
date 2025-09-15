@@ -35,7 +35,7 @@ _AggregateRootType = TypeVar("_AggregateRootType")
 
 class CTTermService:
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -186,14 +186,14 @@ class CTTermService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[CTTermNameAndAttributes]:
         self.enforce_codelist_package_library(
             codelist_uid, codelist_name, library, package
         )
 
-        all_aggregated_terms = (
+        all_aggregated_terms, total = (
             self._repos.ct_term_aggregated_repository.find_all_aggregated_result(
                 codelist_uid=codelist_uid,
                 codelist_name=codelist_name,
@@ -210,14 +210,14 @@ class CTTermService:
             )
         )
 
-        all_aggregated_terms.items = [
+        items = [
             CTTermNameAndAttributes.from_ct_term_ars(
                 ct_term_name_ar=term_name_ar, ct_term_attributes_ar=term_attributes_ar
             )
-            for term_name_ar, term_attributes_ar in all_aggregated_terms.items
+            for term_name_ar, term_attributes_ar in all_aggregated_terms
         ]
 
-        return all_aggregated_terms
+        return GenericFilteringReturn(items=items, total=total)
 
     def get_distinct_values_for_header(
         self,
@@ -226,9 +226,9 @@ class CTTermService:
         library: str | None,
         package: str | None,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         self.enforce_codelist_package_library(

@@ -16,20 +16,20 @@ class StudySelectionObjectiveVO:
     study_selection_uid: str
     study_uid: str | None
     objective_uid: str | None
-    objective_version: str | None
+    objective_version: str
     objective_level_uid: str | None
     objective_level_order: int
     is_instance: bool
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
     accepted_version: bool = False
 
     @classmethod
     def from_input_values(
         cls,
-        objective_uid: str,
+        objective_uid: str | None,
         objective_version: str,
         objective_level_uid: str | None,
         objective_level_order: int | None,
@@ -38,7 +38,7 @@ class StudySelectionObjectiveVO:
         study_selection_uid: str | None = None,
         is_instance: bool = True,
         start_date: datetime.datetime | None = None,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
         accepted_version: bool = False,
     ):
         if not objective_level_order:
@@ -66,8 +66,12 @@ class StudySelectionObjectiveVO:
 
     def validate(
         self,
-        objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        objective_exist_callback: Callable[[str | None | None], bool] = (
+            lambda _: True
+        ),
+        ct_term_level_exist_callback: Callable[[str | None | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         # Checks if there exists a objective which is approved with objective_uid
         exceptions.BusinessLogicException.raise_if_not(
@@ -109,7 +113,7 @@ class StudySelectionObjectivesAR:
         return self._study_uid
 
     @property
-    def study_objectives_selection(self) -> tuple[StudySelectionObjectiveVO]:
+    def study_objectives_selection(self) -> tuple[StudySelectionObjectiveVO, ...]:
         return self._study_objectives_selection
 
     @study_objectives_selection.setter
@@ -127,8 +131,8 @@ class StudySelectionObjectivesAR:
     def add_objective_selection(
         self,
         study_objective_selection: StudySelectionObjectiveVO,
-        objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        objective_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str | None], bool] = lambda _: True,
     ) -> None:
         study_objective_selection.validate(
             objective_exist_callback, ct_term_level_exist_callback
@@ -197,7 +201,7 @@ class StudySelectionObjectivesAR:
             objective_version=selected_value.objective_version,
         )
         # change the order
-        updated_selections = []
+        updated_selections: list[Any] = []
         # We need to handle if front end selects a order number there is out of range
         #  then we just move it to best possible position
         selection_needs_inserting = False
@@ -219,8 +223,7 @@ class StudySelectionObjectivesAR:
                         >= selected_value.objective_level_order
                     ):
                         updated_selections.append(selected_value)
-                    else:
-                        updated_selections = True
+
                     if (
                         selection.study_selection_uid
                         != selected_value.study_selection_uid
@@ -242,8 +245,7 @@ class StudySelectionObjectivesAR:
                         >= selected_value.objective_level_order
                     ):
                         updated_selections.append(selected_value)
-                    else:
-                        updated_selections = True
+
             # We add all other vo to in the same order as before, except for the vo we are moving
             elif selection.study_selection_uid != selected_value.study_selection_uid:
                 updated_selections.append(selection)
@@ -252,8 +254,8 @@ class StudySelectionObjectivesAR:
     def update_selection(
         self,
         updated_study_objective_selection: StudySelectionObjectiveVO,
-        objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        objective_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str | None], bool] = lambda _: True,
     ) -> None:
         updated_study_objective_selection.validate(
             objective_exist_callback=objective_exist_callback,

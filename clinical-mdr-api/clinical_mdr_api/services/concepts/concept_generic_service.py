@@ -45,7 +45,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
     version_class: type
     repository_interface: type
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -186,7 +186,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         only_specific_status: str = ObjectStatus.LATEST.name,
         **kwargs,
@@ -210,14 +210,14 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         only_specific_status: str = ObjectStatus.LATEST.name,
         **kwargs,
     ) -> GenericFilteringReturn[BaseModel]:
         self.enforce_library(library)
 
-        items, total = self.repository.find_all(
+        item_ars, total = self.repository.find_all(
             library=library,
             total_count=total_count,
             sort_by=sort_by,
@@ -229,21 +229,19 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
             **kwargs,
         )
 
-        all_concepts = GenericFilteringReturn.create(items, total)
-        all_concepts.items = [
+        items = [
             self._transform_aggregate_root_to_pydantic_model(concept_ar)
-            for concept_ar in all_concepts.items
+            for concept_ar in item_ars
         ]
-
-        return all_concepts
+        return GenericFilteringReturn(items=items, total=total)
 
     def get_distinct_values_for_header(
         self,
         library: str | None,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:
@@ -269,13 +267,13 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         **kwargs,
     ) -> GenericFilteringReturn[BaseModel]:
         self.enforce_library(library)
 
-        items, total = self.repository.find_all(
+        item_ars, total = self.repository.find_all(
             library=library,
             total_count=total_count,
             sort_by=sort_by,
@@ -288,13 +286,11 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
             **kwargs,
         )
 
-        all_concept_versions = GenericFilteringReturn.create(items, total)
-        all_concept_versions.items = [
+        items = [
             self._transform_aggregate_root_to_pydantic_model(concept_ar)
-            for concept_ar in all_concept_versions.items
+            for concept_ar in item_ars
         ]
-
-        return all_concept_versions
+        return GenericFilteringReturn(items=items, total=total)
 
     @db.transaction
     def get_by_uid(
@@ -302,7 +298,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
         uid: str,
         version: str | None = None,
         at_specific_date: datetime | None = None,
-        status: str | None = None,
+        status: LibraryItemStatus | None = None,
     ) -> BaseModel:
         item = self._find_by_uid_or_raise_not_found(
             uid=uid, version=version, at_specific_date=at_specific_date, status=status
@@ -315,7 +311,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
         version: str | None = None,
         at_specific_date: datetime | None = None,
         status: LibraryItemStatus | None = None,
-        for_update: bool | None = False,
+        for_update: bool = False,
     ) -> _AggregateRootType:
         item = self.repository.find_by_uid_2(
             uid=uid,
@@ -628,7 +624,7 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
     ) -> BaseModel:
         BusinessLogicException.raise_if_not(
             self._repos.library_repository.library_exists(
-                normalize_string(concept_input.library_name)
+                normalize_string(concept_input.library_name)  # type: ignore[arg-type]
             ),
             msg=f"Library with Name '{concept_input.library_name}' doesn't exist.",
         )
@@ -720,17 +716,17 @@ class ConceptGenericService(Generic[_AggregateRootType], ABC):
             "Name",
         )
 
-    def cascade_edit_and_approve(self, item: BaseModel):
+    def cascade_edit_and_approve(self, item: _AggregateRootType):
         pass
 
-    def cascade_new_version(self, item: BaseModel):
+    def cascade_new_version(self, item: _AggregateRootType):
         pass
 
-    def cascade_inactivate(self, item: BaseModel):
+    def cascade_inactivate(self, item: _AggregateRootType):
         pass
 
-    def cascade_reactivate(self, item: BaseModel):
+    def cascade_reactivate(self, item: _AggregateRootType):
         pass
 
-    def cascade_delete(self, item: BaseModel):
+    def cascade_delete(self, item: _AggregateRootType):
         pass

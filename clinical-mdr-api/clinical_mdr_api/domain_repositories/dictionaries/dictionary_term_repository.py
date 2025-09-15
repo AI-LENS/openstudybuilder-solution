@@ -80,29 +80,29 @@ class DictionaryTermGenericRepository(
     ) -> DictionaryTermAR:
         major, minor = term_dict.get("version").split(".")
         return DictionaryTermAR.from_repository_values(
-            uid=term_dict.get("term_uid"),
+            uid=term_dict["term_uid"],
             dictionary_term_vo=DictionaryTermVO.from_repository_values(
-                codelist_uid=term_dict.get("codelist_uid"),
-                dictionary_id=term_dict.get("dictionary_id"),
-                name=term_dict.get("name"),
-                name_sentence_case=term_dict.get("name_sentence_case"),
+                codelist_uid=term_dict["codelist_uid"],
+                dictionary_id=term_dict["dictionary_id"],
+                name=term_dict["name"],
+                name_sentence_case=term_dict["name_sentence_case"],
                 abbreviation=term_dict.get("abbreviation"),
                 definition=term_dict.get("definition"),
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=term_dict.get("library_name"),
+                library_name=term_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: term_dict.get("is_library_editable")
+                    lambda _: term_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=term_dict.get("change_description"),
+                change_description=term_dict["change_description"],
                 status=LibraryItemStatus(term_dict.get("status")),
-                author_id=term_dict.get("author_id"),
+                author_id=term_dict["author_id"],
                 author_username=UserInfoService.get_author_username_from_id(
-                    term_dict.get("author_id")
+                    term_dict["author_id"]
                 ),
-                start_date=convert_to_datetime(value=term_dict.get("start_date")),
+                start_date=convert_to_datetime(value=term_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),
@@ -112,7 +112,7 @@ class DictionaryTermGenericRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -131,7 +131,7 @@ class DictionaryTermGenericRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -208,7 +208,7 @@ class DictionaryTermGenericRepository(
         codelist_uid: str | None = None,
         sort_by: dict[str, bool] | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_number: int = 1,
         page_size: int = 0,
         total_count: bool = False,
@@ -239,7 +239,7 @@ class DictionaryTermGenericRepository(
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=DictionaryCodelist,
@@ -284,9 +284,9 @@ class DictionaryTermGenericRepository(
         self,
         codelist_uid: str,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         # Match clause
@@ -302,7 +302,7 @@ class DictionaryTermGenericRepository(
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -320,9 +320,7 @@ class DictionaryTermGenericRepository(
             else []
         )
 
-    def find_by_uid(
-        self, term_uid: str, for_update: bool | None = False
-    ) -> DictionaryTermAR:
+    def find_by_uid(self, term_uid: str, for_update: bool = False) -> DictionaryTermAR:
         """
         This method returns the Dictionary Term with provided uid
 
@@ -333,7 +331,7 @@ class DictionaryTermGenericRepository(
         return self.find_by_uid_2(uid=term_uid, for_update=for_update)
 
     @sb_clear_cache(caches=["cache_store_item_by_uid"])
-    def save(self, item: _AggregateRootType) -> None:
+    def save(self, item: DictionaryTermAR) -> None:
         if item.uid is not None and item.repository_closure_data is None:
             self._create(item)
         elif item.uid is not None and not item.is_deleted:

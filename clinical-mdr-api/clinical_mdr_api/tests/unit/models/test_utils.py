@@ -58,7 +58,7 @@ class MockInput(InputModel):
     tags: Annotated[list[str] | None, Field(json_schema_extra={"nullable": True})] = (
         None
     )
-    whether: Annotated[bool | None, Field(json_schema_extra={"nullable": True})] = None
+    whether: Annotated[bool, Field()] = False
     num: Annotated[int | None, Field(json_schema_extra={"nullable": True})] = None
 
 

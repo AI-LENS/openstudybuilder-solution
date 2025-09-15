@@ -213,7 +213,7 @@ def test_get_activity_instance_class(api_client):
     assert res["name"] == "name A"
     assert res["definition"] is None
     assert res["order"] is None
-    assert res["is_domain_specific"] is None
+    assert res["is_domain_specific"] is False
     assert res["level"] is None
     assert res["parent_class"] is None
     assert res["version"] == "1.0"
@@ -437,6 +437,7 @@ def test_edit_activity_instance_class(api_client):
             "is_domain_specific": False,
             "level": 4,
             "parent_uid": "ActivityInstanceClass_000002",
+            "change_description": "Updated",
         },
     )
     res = response.json()

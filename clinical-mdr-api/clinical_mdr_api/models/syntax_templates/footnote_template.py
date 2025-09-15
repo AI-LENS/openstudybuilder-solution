@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Self, overload
 
 from pydantic import Field
 
@@ -38,12 +38,9 @@ class FootnoteTemplateName(BaseModel):
 
 class FootnoteTemplateNameUid(FootnoteTemplateName):
     uid: Annotated[
-        str | None,
-        Field(
-            description="The unique id of the footnote template.",
-            json_schema_extra={"nullable": True},
-        ),
-    ] = None
+        str,
+        Field(description="The unique id of the footnote template."),
+    ]
     sequence_id: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
         None
     )
@@ -142,10 +139,21 @@ class FootnoteTemplate(FootnoteTemplateNameUid):
         int, Field(description="Count of studies referencing template")
     ] = 0
 
+    @overload
     @classmethod
     def from_footnote_template_ar(
         cls, footnote_template_ar: FootnoteTemplateAR
-    ) -> Self:
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_footnote_template_ar(cls, footnote_template_ar: None) -> None: ...
+    @classmethod
+    def from_footnote_template_ar(
+        cls, footnote_template_ar: FootnoteTemplateAR | None
+    ) -> Self | None:
+        if footnote_template_ar is None:
+            return None
+
         return cls(
             uid=footnote_template_ar.uid,
             sequence_id=footnote_template_ar.sequence_id,

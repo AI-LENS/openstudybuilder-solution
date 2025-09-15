@@ -70,13 +70,14 @@ class MedicinalProductService(ConceptGenericService[MedicinalProductAR]):
             change_description=concept_edit_input.change_description,
             concept_vo=MedicinalProductVO.from_repository_values(
                 external_id=concept_edit_input.external_id,
-                name=concept_edit_input.name,
+                name=concept_edit_input.name or item.name,
                 name_sentence_case=concept_edit_input.name_sentence_case,
                 dose_value_uids=concept_edit_input.dose_value_uids,
                 dose_frequency_uid=concept_edit_input.dose_frequency_uid,
                 delivery_device_uid=concept_edit_input.delivery_device_uid,
                 dispenser_uid=concept_edit_input.dispenser_uid,
-                compound_uid=concept_edit_input.compound_uid,
+                compound_uid=concept_edit_input.compound_uid
+                or item.concept_vo.compound_uid,
                 pharmaceutical_product_uids=concept_edit_input.pharmaceutical_product_uids,
             ),
             concept_exists_by_callback=self.repository.get_uid_by_property_value,

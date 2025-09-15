@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     app_name: str = "StudyBuilder API"
     openapi_schema_api_root_path: str = Field(default="/", alias="UVICORN_ROOT_PATH")
     app_debug: bool = False
+    color_logs: bool = Field(
+        default=True,
+        description="Whether to color log messages based on severity when logging to console",
+    )
     uid: int = 1000
     number_of_uid_digits: int = 6
 
@@ -98,15 +102,25 @@ class Settings(BaseSettings):
 
     # Tracing & Monitoring
     uvicorn_log_config: str = ""
-    tracing_enabled: bool = True
+    tracing_enabled: bool = False
     tracing_metrics_header: bool = False
     trace_request_body: bool = False
     trace_request_body_min_status_code: int = 400
     trace_request_body_truncate_bytes: int = 2048
     trace_query_max_len: int = 4000
+    traceback_max_entries: int = Field(
+        default=15, description="Limit number of stack trace entries in tracebacks"
+    )
     appinsights_connection: str = Field(
         default="", alias="APPLICATIONINSIGHTS_CONNECTION_STRING"
     )
+    zipkin_host: str = Field(
+        default="",
+        description="Enable tracing to Zipkin, hostname or IP of the Zipkin service.",
+    )
+    zipkin_port: int = 9411
+    zipkin_endpoint: str = "/api/v2/spans"
+    zipkin_protocol: str = "http"
 
     # OAuth & Authentication
     oauth_enabled: bool = True
@@ -131,6 +145,16 @@ class Settings(BaseSettings):
     # Third-party Integrations
     ms_graph_integration_enabled: bool = False
     ms_graph_groups_query: str = "``"
+
+    # gzip API responses (Content-Encoding: gzip)
+    gzip_response_min_size: int = Field(
+        default=500,
+        ge=0,
+        description="Minimum response size in bytes to gzip compress, or 0 to disable.",
+    )
+    gzip_level: int = Field(
+        default=5, ge=0, le=9, description="gzip compression level (0 to 9)"
+    )
 
     # endregion
 
@@ -246,7 +270,7 @@ class Settings(BaseSettings):
     # endregion
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
 
 # Teach urljoin that Neo4j DSN URLs like bolt:// and neo4j:// semantically similar to http://
 for scheme in ("bolt", "bolt+s", "neo4j", "neo4j+s"):

@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Any
 
 from neomodel import db
 
@@ -19,6 +20,7 @@ from clinical_mdr_api.domain_repositories.models.study_selections import (
     StudyBranchArm,
     StudyCohort,
 )
+from clinical_mdr_api.domains.enums import StudyDesignClassEnum
 from clinical_mdr_api.domains.study_selections.study_selection_cohort import (
     StudySelectionCohortAR,
     StudySelectionCohortVO,
@@ -37,13 +39,12 @@ class SelectionHistoryCohort:
     cohort_short_name: str | None
     cohort_code: str | None
     cohort_description: str | None
-    cohort_colour_code: str | None
     cohort_number_of_subjects: int | None
     branch_arm_roots: list[str] | None
     arm_roots: list[str] | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     change_type: str
     end_date: datetime.datetime | None
     order: int
@@ -62,7 +63,7 @@ class StudySelectionCohortRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionCohortVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_value_version:
             if study_uid:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
@@ -92,15 +93,81 @@ class StudySelectionCohortRepository:
             query += " WHERE "
             query += " AND ".join(filter_list)
 
+        query_parameters["is_cohort_stepper_defined"] = (
+            StudyDesignClassEnum.STUDY_WITH_COHORTS_BRANCHES_AND_SUBPOPULATIONS.value
+        )
         query += """
             WITH sr, sv
             MATCH (sv)-[:HAS_STUDY_COHORT]->(sar:StudyCohort)
-            WITH DISTINCT sr, sar, sv
-            OPTIONAL MATCH (sv)-[:HAS_STUDY_ARM]->(ars:StudyArm)-[:STUDY_ARM_HAS_COHORT]->(sar)
-            WITH ars, sr, sv, sar ORDER BY ars.order
-            OPTIONAL MATCH (sv)-[:HAS_STUDY_BRANCH_ARM]-(bars:StudyBranchArm)-[:STUDY_BRANCH_ARM_HAS_COHORT]->(sar)
-            WITH bars, ars, sr, sar ORDER BY bars.order
-            MATCH (sar)<-[:AFTER]-(sa:StudyAction)"""
+            WITH DISTINCT sr, sv, sar, exists((sv)-[:HAS_STUDY_DESIGN_CLASS]->(:StudyDesignClass {value:$is_cohort_stepper_defined})) AS is_cohort_stepper_defined
+            CALL apoc.do.case([
+
+                // The path to StudyArm goes through StudyBranchArm
+                is_cohort_stepper_defined=true,
+                'OPTIONAL MATCH (sar)<-[:STUDY_BRANCH_ARM_HAS_COHORT]-(bars:StudyBranchArm)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(ars:StudyArm)<-[:HAS_STUDY_ARM]-(sv)
+                OPTIONAL MATCH (sv)-[:HAS_STUDY_BRANCH_ARM]->(bars)
+                RETURN ars AS ars, bars AS bars',
+
+                // The path to StudyArm goes directly by a relationship
+                is_cohort_stepper_defined=false,
+                'OPTIONAL MATCH (sar)<-[:STUDY_ARM_HAS_COHORT]-(ars:StudyArm)<-[:HAS_STUDY_ARM]-(sv)
+                OPTIONAL MATCH (sar)<-[:STUDY_BRANCH_ARM_HAS_COHORT]-(bars:StudyBranchArm)<-[:HAS_STUDY_BRANCH_ARM]-(sv)
+                RETURN ars AS ars, bars AS bars'
+            ],
+            '',
+            {
+                is_cohort_stepper_defined: is_cohort_stepper_defined,
+                sar: sar,
+                sv: sv
+            })
+            YIELD value
+            WITH DISTINCT value.bars.uid AS branch_arm_uid, value.ars AS ars, sr, sar, is_cohort_stepper_defined
+            ORDER BY ars.order
+
+            CALL {
+                WITH branch_arm_uid
+                MATCH (study_branch_arm:StudyBranchArm {uid:branch_arm_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_branch_arm, action
+                ORDER BY action.date ASC
+                WITH last(collect(study_branch_arm)) as study_branch_arm
+                RETURN CASE WHEN exists((study_branch_arm)--(:Delete)) THEN NULL ELSE study_branch_arm END AS study_branch_arm
+            }
+
+            // Get latest available version of given StudyArm
+            CALL apoc.do.case([
+                // If defined by CohortStepper and path to StudyArm goes through StudyBranchArm we need to check
+                is_cohort_stepper_defined=true,
+                '
+                WITH ars, study_branch_arm
+                OPTIONAL MATCH (study_branch_arm)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(study_arm:StudyArm {uid:ars.uid})-[:AFTER]-(action:StudyAction)
+                WITH study_arm, action
+                ORDER BY action.date ASC
+                WITH last(collect(study_arm)) as study_arm
+                RETURN CASE WHEN exists((study_arm)--(:Delete)) THEN NULL ELSE study_arm END AS study_arm
+                ',
+
+                // The path to StudyArm goes directly by a relationship
+                is_cohort_stepper_defined=false,
+                'RETURN ars as study_arm'
+            ],
+            '',
+            {
+                is_cohort_stepper_defined: is_cohort_stepper_defined,
+                ars: ars,
+                study_branch_arm: study_branch_arm
+            })
+            YIELD value
+            WITH DISTINCT 
+                sr,
+                sar,
+                collect(DISTINCT value.study_arm.uid) AS arm_root_uids, 
+                sum(study_branch_arm.number_of_subjects) as branch_sum, 
+                collect(DISTINCT study_branch_arm.uid) AS branch_arm_root_uids,
+                is_cohort_stepper_defined
+            
+            MATCH (sar)<-[:AFTER]-(sa:StudyAction)
+        """
+
         if arm_uid:
             filter_by_arm_uid = """
             WHERE head([(study_arm:StudyArm)-[:STUDY_ARM_HAS_COHORT]->(sar) | study_arm.uid])=$arm_uid"""
@@ -115,11 +182,13 @@ class StudySelectionCohortRepository:
                 sar.cohort_code AS cohort_code,
                 sar.description AS cohort_description,
                 sar.order AS order,
-                sar.accepted_version AS accepted_version,
-                sar.number_of_subjects AS number_of_subjects,
-                sar.colour_code AS colour_code,
-                COLLECT (DISTINCT bars.uid) AS branch_arm_root_uids,
-                COLLECT (DISTINCT ars.uid) AS arm_root_uids,
+                sar.accepted_version AS accepted_version,                
+                CASE is_cohort_stepper_defined
+                    WHEN true THEN branch_sum
+                    ELSE sar.number_of_subjects
+                END AS number_of_subjects,
+                branch_arm_root_uids,
+                arm_root_uids,
                 sar.text AS text,
                 sa.date AS start_date,
                 sa.author_id AS author_id
@@ -144,7 +213,6 @@ class StudySelectionCohortRepository:
                 branch_arm_root_uids=selection["branch_arm_root_uids"],
                 arm_root_uids=selection["arm_root_uids"],
                 number_of_subjects=selection["number_of_subjects"],
-                colour_code=selection["colour_code"],
                 start_date=convert_to_datetime(value=selection["start_date"]),
                 accepted_version=selection["accepted_version"],
             )
@@ -159,7 +227,7 @@ class StudySelectionCohortRepository:
         project_name: str | None = None,
         project_number: str | None = None,
         study_value_version: str | None = None,
-    ) -> StudySelectionCohortAR | None:
+    ) -> StudySelectionCohortAR:
         """
         Finds all the selected study cohorts for a given study
         :param project_name:
@@ -243,8 +311,9 @@ class StudySelectionCohortRepository:
 
         # check if object is removed from the selection list - delete have been called
         if len(closure_data) > len(study_selection.study_cohorts_selection):
-            # remove the last item from old list, as there will no longer be any study objective with that high order
-            selections_to_remove.append((len(closure_data), closure_data[-1]))
+            for idx, closure_study_cohort in enumerate(closure_data, start=1):
+                if closure_study_cohort not in study_selection.study_cohorts_selection:
+                    selections_to_remove.append((idx, closure_study_cohort))
 
         # loop through new data - start=1 as order starts at 1 not at 0 and find what needs to be removed and added
         for order, selection in enumerate(
@@ -254,9 +323,15 @@ class StudySelectionCohortRepository:
             if closure_data_length > order - 1:
                 # check if anything has changed
                 if selection is not closure_data[order - 1]:
-                    # update the selection by removing the old if the old exists, and adding new selection
-                    selections_to_remove.append((order, closure_data[order - 1]))
-                    selections_to_add.append((order, selection))
+                    for closure_item in closure_data:
+                        if (
+                            selection.study_selection_uid
+                            == closure_item.study_selection_uid
+                        ):
+                            # update the selection by removing the old if the old exists, and adding new selection
+                            selections_to_remove.append((order, closure_item))
+                            selections_to_add.append((order, selection))
+                            break
             else:
                 # else something new have been added
                 selections_to_add.append((order, selection))
@@ -377,7 +452,6 @@ class StudySelectionCohortRepository:
             short_name=selection.short_name,
             cohort_code=selection.code,
             description=selection.description,
-            colour_code=selection.colour_code,
             number_of_subjects=selection.number_of_subjects,
         ).save()
 
@@ -442,12 +516,23 @@ class StudySelectionCohortRepository:
             OPTIONAL MATCH (ats:StudyArm)-[:STUDY_ARM_HAS_COHORT]->(all_sc)
             WITH all_sc, ats  ORDER BY ats.order
             OPTIONAL MATCH (bats:StudyBranchArm)-[:STUDY_BRANCH_ARM_HAS_COHORT]->(all_sc)
-            WITH all_sc, ats, bats  ORDER BY bats.order
-            WITH DISTINCT all_sc, ats, bats
+            WITH DISTINCT bats, all_sc, ats
+            ORDER BY bats.order
+            WITH DISTINCT bats.uid as branch_arm_uid, all_sc, ats
+            CALL {
+                WITH branch_arm_uid
+                MATCH (study_branch_arm:StudyBranchArm {uid:branch_arm_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_branch_arm, action
+                ORDER BY action.date ASC
+                WITH collect(study_branch_arm) as branch_arms
+                RETURN last(branch_arms) AS study_branch_arm
+            }
+
+            WITH DISTINCT all_sc, ats, sum(study_branch_arm.number_of_subjects) as branch_sum, collect(study_branch_arm.uid) AS branch_arm_root_uids
             ORDER BY all_sc.order ASC
             MATCH (all_sc)<-[:AFTER]-(asa:StudyAction)
             OPTIONAL MATCH (all_sc)<-[:BEFORE]-(bsa:StudyAction)
-            WITH all_sc, asa, bsa, ats, bats
+            WITH all_sc, asa, bsa, ats, branch_sum, branch_arm_root_uids
             ORDER BY all_sc.uid, asa.date DESC
             RETURN
                 all_sc.uid AS study_selection_uid,
@@ -456,10 +541,12 @@ class StudySelectionCohortRepository:
                 all_sc.cohort_code AS cohort_code,
                 all_sc.description AS cohort_description,
                 all_sc.order AS order,
-                all_sc.accepted_version AS accepted_version,
-                all_sc.number_of_subjects AS number_of_subjects,
-                all_sc.colour_code AS colour_code,
-                COLLECT (bats.uid) AS branch_arm_root_uids,
+                all_sc.accepted_version AS accepted_version,                
+                CASE branch_sum
+                    WHEN 0 THEN all_sc.number_of_subjects
+                    ELSE branch_sum 
+                END AS number_of_subjects,
+                branch_arm_root_uids,
                 COLLECT (ats.uid) AS arm_root_uids,
                 all_sc.text AS text,
                 asa.date AS start_date,
@@ -486,7 +573,6 @@ class StudySelectionCohortRepository:
                     cohort_short_name=res["cohort_short_name"],
                     cohort_code=res["cohort_code"],
                     cohort_description=res["cohort_description"],
-                    cohort_colour_code=res["colour_code"],
                     cohort_number_of_subjects=res["number_of_subjects"],
                     branch_arm_roots=res["branch_arm_root_uids"],
                     arm_roots=res["arm_root_uids"],

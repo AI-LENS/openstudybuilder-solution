@@ -130,7 +130,7 @@ def create_simple_term_instances_from_cypher_result(
     """
 
     return TermWithCodelistMetadata(
-        term_uid=term_dict.get("term_uid"),
+        term_uid=term_dict["term_uid"],
         name=term_dict.get("value_node_name").get("name"),
         name_submission_value=term_dict.get("value_node_attributes").get(
             "name_submission_value"
@@ -164,7 +164,7 @@ def create_term_name_aggregate_instances_from_cypher_result(
 
     if ctterm_simple_model:
         return SimpleTermModel(
-            term_uid=term_dict.get("term_uid"),
+            term_uid=term_dict["term_uid"],
             name=term_dict.get(f"value_node{specific_suffix}").get("name"),
         )
 
@@ -179,26 +179,23 @@ def create_term_name_aggregate_instances_from_cypher_result(
             )
         )
 
-    library_name = term_dict.get("library_name")
     term_name_ar = CTTermNameAR.from_repository_values(
-        uid=term_dict.get("term_uid"),
+        uid=term_dict["term_uid"],
         ct_term_name_vo=CTTermNameVO.from_repository_values(
             codelists=codelists,
             name=term_dict.get(f"value_node{specific_suffix}").get("name"),
             name_sentence_case=term_dict.get(f"value_node{specific_suffix}").get(
                 "name_sentence_case"
             ),
-            catalogue_name=term_dict.get("catalogue_name"),
+            catalogue_name=term_dict["catalogue_name"],
         ),
         library=(
             LibraryVO.from_input_values_2(
-                library_name=library_name,
+                library_name=term_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: term_dict.get("is_library_editable")
+                    lambda _: term_dict["is_library_editable"]
                 ),
             )
-            if library_name
-            else None
         ),
         item_metadata=LibraryItemMetadataVO.from_repository_values(
             change_description=rel_data.get("change_description"),
@@ -234,8 +231,6 @@ def create_term_attributes_aggregate_instances_from_cypher_result(
     rel_data = term_dict[f"rel_data{specific_suffix}"]
     major, minor = rel_data.get("version").split(".")
 
-    library_name = term_dict.get("library_name")
-
     codelist_uid = term_dict.get("codelist_uid")
     codelists = []
     if codelist_uid:
@@ -248,7 +243,7 @@ def create_term_attributes_aggregate_instances_from_cypher_result(
         )
 
     term_attributes_ar = CTTermAttributesAR.from_repository_values(
-        uid=term_dict.get("term_uid"),
+        uid=term_dict["term_uid"],
         ct_term_attributes_vo=CTTermAttributesVO.from_repository_values(
             codelists=codelists,
             concept_id=term_dict.get(f"value_node{specific_suffix}").get("concept_id"),
@@ -262,17 +257,15 @@ def create_term_attributes_aggregate_instances_from_cypher_result(
                 "preferred_term"
             ),
             definition=term_dict.get(f"value_node{specific_suffix}").get("definition"),
-            catalogue_name=term_dict.get("catalogue_name"),
+            catalogue_name=term_dict["catalogue_name"],
         ),
         library=(
             LibraryVO.from_input_values_2(
-                library_name=library_name,
+                library_name=term_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: term_dict.get("is_library_editable")
+                    lambda _: term_dict["is_library_editable"]
                 ),
             )
-            if library_name
-            else None
         ),
         item_metadata=LibraryItemMetadataVO.from_repository_values(
             change_description=rel_data.get("change_description"),
@@ -348,7 +341,7 @@ def format_term_filter_sort_keys(key: str, prefix: str | None = None) -> str:
 
 
 def _parse_target_model_items(
-    is_aggregated: bool, target_model: BaseModel
+    is_aggregated: bool, target_model: type[BaseModel]
 ) -> list[str]:
     output = []
     prefix = None
@@ -368,7 +361,7 @@ def _parse_target_model_items(
 
 
 def list_term_wildcard_properties(
-    is_aggregated: bool = True, target_model: BaseModel | None = None
+    is_aggregated: bool = True, target_model: type[BaseModel] | None = None
 ) -> list[str]:
     """
     Returns a list of properties on which to apply wildcard filtering, formatted as defined in the database and/or Cypher query
@@ -382,7 +375,7 @@ def list_term_wildcard_properties(
     if is_aggregated and not target_model:
         property_list += list_term_wildcard_properties(True, CTTermName)
         property_list += list_term_wildcard_properties(True, CTTermAttributes)
-    else:
+    elif target_model is not None:
         property_list += _parse_target_model_items(is_aggregated, target_model)
     return list(set(property_list))
 
@@ -445,17 +438,17 @@ def create_codelist_name_aggregate_instances_from_cypher_result(
     major, minor = rel_data.get("version").split(".")
 
     codelist_name_ar = CTCodelistNameAR.from_repository_values(
-        uid=codelist_dict.get("codelist_uid"),
+        uid=codelist_dict["codelist_uid"],
         ct_codelist_name_vo=CTCodelistNameVO.from_repository_values(
             name=codelist_dict.get(f"value_node{specific_suffix}").get("name"),
-            catalogue_name=codelist_dict.get("catalogue_name"),
+            catalogue_name=codelist_dict["catalogue_name"],
             is_template_parameter="TemplateParameter"
             in codelist_dict.get(f"value_node{specific_suffix}").labels,
         ),
         library=LibraryVO.from_input_values_2(
-            library_name=codelist_dict.get("library_name"),
+            library_name=codelist_dict["library_name"],
             is_library_editable_callback=(
-                lambda _: codelist_dict.get("is_library_editable")
+                lambda _: codelist_dict["is_library_editable"]
             ),
         ),
         item_metadata=LibraryItemMetadataVO.from_repository_values(
@@ -494,12 +487,12 @@ def create_codelist_attributes_aggregate_instances_from_cypher_result(
     major, minor = rel_data.get("version").split(".")
 
     codelist_attributes_ar = CTCodelistAttributesAR.from_repository_values(
-        uid=codelist_dict.get("codelist_uid"),
+        uid=codelist_dict["codelist_uid"],
         ct_codelist_attributes_vo=CTCodelistAttributesVO.from_repository_values(
             name=codelist_dict.get(f"value_node{specific_suffix}").get("name"),
             parent_codelist_uid=codelist_dict.get("parent_codelist_uid"),
-            child_codelist_uids=codelist_dict.get("child_codelist_uids"),
-            catalogue_name=codelist_dict.get("catalogue_name"),
+            child_codelist_uids=codelist_dict["child_codelist_uids"],
+            catalogue_name=codelist_dict["catalogue_name"],
             submission_value=codelist_dict.get(f"value_node{specific_suffix}").get(
                 "submission_value"
             ),
@@ -514,9 +507,9 @@ def create_codelist_attributes_aggregate_instances_from_cypher_result(
             ),
         ),
         library=LibraryVO.from_input_values_2(
-            library_name=codelist_dict.get("library_name"),
+            library_name=codelist_dict["library_name"],
             is_library_editable_callback=(
-                lambda _: codelist_dict.get("is_library_editable")
+                lambda _: codelist_dict["is_library_editable"]
             ),
         ),
         item_metadata=LibraryItemMetadataVO.from_repository_values(
@@ -583,7 +576,9 @@ def format_codelist_filter_sort_keys(key: str, prefix: str | None = None) -> str
     return key
 
 
-def _parse_target_model_items_codelist(is_aggregated: bool, target_model: BaseModel):
+def _parse_target_model_items_codelist(
+    is_aggregated: bool, target_model: type[BaseModel]
+):
     output = []
     prefix = None
     if is_aggregated:
@@ -601,7 +596,7 @@ def _parse_target_model_items_codelist(is_aggregated: bool, target_model: BaseMo
 
 
 def list_codelist_wildcard_properties(
-    is_aggregated: bool = True, target_model: BaseModel | None = None
+    is_aggregated: bool = True, target_model: type[BaseModel] | None = None
 ) -> list[str]:
     """
     Returns a list of properties on which to apply wildcard filtering, formatted as defined in the database and/or Cypher query
@@ -615,6 +610,6 @@ def list_codelist_wildcard_properties(
     if is_aggregated and not target_model:
         property_list += list_codelist_wildcard_properties(True, CTCodelistName)
         property_list += list_codelist_wildcard_properties(True, CTCodelistAttributes)
-    else:
+    elif target_model is not None:
         property_list += _parse_target_model_items_codelist(is_aggregated, target_model)
     return list(set(property_list))

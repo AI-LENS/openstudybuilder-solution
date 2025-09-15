@@ -1,6 +1,6 @@
 import datetime
 
-import neo4j
+import neo4j.time
 from neomodel import (
     BooleanProperty,
     DateTimeProperty,

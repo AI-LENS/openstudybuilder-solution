@@ -50,7 +50,7 @@ class StudyStandardVersionRepository:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
         **kwargs,
@@ -217,12 +217,9 @@ class StudyStandardVersionRepository:
     def _update(self, item: StudyStandardVersionVO, create: bool = False, delete=False):
         study_root: StudyRoot = StudyRoot.nodes.get(uid=item.study_uid)
         study_value: StudyValue = study_root.latest_value.get_or_none()
-        previous_item = None
         ValidationException.raise_if(
             study_value is None, "Study doesn't have draft version."
         )
-        if not create:
-            previous_item = study_value.has_study_standard_version.get(uid=item.uid)
         new_study_standard_version = StudyStandardVersion(
             uid=item.uid,
             status=item.study_status.value,
@@ -243,6 +240,10 @@ class StudyStandardVersionRepository:
             )
             new_study_standard_version.study_value.connect(study_value)
         else:
+            previous_item: StudyStandardVersion = (
+                study_value.has_study_standard_version.get(uid=item.uid)
+            )
+
             if delete is False:
                 # update
                 self.manage_versioning_update(

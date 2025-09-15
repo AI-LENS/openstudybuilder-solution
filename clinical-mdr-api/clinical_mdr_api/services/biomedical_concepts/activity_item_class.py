@@ -75,10 +75,10 @@ class ActivityItemClassService(NeomodelExtGenericService[ActivityItemClassAR]):
             author_id=self.author_id,
             change_description=item_edit_input.change_description,
             activity_item_class_vo=ActivityItemClassVO.from_repository_values(
-                name=item_edit_input.name,
+                name=item_edit_input.name or item.activity_item_class_vo.name,
                 definition=item_edit_input.definition,
                 nci_concept_id=item_edit_input.nci_concept_id,
-                order=item_edit_input.order,
+                order=item_edit_input.order or item.activity_item_class_vo.order,
                 activity_instance_classes=[
                     ActivityInstanceClassActivityItemClassRelVO(
                         uid=item.uid,
@@ -126,12 +126,12 @@ class ActivityItemClassService(NeomodelExtGenericService[ActivityItemClassAR]):
         self,
         activity_item_class_uid: str,
         dataset_uid: str,
-        use_sponsor_model: bool | None = True,
+        use_sponsor_model: bool = True,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> list[TermWithCodelistMetadata]:
         codelist_uids, term_uids = (

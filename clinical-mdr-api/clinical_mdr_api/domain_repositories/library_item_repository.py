@@ -2,9 +2,9 @@ import abc
 import copy
 from datetime import datetime
 from threading import Lock
-from typing import Any, Iterable, Mapping, TypeVar
+from typing import Any, Iterable, Literal, Mapping, TypeVar, overload
 
-import neo4j
+import neo4j.time
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from neomodel import (
@@ -74,7 +74,7 @@ class LibraryItemRepositoryImplBase(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library,
+        library: Library | None,
         relationship: VersionRelationship,
         value: VersionValue,
         study_count: int = 0,
@@ -447,7 +447,7 @@ class LibraryItemRepositoryImplBase(
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
     ) -> Iterable[_AggregateRootType]:
         """
         GetAll implementation - gets all objects. Ignores versions.
@@ -636,7 +636,7 @@ class LibraryItemRepositoryImplBase(
         return versions, latest_draft, latest_final
 
     def get_all_versions_2(
-        self, uid: str, return_study_count: bool | None = False
+        self, uid: str, return_study_count: bool = False
     ) -> Iterable[_AggregateRootType]:
         library: Library | None = None
         # condition added because ControlledTerminology items are versioned slightly different than other library items:
@@ -709,7 +709,7 @@ class LibraryItemRepositoryImplBase(
         status: LibraryItemStatus | None = None,
         at_specific_date: datetime | None = None,
         for_update: bool = False,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         return_instantiation_counts: bool = False,
     ):
         """
@@ -734,7 +734,7 @@ class LibraryItemRepositoryImplBase(
 
     def _create_aggregate_root_instance_based_on_return_counts(
         self,
-        library: Library,
+        library: Library | None,
         root: VersionRoot,
         value: VersionValue,
         relationship: VersionRelationship,
@@ -816,7 +816,7 @@ class LibraryItemRepositoryImplBase(
         status: LibraryItemStatus | None = None,
         at_specific_date: datetime | None = None,
         for_update: bool = False,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         return_instantiation_counts: bool = False,
     ) -> _AggregateRootType | None:
         if for_update and (
@@ -851,6 +851,8 @@ class LibraryItemRepositoryImplBase(
                 if at_specific_date is None:
                     # Find the latest version (regardless of status)
                     value = has_latest_value_rel.single()
+                    if value is None:
+                        raise ValueError("No version found.")
                     relationship = self._get_latest_version(root, value)
                 else:
                     # Find the latest version (regardless of status) that exists at the specified date
@@ -927,7 +929,7 @@ class LibraryItemRepositoryImplBase(
         latest_retired_rel: RelationshipManager,
     ) -> tuple[VersionValue | None, VersionRelationship | None]:
         relationship: VersionRelationship | None = None
-        value: VersionValue | None = None
+        value: VersionValue
 
         relationship_manager_to_use: RelationshipManager = latest_retired_rel
         if status == LibraryItemStatus.FINAL:
@@ -960,8 +962,9 @@ class LibraryItemRepositoryImplBase(
                 ) from exc
             if root is None:
                 return None, None
+            library: Library | None
             if self.has_library:
-                library: Library = root.has_library.get()
+                library = root.has_library.get()
             else:
                 library = None
         else:
@@ -1125,7 +1128,10 @@ class LibraryItemRepositoryImplBase(
             {"uid": uid},
         )
 
-    def check_exists_final_version(self, uid: str) -> bool:
+    def check_exists_final_version(self, uid: str | None) -> bool:
+        if uid is None:
+            return False
+
         query = f"""
             MATCH (root:{self.root_class.__label__} {{uid: $uid}})-[:LATEST]->(value:{self.value_class.__label__})
             WHERE (root)-[:LATEST_FINAL]->(value)
@@ -1161,7 +1167,7 @@ class LibraryItemRepositoryImplBase(
         library_name: str | None = None,
         status: LibraryItemStatus | None = None,
         version: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         for_audit_trail: bool = False,
         at_specific_date: datetime | None = None,
         include_retired_versions: bool = False,
@@ -1188,6 +1194,34 @@ class LibraryItemRepositoryImplBase(
             include_retired_versions,
         )
 
+    @overload
+    def find_by_uid_optimized(
+        self,
+        uid: str | None,
+        *,
+        for_update: bool = False,
+        library_name: str | None = None,
+        status: LibraryItemStatus | None = None,
+        version: str | None = None,
+        return_study_count: bool = False,
+        for_audit_trail: Literal[False],
+        at_specific_date: datetime | None = None,
+        include_retired_versions: bool = False,
+    ) -> _AggregateRootType: ...
+    @overload
+    def find_by_uid_optimized(
+        self,
+        uid: str | None,
+        *,
+        for_update: bool = False,
+        library_name: str | None = None,
+        status: LibraryItemStatus | None = None,
+        version: str | None = None,
+        return_study_count: bool = False,
+        for_audit_trail: Literal[True],
+        at_specific_date: datetime | None = None,
+        include_retired_versions: bool = False,
+    ) -> list[_AggregateRootType]: ...
     @cached(
         cache=cache_store_item_by_uid,
         key=hashkey_library_item_with_metadata_find_by_uid,
@@ -1195,17 +1229,22 @@ class LibraryItemRepositoryImplBase(
     )
     def find_by_uid_optimized(
         self,
-        uid: str,
+        uid: str | None,
         *,
         for_update: bool = False,
         library_name: str | None = None,
         status: LibraryItemStatus | None = None,
         version: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         for_audit_trail: bool = False,
         at_specific_date: datetime | None = None,
         include_retired_versions: bool = False,
     ) -> _AggregateRootType | list[_AggregateRootType]:
+        if uid is None:
+            raise NotFoundException(
+                msg=f"UID wasn't provided for {self.root_class.__label__}."
+            )
+
         if for_update and (version is not None or status is not None):
             raise NotImplementedError(
                 "Retrieval for update supported only for latest version."
@@ -1227,7 +1266,7 @@ class LibraryItemRepositoryImplBase(
             include_retired_versions=include_retired_versions,
         )
 
-        params = {"uid": uid}
+        params: dict[str, Any] = {"uid": uid}
         if status:
             params["status"] = status.value
         if version:
@@ -1376,12 +1415,12 @@ class LibraryItemRepositoryImplBase(
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         for_audit_trail: bool = False,
         version_specific_uids: dict[Any, Any] | None = None,
@@ -1427,12 +1466,12 @@ class LibraryItemRepositoryImplBase(
         *,
         status: LibraryItemStatus | None = None,
         library_name: str | None = None,
-        return_study_count: bool | None = False,
+        return_study_count: bool = False,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         for_audit_trail: bool = False,
         version_specific_uids: dict[str, Iterable[str]] | None = None,
@@ -1641,9 +1680,9 @@ class LibraryItemRepositoryImplBase(
         *,
         field_name: str,
         status: LibraryItemStatus | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         if page_size <= 0:

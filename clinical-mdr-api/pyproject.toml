@@ -54,9 +54,10 @@ min-similarity-lines = 1000
 
 
 [tool.mypy]
+exclude = ["clinical_mdr_api/tests"]
 check_untyped_defs = true
 disallow_untyped_defs = true
 
-disable_error_code = ["no-untyped-def","arg-type","assignment","attr-defined","call-arg","call-overload","import-untyped","index","list-item","misc","override","return-value","union-attr"]
+disable_error_code = ["no-untyped-def","attr-defined","import-untyped","index","override","return-value","union-attr"]
 
 

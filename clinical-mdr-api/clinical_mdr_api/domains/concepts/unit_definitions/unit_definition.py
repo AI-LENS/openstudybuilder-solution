@@ -208,6 +208,10 @@ class UnitDefinitionAR(ConceptARBase):
     def concept_vo(self) -> UnitDefinitionValueVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: UnitDefinitionValueVO) -> None:
+        self._concept_vo = value
+
     @property
     def name(self) -> str:
         return self.concept_vo.name
@@ -221,13 +225,20 @@ class UnitDefinitionAR(ConceptARBase):
         author_id: str,
         change_description: str,
         new_unit_definition_value: UnitDefinitionValueVO | None = None,
-        concept_exists_by_callback: Callable[[str, str, bool], bool] | None = None,
-        master_unit_exists_for_dimension_predicate: Callable[[str], bool] | None = None,
-        unit_definition_exists_by_legacy_code: Callable[[str], bool] | None = None,
+        concept_exists_by_callback: Callable[
+            [str, str, bool], bool
+        ] = lambda x, y, z: True,
+        master_unit_exists_for_dimension_predicate: Callable[
+            [str], bool
+        ] = lambda _: True,
+        unit_definition_exists_by_legacy_code: Callable[[str], bool] = lambda _: True,
     ) -> None:
         """
         Edits a draft version of the object, creating a new draft version.
         """
+
+        if new_unit_definition_value.name is None:
+            raise ValidationException(msg="Unit Definition name must be provided.")
 
         UnitDefinitionValueVO.duplication_check(
             [("name", new_unit_definition_value.name, self.name)],
@@ -267,6 +278,9 @@ class UnitDefinitionAR(ConceptARBase):
                 author_id=author_id,
                 change_description=normalize_string(change_description),
             )
+            if new_unit_definition_value is None:
+                raise BusinessLogicException(msg="UnitDefinitionVO is missing.")
+
             self._concept_vo = new_unit_definition_value
 
     @classmethod
@@ -281,8 +295,11 @@ class UnitDefinitionAR(ConceptARBase):
         ] = lambda x, y, z: True,
         master_unit_exists_for_dimension_predicate: Callable[[str], bool],
         unit_definition_exists_by_legacy_code: Callable[[str], bool],
-        uid_supplier: Callable[[], str] = lambda: None,  # type: ignore
+        uid_supplier: Callable[[], str] = lambda: "",
     ) -> Self:
+        if unit_definition_value.name is None:
+            raise ValidationException(msg="Unit Definition name must be provided.")
+
         UnitDefinitionValueVO.duplication_check(
             [("name", unit_definition_value.name, None)],
             concept_exists_by_callback,

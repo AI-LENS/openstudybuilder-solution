@@ -80,7 +80,7 @@ def get_studies(
     sort_order: models.SortOrder = models.SortOrder.ASC,
     page_size: int = 10,
     page_number: int = 1,
-    id: str = None,
+    id: str | None = None,
 ) -> list[dict[Any, Any]]:
     validate_page_number_and_page_size(page_number, page_size)
 
@@ -401,7 +401,7 @@ def get_study_activity_instances(
 
 def get_study_detailed_soa(
     study_uid: str,
-    sort_by: models.SortByStudyActivities = models.SortByStudyActivities.UID,
+    sort_by: models.SortByStudyDetailedSoA = models.SortByStudyDetailedSoA.ACTIVITY_NAME,
     sort_order: models.SortOrder = models.SortOrder.ASC,
     page_size: int = 10,
     page_number: int = 1,
@@ -761,15 +761,17 @@ def get_papillons_soa(
         study_version_number=study_version_number, subpart=subpart
     )
     full_query += """
-        match (study_value)-[:HAS_STUDY_ACTIVITY]->(study_activity:StudyActivity)-[:STUDY_ACTIVITY_HAS_SCHEDULE]->(study_activity_schedule:StudyActivitySchedule)
-        match (study_visit:StudyVisit)-[:STUDY_VISIT_HAS_SCHEDULE]->(study_activity_schedule)
+        match (study_value)-[:HAS_STUDY_ACTIVITY]->(study_activity:StudyActivity)
         match (study_activity)-[:STUDY_ACTIVITY_HAS_STUDY_ACTIVITY_INSTANCE]->(study_activity_instance:StudyActivityInstance)-[:HAS_SELECTED_ACTIVITY_INSTANCE]->(activity_instance_value:ActivityInstanceValue)
         match (study_value)-[:HAS_STUDY_ACTIVITY_INSTANCE]->(study_activity_instance)
-        match (study_value)-[:HAS_STUDY_ACTIVITY_SCHEDULE]->(study_activity_schedule)
-        match (study_value)-[:HAS_STUDY_VISIT]->(study_visit)
+        optional match (study_activity)-[:STUDY_ACTIVITY_HAS_SCHEDULE]->(study_activity_schedule:StudyActivitySchedule)
+        optional match (study_value)-[:HAS_STUDY_VISIT]->(study_visit:StudyVisit)-[:STUDY_VISIT_HAS_SCHEDULE]->(study_activity_schedule)
+        optional match (study_value)-[:HAS_STUDY_ACTIVITY_SCHEDULE]->(study_activity_schedule)
         WITH
-            study_value, rel, activity_instance_value, study_visit
+            study_value, rel, activity_instance_value, study_visit, study_activity, study_activity_schedule
             order by toInteger(study_visit.unique_visit_number)
+ 
+        WHERE NOT (study_visit)--(:Delete) AND NOT (study_activity_schedule)--(:Delete) AND NOT (study_activity)--(:Delete)
         WITH
             study_value, rel, activity_instance_value,
             {topic_cd:activity_instance_value.topic_code,

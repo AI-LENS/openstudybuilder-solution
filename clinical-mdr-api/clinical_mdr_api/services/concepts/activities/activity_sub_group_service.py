@@ -210,7 +210,7 @@ class ActivitySubGroupService(ConceptGenericService[ActivitySubGroupAR]):
         self,
         subgroup_uid: str,
         version: str | None = None,
-        search_string: str | None = None,
+        search_string: str = "",
         page_number: int = 1,
         page_size: int = 10,
         total_count: bool = False,
@@ -323,7 +323,7 @@ class ActivitySubGroupService(ConceptGenericService[ActivitySubGroupAR]):
 
         total = len(activity_groups) if total_count else 0
 
-        return CustomPage.create(
+        return CustomPage(
             items=paginated_groups, total=total, page=page_number, size=page_size
         )
 

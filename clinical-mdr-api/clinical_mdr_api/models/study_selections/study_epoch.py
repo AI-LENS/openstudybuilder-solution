@@ -146,7 +146,9 @@ class StudyEpoch(BaseModel):
         ),
     ] = "#FFFFFF"
 
-    epoch_name: Annotated[str, Field(description="Name of the epoch based on CT term")]
+    epoch_name: Annotated[
+        str | None, Field(description="Name of the epoch based on CT term")
+    ]
     epoch_subtype_name: Annotated[
         str | None,
         Field(
@@ -154,7 +156,7 @@ class StudyEpoch(BaseModel):
             json_schema_extra={"nullable": True},
         ),
     ] = None
-    epoch_type_name: Annotated[str, Field()]
+    epoch_type_name: Annotated[str | None, Field()]
     epoch_subtype: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
@@ -250,7 +252,7 @@ class StudyEpochTiny(BaseModel):
     epoch_ctterm: Annotated[
         SimpleCTTermNameWithConflictFlag, Field(description="Epoch CTTerm")
     ]
-    epoch_name: Annotated[str, Field(description="CTTerm name of the Epoch")]
+    epoch_name: Annotated[str | None, Field(description="CTTerm name of the Epoch")]
     study_uid: Annotated[str, Field(description="Study uid")]
     uid: Annotated[str, Field(description="StudyEpoch uid")]
 

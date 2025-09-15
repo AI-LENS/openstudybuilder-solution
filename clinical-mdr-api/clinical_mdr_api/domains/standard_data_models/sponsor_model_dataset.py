@@ -19,63 +19,61 @@ class SponsorModelDatasetVO:
     sponsor_model_name: str
     sponsor_model_version_number: str
     dataset_uid: str
-
     is_basic_std: bool
     implemented_dataset_class: str | None
-    xml_path: str
-    xml_title: str
-    structure: str
-    purpose: str
+    xml_path: str | None
+    xml_title: str | None
+    structure: str | None
+    purpose: str | None
+    keys: list[str] | None
+    sort_keys: list[str] | None
     is_cdisc_std: bool
-    source_ig: str
-    standard_ref: str
-    comment: str
-    ig_comment: str
+    source_ig: str | None
+    standard_ref: str | None
+    comment: str | None
+    ig_comment: str | None
     map_domain_flag: bool
     suppl_qual_flag: bool
     include_in_raw: bool
     gen_raw_seqno_flag: bool
-    enrich_build_order: int
-    keys: list[str] | None
-    sort_keys: list[str] | None
-    label: str
-    state: str
-    extended_domain: str
-
+    enrich_build_order: int | None
+    label: str | None
+    state: str | None
+    extended_domain: str | None
     target_data_model_catalogue: str | None = None
 
     @classmethod
     def from_repository_values(
         cls,
         sponsor_model_name: str,
-        sponsor_model_version_number: int,
+        sponsor_model_version_number: str,
         dataset_uid: str,
         is_basic_std: bool,
-        implemented_dataset_class: str,
-        xml_path: str,
-        xml_title: str,
-        structure: str,
-        purpose: str,
+        implemented_dataset_class: str | None,
+        xml_path: str | None,
+        xml_title: str | None,
+        structure: str | None,
+        purpose: str | None,
         keys: list[str] | None,
         sort_keys: list[str] | None,
         is_cdisc_std: bool,
-        source_ig: str,
-        standard_ref: str,
-        comment: str,
-        ig_comment: str,
+        source_ig: str | None,
+        standard_ref: str | None,
+        comment: str | None,
+        ig_comment: str | None,
         map_domain_flag: bool,
         suppl_qual_flag: bool,
         include_in_raw: bool,
         gen_raw_seqno_flag: bool,
-        enrich_build_order: int,
-        label: str,
-        state: str,
-        extended_domain: str,
+        enrich_build_order: int | None,
+        label: str | None,
+        state: str | None,
+        extended_domain: str | None,
         target_data_model_catalogue: str | None = None,
     ) -> Self:
         sponsor_model_dataset_vo = cls(
             sponsor_model_name=sponsor_model_name,
-            sponsor_model_version_number=sponsor_model_version_number,
+            sponsor_model_version_number=str(sponsor_model_version_number),
             dataset_uid=dataset_uid,
             is_basic_std=is_basic_std,
             implemented_dataset_class=implemented_dataset_class,
@@ -118,7 +116,7 @@ class SponsorModelDatasetMetadataVO(LibraryItemMetadataVO):
             _author_id=author_id,
             _start_date=datetime.datetime.now(datetime.timezone.utc),
             _end_date=None,
-            _major_version=version,
+            _major_version=int(version),
             _minor_version=0,
         )
 
@@ -148,8 +146,8 @@ class SponsorModelDatasetAR(LibraryItemAggregateRootBase):
         cls,
         dataset_uid: str,
         sponsor_model_dataset_vo: SponsorModelDatasetVO,
-        library: LibraryVO | None,
-        item_metadata: SponsorModelDatasetMetadataVO,
+        library: LibraryVO,
+        item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         sponsor_model_dataset_ar = cls(
             _uid=dataset_uid,

@@ -17,6 +17,7 @@ from clinical_mdr_api.models.study_selections.study_disease_milestone import (
     StudyDiseaseMilestone,
     StudyDiseaseMilestoneCreateInput,
     StudyDiseaseMilestoneEditInput,
+    StudyDiseaseMilestoneOGM,
     StudyDiseaseMilestoneVersion,
 )
 from clinical_mdr_api.models.utils import (
@@ -66,6 +67,9 @@ class StudyDiseaseMilestoneService:
         disease_milestone: StudyDiseaseMilestoneVO,
         study_value_version: str | None = None,
     ) -> StudyDiseaseMilestone:
+        if disease_milestone.uid is None:
+            raise ValidationException(msg="Study Disease Milestone UID is missing.")
+
         return StudyDiseaseMilestone(
             uid=disease_milestone.uid,
             study_uid=disease_milestone.study_uid,
@@ -76,7 +80,7 @@ class StudyDiseaseMilestoneService:
             ),
             order=disease_milestone.order,
             status=disease_milestone.status.value,
-            start_date=disease_milestone.start_date.strftime(settings.date_time_format),
+            start_date=disease_milestone.start_date,
             author_username=UserInfoService.get_author_username_from_id(
                 disease_milestone.author_id,
             ),
@@ -94,11 +98,7 @@ class StudyDiseaseMilestoneService:
             self._transform_all_to_response_model(disease_milestone)
         )
         study_disease_milestone.change_type = disease_milestone.change_type
-        study_disease_milestone.end_date = (
-            disease_milestone.end_date.strftime(settings.date_time_format)
-            if disease_milestone.end_date
-            else None
-        )
+        study_disease_milestone.end_date = disease_milestone.end_date
         return study_disease_milestone
 
     def _instantiate_disease_milestone_items(
@@ -142,7 +142,7 @@ class StudyDiseaseMilestoneService:
             for disease_milestone in items
         ]
 
-        study_disease_milestones = GenericFilteringReturn.create(all_items, total)
+        study_disease_milestones = GenericFilteringReturn(items=all_items, total=total)
         return study_disease_milestones
 
     @db.transaction
@@ -160,7 +160,7 @@ class StudyDiseaseMilestoneService:
     def _validate_creation(
         self,
         disease_milestone_input: StudyDiseaseMilestoneCreateInput,
-        all_disease_milestones: list[StudyDiseaseMilestoneVO],
+        all_disease_milestones: list[StudyDiseaseMilestoneOGM],
     ):
         used_types = [
             disease_milestone.dm_type.name
@@ -178,7 +178,7 @@ class StudyDiseaseMilestoneService:
 
     def _validate_update(
         self,
-        disease_milestone_input: StudyDiseaseMilestoneCreateInput,
+        disease_milestone_input: StudyDiseaseMilestoneEditInput,
         study_disease_milestone: StudyDiseaseMilestoneVO,
     ):
         if (
@@ -215,7 +215,7 @@ class StudyDiseaseMilestoneService:
 
         return StudyDiseaseMilestoneVO(
             study_uid=study_uid,
-            order=study_disease_milestone_create_input.order,
+            order=study_disease_milestone_create_input.order,  # type: ignore[arg-type]
             start_date=datetime.datetime.now(datetime.timezone.utc),
             status=StudyStatus.DRAFT,
             author_id=self.author,
@@ -400,9 +400,9 @@ class StudyDiseaseMilestoneService:
     def get_distinct_values_for_header(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ):

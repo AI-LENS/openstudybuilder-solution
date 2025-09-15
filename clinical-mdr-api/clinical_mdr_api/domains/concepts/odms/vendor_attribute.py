@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Self
+from typing import Callable, Self
 
 from clinical_mdr_api.domains.concepts.concept_base import ConceptVO
 from clinical_mdr_api.domains.concepts.odms.odm_ar_base import OdmARBase
@@ -50,7 +50,7 @@ class OdmVendorAttributeVO(ConceptVO):
         ],
         find_odm_vendor_element_callback: Callable[[str], OdmVendorElementAR | None],
         find_odm_vendor_attribute_callback: Callable[
-            [dict[Any, Any]], tuple[list["OdmVendorAttributeAR"], int] | None
+            ..., tuple[list["OdmVendorAttributeAR"], int]
         ],
     ) -> None:
         if self.vendor_namespace_uid is not None:
@@ -110,12 +110,16 @@ class OdmVendorAttributeAR(OdmARBase):
     def concept_vo(self) -> OdmVendorAttributeVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmVendorAttributeVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmVendorAttributeVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -131,7 +135,7 @@ class OdmVendorAttributeAR(OdmARBase):
         author_id: str,
         concept_vo: OdmVendorAttributeVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         find_odm_vendor_namespace_callback: Callable[
             [str], OdmVendorNamespaceAR | None
         ] = lambda _: None,
@@ -139,8 +143,8 @@ class OdmVendorAttributeAR(OdmARBase):
             [str], OdmVendorElementAR | None
         ] = lambda _: None,
         find_odm_vendor_attribute_callback: Callable[
-            [dict[Any, Any]], tuple[list["OdmVendorAttributeAR"], int] | None
-        ] = lambda _: None,
+            ..., tuple[list["OdmVendorAttributeAR"], int]
+        ] = lambda _: ([], 0),
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -162,7 +166,7 @@ class OdmVendorAttributeAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmVendorAttributeVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

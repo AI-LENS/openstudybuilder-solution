@@ -37,18 +37,15 @@ class CommentsService:
         page_size: int = 0,
     ) -> GenericFilteringReturn[CommentTopic]:
         try:
-            items, total = self.repos.comments_repository.find_all_comment_topics(
+            item_ars, total = self.repos.comments_repository.find_all_comment_topics(
                 topic_path=topic_path,
                 topic_path_partial_match=topic_path_partial_match,
                 page_number=page_number,
                 page_size=page_size,
             )
 
-            all_topics = GenericFilteringReturn.create(items, total)
-            all_topics.items = [
-                CommentTopic.from_ar(item_ar) for item_ar in all_topics.items
-            ]
-            return all_topics
+            items = [CommentTopic.from_ar(item_ar) for item_ar in item_ars]
+            return GenericFilteringReturn(items=items, total=total)
         finally:
             self.repos.close()
 
@@ -61,7 +58,7 @@ class CommentsService:
         page_size: int = 0,
     ) -> GenericFilteringReturn[CommentThread]:
         try:
-            items, total = self.repos.comments_repository.find_all_comment_threads(
+            item_ars, total = self.repos.comments_repository.find_all_comment_threads(
                 topic_path=topic_path,
                 topic_path_partial_match=topic_path_partial_match,
                 status=status,
@@ -69,11 +66,8 @@ class CommentsService:
                 page_size=page_size,
             )
 
-            all_threads = GenericFilteringReturn.create(items, total)
-            all_threads.items = [
-                CommentThread.from_ar(item_ar) for item_ar in all_threads.items
-            ]
-            return all_threads
+            items = [CommentThread.from_ar(item_ar) for item_ar in item_ars]
+            return GenericFilteringReturn(items=items, total=total)
         finally:
             self.repos.close()
 

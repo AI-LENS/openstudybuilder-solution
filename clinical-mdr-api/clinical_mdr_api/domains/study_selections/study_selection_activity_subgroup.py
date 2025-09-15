@@ -25,7 +25,7 @@ class StudySelectionActivitySubGroupVO(study_selection_base.StudySelectionBaseVO
     study_activity_uids: list[str] | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
     accepted_version: bool = False
 
@@ -34,7 +34,7 @@ class StudySelectionActivitySubGroupVO(study_selection_base.StudySelectionBaseVO
         cls,
         study_uid: str,
         activity_subgroup_uid: str,
-        activity_subgroup_version: str,
+        activity_subgroup_version: str | None,
         author_id: str,
         activity_subgroup_name: str | None = None,
         order: int | None = None,
@@ -44,7 +44,7 @@ class StudySelectionActivitySubGroupVO(study_selection_base.StudySelectionBaseVO
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         if study_selection_uid is None:
             study_selection_uid = generate_uid_callback()
@@ -70,8 +70,8 @@ class StudySelectionActivitySubGroupVO(study_selection_base.StudySelectionBaseVO
 
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         # Checks if there exists an activity subgroup which is approved with activity_subgroup_uid
         if not object_exist_callback(normalize_string(self.activity_subgroup_uid)):

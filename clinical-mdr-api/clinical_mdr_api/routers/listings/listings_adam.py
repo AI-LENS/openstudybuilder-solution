@@ -5,6 +5,7 @@ from pydantic.types import Json
 
 from clinical_mdr_api.domains.listings.utils import AdamReport
 from clinical_mdr_api.models.listings.listings_adam import (
+    FlowchartMetadataAdamListing,
     StudyEndpntAdamListing,
     StudyVisitAdamListing,
 )
@@ -47,10 +48,10 @@ def get_adam_listing(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -65,15 +66,17 @@ def get_adam_listing(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
-) -> CustomPage[StudyVisitAdamListing] | CustomPage[StudyEndpntAdamListing]:
+) -> CustomPage[
+    StudyVisitAdamListing | StudyEndpntAdamListing | FlowchartMetadataAdamListing
+]:
     service = ListingsService()
     all_items = service.get_report(
         adam_report=adam_report,
@@ -87,7 +90,7 @@ def get_adam_listing(
         study_value_version=study_value_version,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -121,7 +124,7 @@ def get_distinct_adam_listing_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -131,10 +134,10 @@ def get_distinct_adam_listing_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY

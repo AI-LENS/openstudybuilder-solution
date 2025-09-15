@@ -49,6 +49,14 @@ services:
     profiles:
       - database
 
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "127.0.0.1:9411:9411"
+      - "::1:9411:9411"
+    profiles:
+      - zipkin
+
 networks:
   default:
     driver: external

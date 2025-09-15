@@ -24,7 +24,7 @@ class StudySoAGroupVO(study_selection_base.StudySelectionBaseVO):
     study_activity_group_uids: list[str] | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
     accepted_version: bool = False
 
@@ -41,7 +41,7 @@ class StudySoAGroupVO(study_selection_base.StudySelectionBaseVO):
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         if study_selection_uid is None:
             study_selection_uid = generate_uid_callback()
@@ -65,8 +65,8 @@ class StudySoAGroupVO(study_selection_base.StudySelectionBaseVO):
 
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         # Checks if there exists an activity which is approved with activity_uid
         ValidationException.raise_if_not(

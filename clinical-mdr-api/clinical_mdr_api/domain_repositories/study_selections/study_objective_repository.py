@@ -62,7 +62,7 @@ class StudySelectionObjectiveRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionObjectiveVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_uids:
             if isinstance(study_uids, str):
                 study_uid_statement = "{uid: $uids}"
@@ -193,7 +193,7 @@ class StudySelectionObjectiveRepository:
         study_uid: str,
         for_update: bool = False,
         study_value_version: str | None = None,
-    ) -> StudySelectionObjectivesAR | None:
+    ) -> StudySelectionObjectivesAR:
         """
         Finds all the selected study objectives for a given study, and creates the aggregate
         :param study_uid:
@@ -507,7 +507,7 @@ class StudySelectionObjectiveRepository:
 
     def find_selection_history(
         self, study_uid: str, study_selection_uid: str | None = None
-    ) -> list[dict | None]:
+    ) -> list[SelectionHistory]:
         """
         Simple method to return all versions of a study objectives for a study.
         Optionally a specific selection uid is given to see only the response for a specific selection.

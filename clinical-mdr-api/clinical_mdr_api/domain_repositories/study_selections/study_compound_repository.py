@@ -70,7 +70,7 @@ class StudySelectionCompoundRepository:
         type_of_treatment: str | None = None,
     ) -> tuple[StudySelectionCompoundVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_uid:
             if study_value_version:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION { version: $version}]->(sv:StudyValue)"
@@ -201,7 +201,7 @@ class StudySelectionCompoundRepository:
         study_value_version: str | None = None,
         for_update: bool = False,
         **filters,
-    ) -> StudySelectionCompoundsAR | None:
+    ) -> StudySelectionCompoundsAR:
         """
         Finds all the selected study compounds for a given study, and creates the aggregate
         :param study_uid:
@@ -652,7 +652,7 @@ class StudySelectionCompoundRepository:
 
     def find_selection_history(
         self, study_uid: str, study_selection_uid: str | None = None
-    ) -> list[dict | None]:
+    ) -> list[StudyCompoundSelectionHistory]:
         """
         Simple method to return all versions of a study objectives for a study.
         Optionally a specific selection uid is given to see only the response for a specific selection.

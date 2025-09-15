@@ -112,7 +112,6 @@ def test_data():
         short_name="Arm_Short_Name_1",
         code="Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -123,7 +122,6 @@ def test_data():
         short_name="Arm_Short_Name_2",
         code="Arm_code_2",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup2",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -134,7 +132,6 @@ def test_data():
         short_name="Arm_Short_Name_3",
         code="Arm_code_3",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup3",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -146,7 +143,6 @@ def test_data():
         short_name="Arm_Short_Name_9",
         code="Arm_code_9",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup9",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -155,13 +151,13 @@ def test_data():
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch.uid,
-        study_arm_uid="StudyArm_000003",
+        study_arm_uid="StudyArm_000002",
         study_uid=study.uid,
     )
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch2.uid,
-        study_arm_uid="StudyArm_000003",
+        study_arm_uid="StudyArm_000002",
         study_uid=study.uid,
     )
 
@@ -178,10 +174,9 @@ def test_data():
         short_name="Branch_Arm_Short_Name_1",
         code="Branch_Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Branch_Arm_randomizationGroup",
         number_of_subjects=100,
-        arm_uid="StudyArm_000003",
+        arm_uid="StudyArm_000002",
     )
     branch_arm = patch_study_branch_arm(
         branch_arm_uid=branch_arm.branch_arm_uid, study_uid=study.uid
@@ -190,7 +185,7 @@ def test_data():
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch2.uid,
-        study_arm_uid="StudyArm_000005",
+        study_arm_uid="StudyArm_000003",
         study_uid=study.uid,
     )
 
@@ -200,7 +195,6 @@ def test_data():
         short_name="Cohort_Short_Name_1",
         code="Cohort_code_1",
         description="desc...",
-        colour_code="desc...",
         number_of_subjects=100,
         arm_uids=["StudyArm_000001"],
     )

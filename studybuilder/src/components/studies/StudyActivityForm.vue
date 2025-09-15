@@ -930,7 +930,6 @@ function getActivities(filters, options) {
   }
   activitiesApi.get(params, 'activities').then((resp) => {
     activities.value = resp.data.items
-    console.log(activities.value)
     if (selectedActivities.value.length > 0) {
       for (const sa of selectedActivities.value) {
         activities.value[

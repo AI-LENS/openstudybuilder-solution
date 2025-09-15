@@ -199,21 +199,27 @@ class StudyActivityScheduleService(StudySelectionMixin):
     ) -> list[StudyActivityScheduleBatchOutput]:
         results = []
         for operation in operations:
-            result = {}
             item = None
             try:
                 if operation.method == "POST":
-                    item = self.create(study_uid, operation.content)
-                    response_code = status.HTTP_201_CREATED
+                    if isinstance(operation.content, StudyActivityScheduleCreateInput):
+                        item = self.create(study_uid, operation.content)
+                        response_code = status.HTTP_201_CREATED
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudyActivityScheduleCreateInput as request payload."
+                        )
+
                 elif operation.method == "DELETE":
                     self.delete(study_uid, operation.content.uid)
                     response_code = status.HTTP_204_NO_CONTENT
                 else:
                     raise exceptions.MethodNotAllowedException(method=operation.method)
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(StudyActivityScheduleBatchOutput(**result))
+                results.append(
+                    StudyActivityScheduleBatchOutput(
+                        response_code=response_code, content=item
+                    )
+                )
             except exceptions.MDRApiBaseException as error:
                 results.append(
                     StudyActivityScheduleBatchOutput.model_construct(

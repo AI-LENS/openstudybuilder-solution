@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated, Any, Callable, Self
+from typing import Annotated, Any, Callable, Self, overload
 
 from pydantic import ConfigDict, Field
 
@@ -48,6 +48,10 @@ from clinical_mdr_api.domains.study_selections.study_selection_objective import 
     StudySelectionObjectiveVO,
 )
 from clinical_mdr_api.domains.study_selections.study_visit import StudyVisitVO
+from clinical_mdr_api.domains.syntax_instances.criteria import CriteriaAR
+from clinical_mdr_api.domains.syntax_instances.endpoint import EndpointAR
+from clinical_mdr_api.domains.syntax_instances.objective import ObjectiveAR
+from clinical_mdr_api.domains.syntax_instances.timeframe import TimeframeAR
 from clinical_mdr_api.models.study_selections.study import StudyDescriptionJsonModel
 from clinical_mdr_api.models.study_selections.study_epoch import StudyEpoch
 from clinical_mdr_api.models.syntax_instances.criteria import Criteria
@@ -55,12 +59,23 @@ from clinical_mdr_api.models.syntax_instances.endpoint import Endpoint
 from clinical_mdr_api.models.syntax_instances.objective import Objective
 from clinical_mdr_api.models.syntax_instances.timeframe import Timeframe
 from clinical_mdr_api.models.utils import BaseModel
+from common.exceptions import BusinessLogicException
 
 
 class SimpleListingCTModel(BaseModel):
+    @overload
     @classmethod
     def from_ct_code(
         cls, ct_uid: str, find_term_by_uid: Callable[[str], Any | None]
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_ct_code(
+        cls, ct_uid: None, find_term_by_uid: Callable[[str], Any | None]
+    ) -> None: ...
+    @classmethod
+    def from_ct_code(
+        cls, ct_uid: str | None, find_term_by_uid: Callable[[str], Any | None]
     ) -> Self | None:
         simple_listing_ct_model = None
         if ct_uid is not None:
@@ -78,9 +93,7 @@ class SimpleListingCTModel(BaseModel):
                         name=getattr(term.dictionary_term_vo, "name"),
                     )
             else:
-                simple_listing_ct_model = cls(term_id=ct_uid, name=None)
-        else:
-            simple_listing_ct_model = None
+                simple_listing_ct_model = cls(id=ct_uid, name=None)
         return simple_listing_ct_model
 
     id: Annotated[
@@ -100,7 +113,9 @@ class SimpleListingCTModel(BaseModel):
     ] = None
 
 
-def ct_term_uid_to_str(ct_uid: str, find_term_by_uid: Callable[[str], Any | None]):
+def ct_term_uid_to_str(
+    ct_uid: str | None, find_term_by_uid: Callable[[str], Any | None]
+):
     if ct_uid is not None:
         term = find_term_by_uid(ct_uid)
         if term is not None:
@@ -111,7 +126,7 @@ def ct_term_uid_to_str(ct_uid: str, find_term_by_uid: Callable[[str], Any | None
     return ""
 
 
-def boolean_to_ny(response: bool):
+def boolean_to_ny(response: bool | None):
     if response:
         return "Y"
     return "N"
@@ -719,7 +734,7 @@ class StudyCohortListingModel(StudySelctionListingModel):
 
 class StudyEpochListingModel(BaseModel):
     uid: Annotated[str, Field()]
-    order: Annotated[int, Field()]
+    order: Annotated[int | None, Field(json_schema_extra={"nullable": True})]
     name: Annotated[str, Field()]
     type: Annotated[str, Field()]
     subtype: Annotated[str, Field()]
@@ -806,7 +821,7 @@ class StudyElementListingModel(BaseModel):
     def from_study_element_ar(
         study_element_ar: StudySelectionElementAR,
         find_term_by_uid: Callable,
-    ) -> list["StudyEpochListingModel"]:
+    ) -> list["StudyElementListingModel"]:
         elements = []
         for selection in study_element_ar.study_elements_selection:
             selection_and_order = study_element_ar.get_specific_object_selection(
@@ -857,8 +872,8 @@ class StudyDesignMatrixListingModel(BaseModel):
 class StudyVisitListingModel(BaseModel):
     epoch_uid: Annotated[str, Field()]
     epoch_name: Annotated[str, Field()]
-    visit_type: Annotated[str, Field()]
-    contact_model: Annotated[str, Field()]
+    visit_type: Annotated[str | None, Field(json_schema_extra={"nullable": True})]
+    contact_model: Annotated[str | None, Field(json_schema_extra={"nullable": True})]
     visit_no: Annotated[str, Field()]
     name: Annotated[str, Field()]
     short_name: Annotated[str, Field()]
@@ -931,25 +946,26 @@ class StudyCriteriaListingModel(BaseModel):
         cls,
         study_criteria_vo: StudySelectionCriteriaVO,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_criteria_by_uid: Callable[[str], Criteria | None],
+        find_criteria_by_uid: Callable[[str], CriteriaAR | None],
     ) -> Self:
+        criteria_ar = find_criteria_by_uid(study_criteria_vo.syntax_object_uid)
+        if criteria_ar is None:
+            raise BusinessLogicException(
+                f"Criteria with UID {study_criteria_vo.syntax_object_uid} not found."
+            )
         return cls(
             type=ct_term_uid_to_str(
                 ct_uid=study_criteria_vo.criteria_type_uid,
                 find_term_by_uid=find_term_by_uid,
             ),
-            text=none_to_empty_str(
-                Criteria.from_criteria_ar(
-                    find_criteria_by_uid(uid=study_criteria_vo.syntax_object_uid)
-                ).name_plain
-            ),
+            text=none_to_empty_str(Criteria.from_criteria_ar(criteria_ar).name_plain),
         )
 
     @staticmethod
     def from_study_criteria_ar(
         study_criteria_ar: StudySelectionCriteriaAR,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_criteria_by_uid: Callable[[str], Criteria | None],
+        find_criteria_by_uid: Callable[[str], CriteriaAR | None],
     ) -> list["StudyCriteriaListingModel"]:
         study_criterias = []
         for study_criteria in study_criteria_ar.study_criteria_selection:
@@ -974,8 +990,17 @@ class StudyObjectiveListingModel(BaseModel):
         cls,
         study_objective_vo: StudySelectionObjectiveVO,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_objective_by_uid: Callable[[str], Objective | None],
+        find_objective_by_uid: Callable[[str], ObjectiveAR | None],
     ) -> Self:
+        objective_ar = (
+            find_objective_by_uid(study_objective_vo.objective_uid)
+            if study_objective_vo.objective_uid is not None
+            else None
+        )
+        if objective_ar is None:
+            raise BusinessLogicException(
+                f"Objective with UID {study_objective_vo.objective_uid} not found."
+            )
         return cls(
             uid=study_objective_vo.study_selection_uid,
             type=ct_term_uid_to_str(
@@ -983,9 +1008,7 @@ class StudyObjectiveListingModel(BaseModel):
                 find_term_by_uid=find_term_by_uid,
             ),
             text=none_to_empty_str(
-                Objective.from_objective_ar(
-                    find_objective_by_uid(uid=study_objective_vo.objective_uid)
-                ).name_plain
+                Objective.from_objective_ar(objective_ar).name_plain
             ),
         )
 
@@ -993,7 +1016,7 @@ class StudyObjectiveListingModel(BaseModel):
     def from_study_objective_ar(
         study_objective_ar: StudySelectionObjectivesAR,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_objective_by_uid: Callable[[str], Objective | None],
+        find_objective_by_uid: Callable[[str], ObjectiveAR | None],
     ) -> list["StudyObjectiveListingModel"]:
         study_objectives = []
         for study_objective in study_objective_ar.study_objectives_selection:
@@ -1021,8 +1044,8 @@ class StudyEndpointListingModel(BaseModel):
         cls,
         study_endpoint_vo: StudySelectionEndpointVO,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_endpoint_by_uid: Callable[[str], Endpoint | None],
-        find_timeframe_by_uid: Callable[[str], Timeframe | None],
+        find_endpoint_by_uid: Callable[[str], EndpointAR | None],
+        find_timeframe_by_uid: Callable[[str], TimeframeAR | None],
     ) -> Self:
         units = (
             [u["name"] for u in study_endpoint_vo.endpoint_units]
@@ -1035,6 +1058,26 @@ class StudyEndpointListingModel(BaseModel):
             ep_unit = units[0]
         else:
             ep_unit = f" {study_endpoint_vo.unit_separator} ".join(units)
+
+        endpoint_ar = (
+            find_endpoint_by_uid(study_endpoint_vo.endpoint_uid)
+            if study_endpoint_vo.endpoint_uid is not None
+            else None
+        )
+        if endpoint_ar is None:
+            raise BusinessLogicException(
+                f"Endpoint with UID {study_endpoint_vo.endpoint_uid} not found."
+            )
+        timeframe_ar = (
+            find_timeframe_by_uid(study_endpoint_vo.timeframe_uid)
+            if study_endpoint_vo.timeframe_uid is not None
+            else None
+        )
+        if timeframe_ar is None:
+            raise BusinessLogicException(
+                f"Timeframe with UID {study_endpoint_vo.timeframe_uid} not found."
+            )
+
         return cls(
             uid=study_endpoint_vo.study_selection_uid,
             type=ct_term_uid_to_str(
@@ -1045,18 +1088,12 @@ class StudyEndpointListingModel(BaseModel):
                 ct_uid=study_endpoint_vo.endpoint_sublevel_uid,
                 find_term_by_uid=find_term_by_uid,
             ),
-            text=none_to_empty_str(
-                Endpoint.from_endpoint_ar(
-                    find_endpoint_by_uid(uid=study_endpoint_vo.endpoint_uid)
-                ).name_plain
-            ),
+            text=none_to_empty_str(Endpoint.from_endpoint_ar(endpoint_ar).name_plain),
             objective_uid=none_to_empty_str(study_endpoint_vo.study_objective_uid),
-            timeframe=(
-                Timeframe.from_timeframe_ar(
-                    find_timeframe_by_uid(uid=study_endpoint_vo.timeframe_uid)
-                ).name_plain
+            timeframe=none_to_empty_str(
+                Timeframe.from_timeframe_ar(timeframe_ar).name_plain
                 if study_endpoint_vo.timeframe_uid
-                else ""
+                else None
             ),
             endpoint_unit=ep_unit,
         )
@@ -1065,8 +1102,8 @@ class StudyEndpointListingModel(BaseModel):
     def from_study_endpoint_ar(
         study_endpoint_ar: StudySelectionEndpointsAR,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
-        find_endpoint_by_uid: Callable[[str], Endpoint | None],
-        find_timeframe_by_uid: Callable[[str], Timeframe | None],
+        find_endpoint_by_uid: Callable[[str], EndpointAR | None],
+        find_timeframe_by_uid: Callable[[str], TimeframeAR | None],
     ) -> list["StudyEndpointListingModel"]:
         study_endpoints = []
         for study_endpoint in study_endpoint_ar.study_endpoints_selection:
@@ -1089,7 +1126,7 @@ class StudyMetadataListingModel(BaseModel):
     study_ver: Annotated[float, Field()]
     specified_dt: Annotated[str, Field()]
     request_dt: Annotated[str, Field()]
-    title: Annotated[str, Field()]
+    title: Annotated[str | None, Field(json_schema_extra={"nullable": True})]
     reg_id: Annotated[
         RegistryIdentifiersListingModel | None,
         Field(json_schema_extra={"nullable": True}),
@@ -1161,10 +1198,10 @@ class StudyMetadataListingModel(BaseModel):
         study_endpoint_ar: StudySelectionEndpointsAR,
         find_term_by_uid: Callable[[str], CTTermAttributesAR | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
-        find_criteria_by_uid: Callable[[str], Criteria | None],
-        find_objective_by_uid: Callable[[str], Objective | None],
-        find_endpoint_by_uid: Callable[[str], Endpoint | None],
-        find_timeframe_by_uid: Callable[[str], Timeframe | None],
+        find_criteria_by_uid: Callable[[str], CriteriaAR | None],
+        find_objective_by_uid: Callable[[str], ObjectiveAR | None],
+        find_endpoint_by_uid: Callable[[str], EndpointAR | None],
+        find_timeframe_by_uid: Callable[[str], TimeframeAR | None],
     ) -> Self | None:
         if study_metadata_vo is None:
             return None

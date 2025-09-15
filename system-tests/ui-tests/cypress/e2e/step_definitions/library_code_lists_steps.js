@@ -62,7 +62,7 @@ When('The term is validated', () => {
 
 When('The new term is added', () => {
     termSponsorName = `SponsorTerm ${Date.now()}`
-    termSentanceName = `TermSentenceCase ${Date.now()}`
+    termSentanceName = `sponsorterm ${Date.now()}`
     termName = `TermName ${Date.now()}`
     termSubmissionValue = `E2ETerm ${Date.now()}`
     termNciValue = `NCITerm${Date.now()}`

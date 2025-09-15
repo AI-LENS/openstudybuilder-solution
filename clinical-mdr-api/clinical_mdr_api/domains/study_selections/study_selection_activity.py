@@ -40,7 +40,7 @@ class StudySelectionActivityVO(study_selection_base.StudySelectionBaseVO):
     keep_old_version: bool
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
     accepted_version: bool = False
     activity_name: str | None = None
@@ -54,8 +54,8 @@ class StudySelectionActivityVO(study_selection_base.StudySelectionBaseVO):
         study_soa_group_uid: str,
         soa_group_term_uid: str,
         author_id: str,
-        soa_group_term_name: str | None = None,
         author_username: str | None = None,
+        soa_group_term_name: str | None = None,
         study_soa_group_order: int | None = None,
         activity_library_name: str | None = None,
         study_activity_subgroup_uid: str | None = None,
@@ -66,16 +66,16 @@ class StudySelectionActivityVO(study_selection_base.StudySelectionBaseVO):
         study_activity_group_order: int | None = None,
         activity_group_uid: str | None = None,
         activity_group_name: str | None = None,
-        show_activity_in_protocol_flowchart: bool | None = False,
-        show_activity_group_in_protocol_flowchart: bool | None = True,
-        show_activity_subgroup_in_protocol_flowchart: bool | None = True,
-        show_soa_group_in_protocol_flowchart: bool | None = False,
+        show_activity_in_protocol_flowchart: bool = False,
+        show_activity_group_in_protocol_flowchart: bool = True,
+        show_activity_subgroup_in_protocol_flowchart: bool = True,
+        show_soa_group_in_protocol_flowchart: bool = False,
         order: int | None = 0,
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
         activity_name: str | None = None,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
         keep_old_version: bool = False,
     ):
         if study_selection_uid is None:
@@ -121,8 +121,8 @@ class StudySelectionActivityVO(study_selection_base.StudySelectionBaseVO):
 
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         # Checks if there exists an activity which is approved with activity_uid
         BusinessLogicException.raise_if_not(
@@ -173,10 +173,10 @@ class StudySelectionActivityAR(study_selection_base.StudySelectionBaseAR):
 
     """
 
-    _object_type = "activity"
-    _object_uid_field = "activity_uid"
-    _object_name_field = "activity_name"
-    _order_field_name = "order"
+    _object_type: str = "activity"
+    _object_uid_field: str = "activity_uid"
+    _object_name_field: str = "activity_name"
+    _order_field_name: str = "order"
 
     def validate(self):
         objects = []

@@ -20,7 +20,7 @@ class StudyCompoundDosingVO:
 
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
 
     # Optional information
@@ -38,7 +38,7 @@ class StudyCompoundDosingVO:
         dose_value_uid: str | None,
         dose_frequency_uid: str | None,
         author_id: str,
-        study_uid: str | None = None,
+        study_uid: str,
         compound_uid: str | None = None,
         compound_alias_uid: str | None = None,
         medicinal_product_uid: str | None = None,
@@ -72,8 +72,10 @@ class StudyCompoundDosingVO:
 
     def validate(
         self,
-        selection_uid_by_compound_dose_and_frequency_callback: Callable[[Self], str],
-        medicinal_product_callback: Callable[[str], MedicinalProductAR] = (
+        selection_uid_by_compound_dose_and_frequency_callback: Callable[
+            [Self], str | None
+        ],
+        medicinal_product_callback: Callable[..., MedicinalProductAR | None] = (
             lambda _: None
         ),
     ) -> None:
@@ -90,7 +92,7 @@ class StudyCompoundDosingVO:
 
         # Validate that each of these selections is actually defined on the selected library compound (i.e. medicinal product):
         #   - dose value
-        medicinal_product: MedicinalProductAR = medicinal_product_callback(
+        medicinal_product: MedicinalProductAR | None = medicinal_product_callback(
             self.medicinal_product_uid
         )
         exceptions.BusinessLogicException.raise_if(
@@ -142,9 +144,9 @@ class StudySelectionCompoundDosingsAR:
         self,
         study_compound_dosing_selection: StudyCompoundDosingVO,
         selection_uid_by_compound_dose_and_frequency_callback: Callable[
-            [StudyCompoundDosingVO], str
+            [StudyCompoundDosingVO], str | None
         ],
-        medicinal_product_callback: Callable[[str], MedicinalProductAR] = (
+        medicinal_product_callback: Callable[..., MedicinalProductAR | None] = (
             lambda _: None
         ),
     ) -> None:
@@ -184,7 +186,7 @@ class StudySelectionCompoundDosingsAR:
         for selection in self.study_compound_dosings_selection:
             if selection.study_selection_uid != study_selection_uid:
                 updated_selection.append(selection)
-        self._study_compound_dosings_selection = tuple(updated_selection)
+        self._study_compound_dosings_selection = updated_selection
 
     def set_new_order_for_selection(self, study_selection_uid: str, new_order: int):
         """
@@ -229,15 +231,15 @@ class StudySelectionCompoundDosingsAR:
             # We add all other vo to in the same order as before, except for the vo we are moving
             elif selection.study_selection_uid != selected_value.study_selection_uid:
                 updated_selections.append(selection)
-        self._study_compound_dosings_selection = tuple(updated_selections)
+        self._study_compound_dosings_selection = updated_selections
 
     def update_selection(
         self,
         updated_study_compound_dosing_selection: StudyCompoundDosingVO,
         selection_uid_by_compound_dose_and_frequency_callback: Callable[
-            [StudyCompoundDosingVO], str
+            [StudyCompoundDosingVO], str | None
         ],
-        medicinal_product_callback: Callable[[str], MedicinalProductAR] = (
+        medicinal_product_callback: Callable[..., MedicinalProductAR | None] = (
             lambda _: None
         ),
     ) -> None:
@@ -257,4 +259,4 @@ class StudySelectionCompoundDosingsAR:
                 updated_selection.append(updated_study_compound_dosing_selection)
             else:
                 updated_selection.append(selection)
-        self._study_compound_dosings_selection = tuple(updated_selection)
+        self._study_compound_dosings_selection = updated_selection

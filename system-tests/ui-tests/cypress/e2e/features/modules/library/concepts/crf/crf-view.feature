@@ -1,8 +1,7 @@
-@REQ_ID:xxx
+@REQ_ID:1070683
 Feature: Library - Concepts - CRFs - CRF View
 
-  As a user, I want to integrate and display CRFs exported from Veeva EDC so that 
-    I can efficiently manage and maintain CRFs within the StudyBuilder Library.
+ As a user, I want to verify that the CRFs View page exported from Veeva EDC Libary are correctly displayed. 
 
   Background: User must be logged in
     Given The user is logged in
@@ -13,29 +12,12 @@ Feature: Library - Concepts - CRFs - CRF View
     When The 'CRFs' submenu is clicked in the 'Concepts' section
     And The 'CRF View' tab is selected
     Then The current URL is '/library/crfs/odm-viewer'
-    
-@manual_test
-  Scenario: Exporting CRFs from Veeva EDC to StudyBuilder CRF Library
-    Given a CRF is exported from Veeva EDC
-    When I view the StudyBuilder CRF library
-    Then the items should be visible in the StudyBuilder CRF library
-    And the item groups should be visible in the StudyBuilder CRF library
-    And the form should be visible in the StudyBuilder CRF library
-@manual_test
-  Scenario: Matching Properties of Items between Veeva EDC and StudyBuilder CRF Library
-    Given a CRF is exported from Veeva EDC
-    When I check the properties of items in StudyBuilder CRF library
-    Then the OID of the item in CRF in StudyBuilder library should be the same as the item name in Veeva EDC library
-    And for a numeric field, the number of digits set on an item in Veeva EDC library should match the number of digits set for the item in StudyBuilder library
-    And the label of the unit displayed in StudyBuilder library should match the label of the unit in Veeva EDC library form
-    And the label of the item displayed in StudyBuilder library should match the label of the item displayed in Veeva EDC library form
-    And the number of options for selection in a unit field should be the same in both systems if there are more than 1 option to select
-    And if an item is required in Veeva EDC library form, then the same item should be set as required in StudyBuilder library form
-    And when an item is required, a red '*' should appear before the label of the item
-@manual_test
-  Scenario: Matching Properties of Item Groups between Veeva EDC and StudyBuilder CRF Library
-    Given a CRF is exported from Veeva EDC
-    When I check the properties of item groups in StudyBuilder CRF library
-    Then the item group OID in StudyBuilder should be the same as the item group name in Veeva EDC library form
-    And the item group label in StudyBuilder should be the same as the item group label in Veeva EDC library form
-    And if the item group is checked as repeating in Veeva EDC library form, it should be checked as repeating in StudyBuilder library item group
+
+  Scenario: Verifying XML Code checkbox can be checked and displayed the XML code page
+    Given The '/library/crfs/odm-viewer' page is opened
+    When I select a value from the ODM Element Name dropdown
+    And I click the LOAD button
+    Then The imported CRF view page should be displayed
+    When I check the XML Code checkbox
+    Then The XML Code page should be displayed and formatted correctly
+  

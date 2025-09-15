@@ -8,7 +8,12 @@ import csv
 from mdr_standards_import.scripts.entities.cdisc_data_models.data_model_type import (
     DataModelType,
 )
-from mdr_standards_import.scripts.utils import parse_ig_name, sanitize_string, load_env
+from mdr_standards_import.scripts.utils import (
+    create_user,
+    parse_ig_name,
+    sanitize_string,
+    load_env,
+)
 
 AUTHOR_ID = "CDISC_IMPORT"
 DATA_MODEL_ROOT_LABEL = "DataModelRoot"
@@ -174,6 +179,9 @@ def import_from_cdisc_db_into_mdr(
                     )
 
                 session.close()
+
+        with mdr_neo4j_driver.session(database=mdr_db_name) as session:
+            session.write_transaction(create_user, author_id)
 
     end_time = time.time()
     elapsed_time = end_time - start_time

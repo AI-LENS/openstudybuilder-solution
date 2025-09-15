@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from neomodel import NodeSet
 from neomodel.sync_.match import NodeNameResolver
+from pydantic import BaseModel
 
 from clinical_mdr_api.repositories._utils import (
     FilterOperator,
@@ -22,8 +23,8 @@ _StandardsReturnType = TypeVar("_StandardsReturnType")
 
 
 class NeomodelExtBaseRepository:
-    root_class = type
-    return_model = type
+    root_class: type
+    return_model: type[BaseModel]
 
     @abstractmethod
     def get_neomodel_extension_query(self) -> NodeSet:
@@ -62,7 +63,7 @@ class NeomodelExtBaseRepository:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> tuple[list[_StandardsReturnType], int]:
         # Validate params
@@ -99,9 +100,9 @@ class NeomodelExtBaseRepository:
     def get_distinct_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         """

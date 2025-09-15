@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Any, Callable, Collection, Iterable, Self
+from typing import Annotated, Any, Callable, Collection, Self, overload
 
 from pydantic import ConfigDict, Field
 
@@ -211,12 +211,13 @@ class RegistryIdentifiersJsonModel(BaseModel):
     def from_study_registry_identifiers_vo(
         cls,
         registry_identifiers_vo: RegistryIdentifiersVO,
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self:
-        c_codes = list(
-            set(
-                [
+        c_codes = [
+            code
+            for code in list(
+                {
                     registry_identifiers_vo.ct_gov_id_null_value_code,
                     registry_identifiers_vo.eudract_id_null_value_code,
                     registry_identifiers_vo.universal_trial_number_utn_null_value_code,
@@ -229,12 +230,11 @@ class RegistryIdentifiersJsonModel(BaseModel):
                     registry_identifiers_vo.national_medical_products_administration_nmpa_number_null_value_code,
                     registry_identifiers_vo.eudamed_srn_number_null_value_code,
                     registry_identifiers_vo.investigational_device_exemption_ide_number_null_value_code,
-                ]
+                }
             )
-        )
+            if code is not None
+        ]
 
-        if None in c_codes:
-            c_codes.remove(None)
         if ct_term_generic_repository.__name__ == find_term_by_uids.__module__:
             terms = {
                 term.term_uid: term
@@ -247,7 +247,7 @@ class RegistryIdentifiersJsonModel(BaseModel):
         else:
             terms = {
                 c_code: SimpleCTTermNameWithConflictFlag.from_ct_code(
-                    c_code=c_code,
+                    c_code=c_code or "",
                     at_specific_date=terms_at_specific_datetime,
                     find_term_by_uid=find_term_by_uids,
                 )
@@ -375,13 +375,33 @@ class StudyIdentificationMetadataJsonModel(BaseModel):
         RegistryIdentifiersJsonModel | None, Field(json_schema_extra={"nullable": True})
     ] = None
 
+    @overload
+    @classmethod
+    def from_study_identification_vo(
+        cls,
+        study_identification_o: StudyIdentificationMetadataVO,
+        find_project_by_project_number: Callable[[str], ProjectAR],
+        find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_study_identification_vo(
+        cls,
+        study_identification_o: None,
+        find_project_by_project_number: Callable[[str], ProjectAR],
+        find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> None: ...
     @classmethod
     def from_study_identification_vo(
         cls,
         study_identification_o: StudyIdentificationMetadataVO | None,
         find_project_by_project_number: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self | None:
         if study_identification_o is None:
@@ -578,37 +598,56 @@ class HighLevelStudyDesignJsonModel(BaseModel):
         Field(json_schema_extra={"nullable": True}),
     ] = None
 
+    @overload
+    @classmethod
+    def from_high_level_study_design_vo(
+        cls,
+        high_level_study_design_vo: HighLevelStudyDesignVO,
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_high_level_study_design_vo(
+        cls,
+        high_level_study_design_vo: None,
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> None: ...
     @classmethod
     def from_high_level_study_design_vo(
         cls,
         high_level_study_design_vo: HighLevelStudyDesignVO | None,
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self | None:
         if high_level_study_design_vo is None:
             return None
 
-        c_codes = list(
-            set(
-                high_level_study_design_vo.trial_type_codes
-                + [
-                    high_level_study_design_vo.study_type_code,
-                    high_level_study_design_vo.study_type_null_value_code,
-                    high_level_study_design_vo.trial_type_null_value_code,
-                    high_level_study_design_vo.trial_phase_code,
-                    high_level_study_design_vo.trial_phase_null_value_code,
-                    high_level_study_design_vo.is_extension_trial_null_value_code,
-                    high_level_study_design_vo.is_adaptive_design_null_value_code,
-                    high_level_study_design_vo.study_stop_rules_null_value_code,
-                    high_level_study_design_vo.confirmed_response_minimum_duration_null_value_code,
-                    high_level_study_design_vo.post_auth_indicator_null_value_code,
-                ]
-            )
+        _c_codes = list(
+            {
+                high_level_study_design_vo.study_type_code,
+                high_level_study_design_vo.study_type_null_value_code,
+                high_level_study_design_vo.trial_type_null_value_code,
+                high_level_study_design_vo.trial_phase_code,
+                high_level_study_design_vo.trial_phase_null_value_code,
+                high_level_study_design_vo.is_extension_trial_null_value_code,
+                high_level_study_design_vo.is_adaptive_design_null_value_code,
+                high_level_study_design_vo.study_stop_rules_null_value_code,
+                high_level_study_design_vo.confirmed_response_minimum_duration_null_value_code,
+                high_level_study_design_vo.post_auth_indicator_null_value_code,
+            }
         )
 
-        if None in c_codes:
-            c_codes.remove(None)
+        for trial_type_code in high_level_study_design_vo.trial_type_codes:
+            if trial_type_code is not None:
+                _c_codes.append(trial_type_code)
+
+        c_codes = [code for code in _c_codes if code is not None]
+
         if ct_term_generic_repository.__name__ == find_term_by_uids.__module__:
             terms = {
                 term.term_uid: term
@@ -621,7 +660,7 @@ class HighLevelStudyDesignJsonModel(BaseModel):
         else:
             terms = {
                 c_code: SimpleCTTermNameWithConflictFlag.from_ct_code(
-                    c_code=c_code,
+                    c_code=c_code or "",
                     at_specific_date=terms_at_specific_datetime,
                     find_term_by_uid=find_term_by_uids,
                 )
@@ -815,21 +854,42 @@ class StudyPopulationJsonModel(BaseModel):
         Field(json_schema_extra={"nullable": True}),
     ] = None
 
+    @overload
+    @classmethod
+    def from_study_population_vo(
+        cls,
+        study_population_vo: StudyPopulationVO,
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_study_population_vo(
+        cls,
+        study_population_vo: None,
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> None: ...
     @classmethod
     def from_study_population_vo(
         cls,
         study_population_vo: StudyPopulationVO | None,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self | None:
         if study_population_vo is None:
             return None
 
-        c_codes = list(
-            set(
-                [
+        c_codes = [
+            code
+            for code in list(
+                {
                     study_population_vo.therapeutic_area_null_value_code,
                     study_population_vo.diagnosis_group_null_value_code,
                     study_population_vo.disease_condition_or_indication_null_value_code,
@@ -845,12 +905,11 @@ class StudyPopulationJsonModel(BaseModel):
                     study_population_vo.pediatric_investigation_plan_indicator_null_value_code,
                     study_population_vo.relapse_criteria_null_value_code,
                     study_population_vo.number_of_expected_subjects_null_value_code,
-                ]
+                }
             )
-        )
+            if code is not None
+        ]
 
-        if None in c_codes:
-            c_codes.remove(None)
         if ct_term_generic_repository.__name__ == find_term_by_uids.__module__:
             terms = {
                 term.term_uid: term
@@ -863,7 +922,7 @@ class StudyPopulationJsonModel(BaseModel):
         else:
             terms = {
                 c_code: SimpleCTTermNameWithConflictFlag.from_ct_code(
-                    c_code=c_code,
+                    c_code=c_code or "",
                     at_specific_date=terms_at_specific_datetime,
                     find_term_by_uid=find_term_by_uids,
                 )
@@ -1097,38 +1156,59 @@ class StudyInterventionJsonModel(BaseModel):
         Field(json_schema_extra={"nullable": True}),
     ] = None
 
+    @overload
+    @classmethod
+    def from_study_intervention_vo(
+        cls,
+        study_intervention_vo: StudyInterventionVO,
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_study_intervention_vo(
+        cls,
+        study_intervention_vo: None,
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
+        terms_at_specific_datetime: datetime | None = None,
+    ) -> None: ...
     @classmethod
     def from_study_intervention_vo(
         cls,
         study_intervention_vo: StudyInterventionVO | None,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self | None:
         if study_intervention_vo is None:
             return None
-        c_codes = list(
-            set(
-                study_intervention_vo.trial_intent_types_codes
-                + [
-                    study_intervention_vo.intervention_type_code,
-                    study_intervention_vo.intervention_type_null_value_code,
-                    study_intervention_vo.add_on_to_existing_treatments_null_value_code,
-                    study_intervention_vo.control_type_code,
-                    study_intervention_vo.control_type_null_value_code,
-                    study_intervention_vo.intervention_model_code,
-                    study_intervention_vo.intervention_model_null_value_code,
-                    study_intervention_vo.is_trial_randomised_null_value_code,
-                    study_intervention_vo.stratification_factor_null_value_code,
-                    study_intervention_vo.trial_blinding_schema_code,
-                    study_intervention_vo.trial_blinding_schema_null_value_code,
-                    study_intervention_vo.planned_study_length_null_value_code,
-                    study_intervention_vo.trial_intent_type_null_value_code,
-                ]
-            )
+
+        _c_codes = list(
+            {
+                study_intervention_vo.intervention_type_code,
+                study_intervention_vo.intervention_type_null_value_code,
+                study_intervention_vo.add_on_to_existing_treatments_null_value_code,
+                study_intervention_vo.control_type_code,
+                study_intervention_vo.control_type_null_value_code,
+                study_intervention_vo.intervention_model_code,
+                study_intervention_vo.intervention_model_null_value_code,
+                study_intervention_vo.is_trial_randomised_null_value_code,
+                study_intervention_vo.stratification_factor_null_value_code,
+                study_intervention_vo.trial_blinding_schema_code,
+                study_intervention_vo.trial_blinding_schema_null_value_code,
+                study_intervention_vo.planned_study_length_null_value_code,
+                study_intervention_vo.trial_intent_type_null_value_code,
+            }
         )
-        if None in c_codes:
-            c_codes.remove(None)
+
+        for trial_intent_types_code in study_intervention_vo.trial_intent_types_codes:
+            if trial_intent_types_code is not None:
+                _c_codes.append(trial_intent_types_code)
+
+        c_codes = [code for code in _c_codes if code is not None]
+
         if ct_term_generic_repository.__name__ == find_term_by_uids.__module__:
             terms = {
                 term.term_uid: term
@@ -1141,7 +1221,7 @@ class StudyInterventionJsonModel(BaseModel):
         else:
             terms = {
                 c_code: SimpleCTTermNameWithConflictFlag.from_ct_code(
-                    c_code=c_code,
+                    c_code=c_code or "",
                     at_specific_date=terms_at_specific_datetime,
                     find_term_by_uid=find_term_by_uids,
                 )
@@ -1243,6 +1323,14 @@ class StudyDescriptionJsonModel(BaseModel):
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
 
+    @overload
+    @classmethod
+    def from_study_description_vo(
+        cls, study_description_vo: StudyDescriptionVO
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_study_description_vo(cls, study_description_vo: None) -> None: ...
     @classmethod
     def from_study_description_vo(
         cls, study_description_vo: StudyDescriptionVO | None
@@ -1323,8 +1411,8 @@ class StudyMetadataJsonModel(BaseModel):
         study_metadata_vo: StudyMetadataVO,
         find_project_by_project_number: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
         terms_at_specific_datetime: datetime | None = None,
     ) -> Self:
@@ -1400,7 +1488,7 @@ class StudyParentPart(BaseModel):
         cls,
         study_uid: str | None,
         find_study_parent_part_by_uid: Callable[[str], StudyDefinitionAR | None],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
     ) -> Self:
         if not study_uid:
             return None
@@ -1481,7 +1569,7 @@ class CompactStudy(BaseModel):
         find_project_by_project_number: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
         find_study_parent_part_by_uid: Callable[[str], StudyDefinitionAR | None],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
     ) -> Self:
         study = cls(
             uid=study_definition_ar.uid,
@@ -1597,9 +1685,9 @@ class Study(BaseModel):
         study_definition_ar: StudyDefinitionAR,
         find_project_by_project_number: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
         find_study_parent_part_by_uid: Callable[[str], StudyDefinitionAR | None],
-        find_term_by_uids: Callable[[str], CTTermNameAR | None],
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
         # pylint: disable=unused-argument
         at_specified_date_time: datetime | None = None,
@@ -1783,7 +1871,7 @@ class StudyFieldAuditTrailEntry(BaseModel):
                     c_code=action.before_value, find_term_by_uid=find_term_by_uid
                 ),
                 after_value=SimpleTermModel.from_ct_code(
-                    c_code=action.after_value, find_term_by_uid=find_term_by_uid
+                    c_code=action.after_value or "", find_term_by_uid=find_term_by_uid
                 ),
             )
             for action in study_field_audit_trail_vo.actions

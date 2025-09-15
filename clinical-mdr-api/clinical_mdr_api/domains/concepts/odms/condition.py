@@ -17,7 +17,7 @@ from common.exceptions import AlreadyExistsException, BusinessLogicException
 
 @dataclass(frozen=True)
 class OdmConditionVO(ConceptVO):
-    oid: str
+    oid: str | None
     formal_expression_uids: list[str]
     description_uids: list[str]
     alias_uids: list[str]
@@ -25,7 +25,7 @@ class OdmConditionVO(ConceptVO):
     @classmethod
     def from_repository_values(
         cls,
-        oid: str,
+        oid: str | None,
         name: str,
         formal_expression_uids: list[str],
         description_uids: list[str],
@@ -148,12 +148,16 @@ class OdmConditionAR(OdmARBase):
     def concept_vo(self) -> OdmConditionVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmConditionVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmConditionVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -169,7 +173,7 @@ class OdmConditionAR(OdmARBase):
         author_id: str,
         concept_vo: OdmConditionVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         odm_object_exists_callback: Callable = lambda _: True,
         find_odm_formal_expression_callback: Callable[
             [str], OdmFormalExpressionAR | None
@@ -207,7 +211,7 @@ class OdmConditionAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmConditionVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

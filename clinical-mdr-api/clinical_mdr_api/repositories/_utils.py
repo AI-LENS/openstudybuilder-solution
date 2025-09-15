@@ -96,14 +96,14 @@ data_type_filters = {
 }
 
 
-def get_wildcard_filter(filter_elem, model: BaseModel):
+def get_wildcard_filter(filter_elem, model: type[BaseModel]):
     """
     Creates the wildcard filter for all string properties also nested one.
     The wildcard filter is a `contains` case insensitive filter that is combined by OR operator with other properties.
 
     Args:
         filter_elem: The filter element containing the search term.
-        model (BaseModel): The model to create the wildcard filter for.
+        model (type[BaseModel]): The model to create the wildcard filter for.
 
     Returns:
         The created wildcard filter.
@@ -132,14 +132,14 @@ def get_wildcard_filter(filter_elem, model: BaseModel):
     return functools.reduce(lambda filter1, filter2: filter1 | filter2, wildcard_filter)
 
 
-def get_embedded_field(fields: list[Any], model: BaseModel):
+def get_embedded_field(fields: list[Any], model: type[BaseModel]):
     """
     Returns the embedded field to filter by. For instance we can obtain 'flowchart_group.name' filter clause
     from the client which means that we want to filter by the name property in the flowchart_group nested model.
 
     Args:
         fields (list[Any]): A list of fields representing the nesting of the desired field.
-        model (BaseModel): The model to search for the nested field.
+        model (type[BaseModel]): The model to search for the nested field.
 
     Returns:
         ModelField | Any | None: The nested field to filter by.
@@ -190,7 +190,7 @@ def get_field_path(prop, field):
     return field_name
 
 
-def get_order_by_clause(sort_by: dict[str, bool] | None, model: BaseModel):
+def get_order_by_clause(sort_by: dict[str, bool] | None, model: type[BaseModel]):
     sort_paths = []
     if sort_by:
         for key, value in sort_by.items():
@@ -246,7 +246,7 @@ def validate_sort_by_dict(sort_by: dict[str, bool] | None | str):
     return sort_by
 
 
-def validate_filter_by_dict(filter_by: dict[str, dict[str, Any]] | None | str):
+def validate_filter_by_dict(filter_by: dict[str, Any] | str | None):
     # Accept an empty string as an empty dictionary
     if filter_by == "":
         filter_by = {}
@@ -280,10 +280,10 @@ def validate_filters_and_add_search_string(
 
 
 def transform_filters_into_neomodel(
-    filter_by: dict[str, dict[str, Any]] | None, model: BaseModel
+    filter_by: dict[str, dict[str, Any]] | None, model: type[BaseModel]
 ):
     q_filters = []
-    filters = FilterDict(elements=filter_by)
+    filters = FilterDict.model_validate({"elements": filter_by})
     for prop, filter_elem in filters.elements.items():
         if prop == "*":
             q_filters.append(get_wildcard_filter(filter_elem=filter_elem, model=model))
@@ -514,7 +514,7 @@ class CypherQueryBuilder:
         sort_by: dict[str, bool] | None = None,
         implicit_sort_by: str | None = None,
         filter_by: FilterDict | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         return_model: type | None = None,
         wildcard_properties_list: list[str] | None = None,
@@ -832,7 +832,7 @@ class CypherQueryBuilder:
                                 and issubclass(self.return_model, BaseModel)
                                 and self.return_model.model_fields.get(_alias)
                                 and get_sub_fields(
-                                    self.return_model.model_fields.get(_alias)
+                                    self.return_model.model_fields[_alias]
                                 )
                                 is not None
                                 and get_field_type(

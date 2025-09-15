@@ -382,7 +382,10 @@ function fetchCodelists(filters, options, filtersUpdated) {
 function goToCodelist(codelist) {
   router.push({
     name: 'CodeListDetail',
-    params: { codelist_id: codelist.codelist_uid },
+    params: {
+      catalogue_name: codelist.catalogue_name,
+      codelist_id: codelist.codelist_uid,
+    },
   })
   eventBusEmit('notification', { msg: t('CodelistCreationForm.add_success') })
 }

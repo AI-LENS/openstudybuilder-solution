@@ -30,7 +30,7 @@ from common import exceptions
 
 class StudyDesignCellTestCase(unittest.TestCase):
     def setUp(self):
-        inject_and_clear_db("studydesigncelltest")
+        inject_and_clear_db("studydesigncelltestt")
         db.cypher_query(STARTUP_STUDY_LIST_CYPHER)
         db.cypher_query(STARTUP_CT_CATALOGUE_CYPHER)
 
@@ -64,7 +64,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="Arm_Short_Name_1",
                 code="Arm_code_1",
                 description="desc...",
-                colour_code="colour...",
                 randomization_group="Randomization_Group_1",
                 number_of_subjects=1,
                 arm_type_uid=arm_type_term.uid,
@@ -75,7 +74,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="Arm_Short_Name_2",
                 code="Arm_code_2",
                 description="desc...",
-                colour_code="colour...",
                 randomization_group="Randomization_Group_2",
                 number_of_subjects=1,
                 arm_type_uid=arm_type_term.uid,
@@ -86,7 +84,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="Arm_Short_Name_3",
                 code="Arm_code_3",
                 description="desc...",
-                colour_code="colour...",
                 randomization_group="Randomization_Group_3",
                 number_of_subjects=3,
                 arm_type_uid=arm_type_term.uid,
@@ -97,7 +94,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="Arm_Short_Name_4",
                 code="Arm_code_4",
                 description="desc...",
-                colour_code="colour...",
                 randomization_group="Randomization_Group_4",
                 number_of_subjects=3,
                 arm_type_uid=arm_type_term.uid,
@@ -108,7 +104,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="Arm_Short_Name_5",
                 code="Arm_code_5",
                 description="desc...",
-                colour_code="colour...",
                 randomization_group="Randomization_Group_5",
                 number_of_subjects=3,
                 arm_type_uid=arm_type_term.uid,
@@ -148,7 +143,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="BranchArm_Short_Name_1",
                 code="BranchArm_code_1",
                 description="desc...",
-                colour_code="desc...",
                 randomization_group="Randomization_Group_1",
                 number_of_subjects=1,
                 arm_uid=self.study_arms[0].arm_uid,
@@ -159,7 +153,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="BranchArm_Short_Name_2",
                 code="BranchArm_code_2",
                 description="desc...",
-                colour_code="desc...",
                 randomization_group="BranchArm_Randomization_Group_2",
                 number_of_subjects=1,
                 arm_uid=self.study_arms[1].arm_uid,
@@ -170,7 +163,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="BranchArm_Short_Name_3",
                 code="BranchArm_code_3",
                 description="desc...",
-                colour_code="desc...",
                 randomization_group="Randomization_Group_3",
                 number_of_subjects=1,
                 arm_uid=self.study_arms[0].arm_uid,
@@ -181,7 +173,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="BranchArm_Short_Name_4",
                 code="BranchArm_code_4",
                 description="desc...",
-                colour_code="desc...",
                 randomization_group="BranchArm_Randomization_Group_4",
                 number_of_subjects=1,
                 arm_uid=self.study_arms[1].arm_uid,
@@ -192,7 +183,6 @@ class StudyDesignCellTestCase(unittest.TestCase):
                 short_name="BranchArm_Short_Name_5",
                 code="BranchArm_code_5",
                 description="desc...",
-                colour_code="desc...",
                 randomization_group="BranchArm_Randomization_Group_5",
                 number_of_subjects=1,
                 arm_uid=self.study_arms[1].arm_uid,

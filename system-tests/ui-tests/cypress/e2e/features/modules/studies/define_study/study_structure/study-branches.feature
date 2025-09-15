@@ -1,5 +1,5 @@
 @REQ_ID:1074254
-Feature: Studies - Define Study - Study Structure - Study Branches
+Feature: Studies - Define Study - Study Structure - Manually Defined Study Branches
 
     As a system user,
     I want the system to ensure [Scenario],

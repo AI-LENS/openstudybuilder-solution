@@ -4,7 +4,7 @@ from common.utils import get_field_type
 
 
 def list_concept_wildcard_properties(
-    target_model: BaseModel | None = None,
+    target_model: type[BaseModel] | None = None,
 ) -> list[str]:
     """
     Returns a list of properties on which to apply wildcard filtering, formatted as defined in the Cypher query.

@@ -122,7 +122,7 @@ class RegistryIdentifiersVO:
         )
 
     def validate(
-        self, null_value_exists_callback: Callable[[str], bool] = (lambda _: True)
+        self, null_value_exists_callback: Callable[[str], bool] = lambda _: True
     ) -> None:
         """Raises ValueError if values do not comply with relevant business rules."""
         ValidationException.raise_if(

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from neomodel import db
 
@@ -67,7 +68,7 @@ class StudyActivityScheduleRepository(base.StudySelectionRepository):
                 self.find_schedule_for_study_visit_and_study_activity(
                     study_uid=selection_vo.study_uid,
                     study_activity_uid=selection_vo.study_activity_uid,
-                    study_visit_uid=selection_vo.study_visit_uid,
+                    study_visit_uid=selection_vo.study_visit_uid or "",
                 ),
                 msg=f"There already exist a schedule for the same Activity and Visit in the Study with UID '{selection_vo.study_uid}'",
             )
@@ -224,7 +225,7 @@ class StudyActivityScheduleRepository(base.StudySelectionRepository):
         returns study activity schedules for a study_uid
         """
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         query_parameters["study_visit_uid"] = study_visit_uid
         query_parameters["library_name"] = settings.requested_library_name
         if study_value_version:

@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -124,6 +124,7 @@ class SimpleActiveSubstance(BaseModel):
         CompoundSubstance | None, Field(json_schema_extra={"nullable": True})
     ] = None
 
+    @overload
     @classmethod
     def from_concept_uid(
         cls,
@@ -131,10 +132,27 @@ class SimpleActiveSubstance(BaseModel):
         find_by_uid: Callable[[str], ActiveSubstanceAR | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
         find_substance_term_by_uid: Callable[[str], DictionaryTermSubstanceAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: None,
+        find_by_uid: Callable[[str], ActiveSubstanceAR | None],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        find_substance_term_by_uid: Callable[[str], DictionaryTermSubstanceAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: str | None,
+        find_by_uid: Callable[[str], ActiveSubstanceAR | None],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        find_substance_term_by_uid: Callable[[str], DictionaryTermSubstanceAR | None],
     ) -> Self | None:
         concept = None
         if uid is not None:
-            val: ActiveSubstanceAR = find_by_uid(uid)
+            val: ActiveSubstanceAR | None = find_by_uid(uid)
 
             if val is not None:
                 concept = SimpleActiveSubstance(

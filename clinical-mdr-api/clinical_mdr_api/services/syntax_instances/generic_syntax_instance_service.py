@@ -9,10 +9,7 @@ from clinical_mdr_api.domain_repositories._generic_repository_interface import (
     GenericRepository,
 )
 from clinical_mdr_api.domain_repositories.models.syntax import SyntaxTemplateRoot
-from clinical_mdr_api.domains.libraries.object import (
-    ParametrizedTemplateARBase,
-    ParametrizedTemplateVO,
-)
+from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
 from clinical_mdr_api.domains.libraries.parameter_term import (
     ParameterTermEntryVO,
     SimpleParameterTermVO,
@@ -83,13 +80,11 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
     def create_ar_from_input_values(
         self,
         template,
+        next_available_sequence_id_callback: Callable[..., str] = lambda _: "",
         generate_uid_callback=None,
-        next_available_sequence_id_callback: Callable[[str], str | None] = (
-            lambda _: None
-        ),
         study_uid: str | None = None,
         template_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
     ) -> _AggregateRootType:
         parameter_terms = self._create_parameter_entries(
             template,
@@ -176,9 +171,7 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
         """
         Supports edit draft action
         """
-        item: ParametrizedTemplateARBase = self.repository.find_by_uid(
-            uid, for_update=True
-        )
+        item = self.repository.find_by_uid(uid, for_update=True)
         parameter_terms = self._create_parameter_entries(
             template, template_uid=item.template_uid
         )
@@ -211,7 +204,7 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
         self,
         uid: str,
         study_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
     ):
         try:
             item = self.repository.find_by_uid(uid)
@@ -229,7 +222,7 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
         template,
         template_uid: str | None = None,
         study_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
     ) -> list[ParameterTermEntryVO]:
         """
         Creates list of Parameter Term Entries that is used in aggregate. These contain:
@@ -268,9 +261,9 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
                 continue
 
             parameter = template.parameter_terms[idx]
-            uids: list[str] = []
+            uids: list[SimpleParameterTermVO] = []
 
-            if len(parameter.terms) == 0:
+            if len(parameter.terms or []) == 0:
                 # If we have an empty parameter value selection, send an empty list with default type fro the allowed parameters.
                 pve = ParameterTermEntryVO.from_input_values(
                     parameter_exists_callback=self._repos.parameter_repository.parameter_name_exists,
@@ -286,8 +279,8 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
                     parameter_name=allowed_parameter[
                         "name"
                     ],  # Item is used out of context of the for-loop
-                    conjunction=parameter.conjunction,
-                    labels=parameter.labels,
+                    conjunction=parameter.conjunction,  # type: ignore[arg-type]
+                    labels=parameter.labels or [],
                     parameters=uids,
                 )
                 parameter_terms.append(pve)
@@ -312,9 +305,9 @@ class GenericSyntaxInstanceService(GenericSyntaxService[_AggregateRootType], abc
                         )
                     ),
                     # pylint: disable=undefined-loop-variable
-                    parameter_name=item.type,
-                    conjunction=parameter.conjunction,
-                    labels=parameter.labels,
+                    parameter_name=item.type,  # type: ignore[arg-type]
+                    conjunction=parameter.conjunction,  # type: ignore[arg-type]
+                    labels=parameter.labels or [],
                     parameters=uids,
                 )
                 parameter_terms.append(pve)

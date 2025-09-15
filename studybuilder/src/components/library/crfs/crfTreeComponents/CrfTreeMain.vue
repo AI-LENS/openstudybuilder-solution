@@ -251,7 +251,7 @@ export default {
         {
           uid: form.data.uid,
           order_number: this.selectedTemplate.forms.length,
-          mandatory: false,
+          mandatory: 'No',
           collection_exception_condition_oid: null,
         },
       ]

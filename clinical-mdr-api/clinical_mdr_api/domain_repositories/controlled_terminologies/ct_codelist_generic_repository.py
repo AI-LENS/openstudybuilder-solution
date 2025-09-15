@@ -54,7 +54,7 @@ class CTCodelistGenericRepository(
 ):
     root_class = type
     value_class = type
-    relationship_from_root = type
+    relationship_from_root: str
     generic_alias_clause = """
         DISTINCT codelist_root, codelist_ver_root, codelist_ver_value
         ORDER BY codelist_root.uid
@@ -115,7 +115,7 @@ class CTCodelistGenericRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: ControlledTerminology,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: ControlledTerminology,
     ) -> _AggregateRootType:
@@ -156,7 +156,7 @@ class CTCodelistGenericRepository(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         **_kwargs,
     ) -> GenericFilteringReturn[_AggregateRootType]:
@@ -207,7 +207,7 @@ class CTCodelistGenericRepository(
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=_return_model,
@@ -227,17 +227,17 @@ class CTCodelistGenericRepository(
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=extracted_items, total=total)
+        return GenericFilteringReturn(items=extracted_items, total=total)
 
     def get_distinct_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         catalogue_name: str | None = None,
         library: str | None = None,
         package: str | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         """
@@ -273,7 +273,7 @@ class CTCodelistGenericRepository(
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -320,7 +320,7 @@ class CTCodelistGenericRepository(
 
     def _retrieve_codelists_from_cypher_res(
         self, result_array, attribute_names
-    ) -> Iterable[_AggregateRootType]:
+    ) -> list[_AggregateRootType]:
         """
         Method maps the result of the cypher query into real aggregate objects.
         :param result_array:

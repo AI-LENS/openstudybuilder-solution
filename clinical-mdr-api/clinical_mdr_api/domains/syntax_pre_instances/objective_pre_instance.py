@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Self
 
 from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
@@ -21,9 +21,9 @@ class ObjectivePreInstanceAR(PreInstanceAR):
 
     _is_confirmatory_testing: bool = False
 
-    _indications: list[SimpleTermModel] | None = None
+    _indications: list[SimpleTermModel] = field(default_factory=list)
 
-    _categories: list[SimpleCTTermNameAndAttributes] | None = None
+    _categories: list[SimpleCTTermNameAndAttributes] = field(default_factory=list)
 
     @property
     def is_confirmatory_testing(self) -> bool:
@@ -57,8 +57,8 @@ class ObjectivePreInstanceAR(PreInstanceAR):
             _library=library,
             _template=template,
             _is_confirmatory_testing=is_confirmatory_testing,
-            _indications=indications,
-            _categories=categories,
+            _indications=indications or [],
+            _categories=categories or [],
             _study_count=study_count,
         )
 
@@ -68,10 +68,8 @@ class ObjectivePreInstanceAR(PreInstanceAR):
         author_id: str,
         library: LibraryVO,
         template: ParametrizedTemplateVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        next_available_sequence_id_callback: Callable[[str], str | None] = (
-            lambda _: None
-        ),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        next_available_sequence_id_callback: Callable[..., str] = lambda _: "",
         is_confirmatory_testing: bool = False,
         indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,
@@ -90,7 +88,7 @@ class ObjectivePreInstanceAR(PreInstanceAR):
             _item_metadata=item_metadata,
         )
         ar._is_confirmatory_testing = is_confirmatory_testing
-        ar._indications = indications
-        ar._categories = categories
+        ar._indications = indications or []
+        ar._categories = categories or []
 
         return ar

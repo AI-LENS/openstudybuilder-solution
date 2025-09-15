@@ -9,7 +9,9 @@ from clinical_mdr_api.domain_repositories.study_selections.study_design_cell_rep
 from clinical_mdr_api.domain_repositories.study_selections.study_element_repository import (
     SelectionHistoryElement,
 )
-from clinical_mdr_api.domains.controlled_terminologies.ct_term_name import CTTermNameAR
+from clinical_mdr_api.domains.concepts.unit_definitions.unit_definition import (
+    UnitDefinitionAR,
+)
 from clinical_mdr_api.domains.study_selections.study_selection_element import (
     StudySelectionElementAR,
     StudySelectionElementVO,
@@ -51,9 +53,12 @@ class StudyElementSelectionService(
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionElementAR,
+        study_selection: StudySelectionElementAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionElement]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -98,7 +103,7 @@ class StudyElementSelectionService(
         self,
         study_selection_history: SelectionHistoryElement,
         study_uid: str,
-        effective_date: datetime = None,
+        effective_date: datetime | None = None,
     ) -> StudySelectionElement:
         repos = self._repos
         return StudySelectionElement.from_study_selection_history(
@@ -273,7 +278,7 @@ class StudyElementSelectionService(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
     ) -> GenericFilteringReturn[StudySelectionElement]:
@@ -282,7 +287,7 @@ class StudyElementSelectionService(
             element_selection_ar = repos.study_element_repository.find_by_study(
                 study_uid, study_value_version=study_value_version
             )
-            filtered_items = service_level_generic_filtering(
+            return service_level_generic_filtering(
                 items=self._transform_all_to_response_model(
                     element_selection_ar, study_value_version=study_value_version
                 ),
@@ -293,8 +298,6 @@ class StudyElementSelectionService(
                 page_number=page_number,
                 page_size=page_size,
             )
-
-            return filtered_items
         finally:
             repos.close()
 
@@ -310,7 +313,8 @@ class StudyElementSelectionService(
             ):
                 design_cells_on_element = (
                     StudyDesignCellRepository.get_design_cells_connected_to_element(
-                        self, study_uid=study_uid, study_element_uid=study_selection_uid
+                        study_uid=study_uid,
+                        study_element_uid=study_selection_uid,
                     )
                 )
 
@@ -385,7 +389,7 @@ class StudyElementSelectionService(
         self,
         request_study_element: StudySelectionElementInput,
         current_study_element: StudySelectionElementVO,
-        find_duration_name_by_code: Callable[[str], CTTermNameAR | None],
+        find_duration_name_by_code: Callable[..., UnitDefinitionAR | None],
     ) -> StudySelectionElementVO:
         # transform current to input model
         transformed_current = StudySelectionElementInput.from_study_selection_element(
@@ -536,9 +540,9 @@ class StudyElementSelectionService(
         self,
         field_name: str,
         study_uid: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         study_value_version: str | None = None,
     ):

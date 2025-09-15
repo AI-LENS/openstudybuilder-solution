@@ -6,13 +6,6 @@
     </v-card-title>
     <v-card-text>
       <div class="bg-white pa-4">
-        <v-switch
-          v-model="form.darkTheme"
-          color="primary"
-          :label="$t('Settings.toggle')"
-          class="mt-4"
-          @update:model-value="toggleDarkTheme"
-        />
         <v-select
           v-model="form.rows"
           :label="$t('Settings.rows')"
@@ -53,12 +46,10 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useTheme } from 'vuetify'
 import { useAppStore } from '@/stores/app'
 import tablesConstants from '@/constants/tables'
 import HelpButtonWithPanels from '@/components/tools/HelpButtonWithPanels.vue'
 
-const theme = useTheme()
 const emit = defineEmits(['close'])
 const appStore = useAppStore()
 
@@ -82,8 +73,5 @@ function save() {
   appStore.saveUserData(form.value)
   close()
   working.value = false
-}
-function toggleDarkTheme(value) {
-  theme.global.name.value = value ? 'dark' : 'NNCustomLightTheme'
 }
 </script>

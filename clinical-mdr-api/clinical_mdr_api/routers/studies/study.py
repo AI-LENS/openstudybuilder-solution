@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic.types import Json
 
 from clinical_mdr_api.models.study_selections.study_selection import (
+    CompactStudyArm,
     StudyActivityGroup,
     StudyActivityGroupEditInput,
     StudyActivityReplaceActivityInput,
@@ -30,17 +31,23 @@ from clinical_mdr_api.models.study_selections.study_selection import (
     StudySelectionActivityNewOrder,
     StudySelectionActivityRequestEditInput,
     StudySelectionArm,
+    StudySelectionArmBatchInput,
+    StudySelectionArmBatchOutput,
     StudySelectionArmCreateInput,
     StudySelectionArmInput,
     StudySelectionArmNewOrder,
     StudySelectionArmVersion,
     StudySelectionArmWithConnectedBranchArms,
     StudySelectionBranchArm,
+    StudySelectionBranchArmBatchInput,
+    StudySelectionBranchArmBatchOutput,
     StudySelectionBranchArmCreateInput,
     StudySelectionBranchArmEditInput,
     StudySelectionBranchArmNewOrder,
     StudySelectionBranchArmVersion,
     StudySelectionCohort,
+    StudySelectionCohortBatchInput,
+    StudySelectionCohortBatchOutput,
     StudySelectionCohortCreateInput,
     StudySelectionCohortEditInput,
     StudySelectionCohortNewOrder,
@@ -117,6 +124,7 @@ from clinical_mdr_api.services.studies.study_element_selection import (
 from clinical_mdr_api.services.studies.study_endpoint_selection import (
     StudyEndpointSelectionService,
 )
+from clinical_mdr_api.services.studies.study_flowchart import StudyFlowchartService
 from clinical_mdr_api.services.studies.study_objective_selection import (
     StudyObjectiveSelectionService,
 )
@@ -191,10 +199,10 @@ def get_all_selected_objectives_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -209,10 +217,10 @@ def get_all_selected_objectives_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionObjective]:
     service = StudyObjectiveSelectionService()
@@ -227,7 +235,7 @@ def get_all_selected_objectives_for_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -257,7 +265,7 @@ def get_distinct_objective_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -267,10 +275,10 @@ def get_distinct_objective_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyObjectiveSelectionService()
@@ -342,10 +350,10 @@ def get_all_selected_objectives(
         ),
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -353,10 +361,10 @@ def get_all_selected_objectives(
         ),
     ] = settings.default_page_size,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -399,7 +407,7 @@ def get_distinct_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -409,10 +417,10 @@ def get_distinct_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -811,10 +819,10 @@ def get_all_selected_endpoints_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -829,10 +837,10 @@ def get_all_selected_endpoints_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionEndpoint]:
     service = StudyEndpointSelectionService()
@@ -847,7 +855,7 @@ def get_all_selected_endpoints_for_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -877,7 +885,7 @@ def get_distinct_endpoint_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -887,10 +895,10 @@ def get_distinct_endpoint_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyEndpointSelectionService()
@@ -980,10 +988,10 @@ def get_all_selected_endpoints(
         ),
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -991,10 +999,10 @@ def get_all_selected_endpoints(
         ),
     ] = settings.default_page_size,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -1037,7 +1045,7 @@ def get_distinct_study_endpoint_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -1047,10 +1055,10 @@ def get_distinct_study_endpoint_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -1560,10 +1568,10 @@ def get_all_selected_compounds_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -1578,10 +1586,10 @@ def get_all_selected_compounds_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionCompound]:
     service = StudyCompoundSelectionService()
@@ -1595,7 +1603,7 @@ def get_all_selected_compounds_for_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -1625,7 +1633,7 @@ def get_distinct_compound_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -1635,10 +1643,10 @@ def get_distinct_compound_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyCompoundSelectionService()
@@ -1724,10 +1732,10 @@ def get_all_selected_compounds(
         ),
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -1735,10 +1743,10 @@ def get_all_selected_compounds(
         ),
     ] = settings.default_page_size,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> GenericFilteringReturn[StudySelectionCompound]:
     service = StudyCompoundSelectionService()
@@ -1779,7 +1787,7 @@ def get_distinct_compounds_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -1789,10 +1797,10 @@ def get_distinct_compounds_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyCompoundSelectionService()
@@ -2316,10 +2324,10 @@ def get_all_selected_criteria_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -2334,10 +2342,10 @@ def get_all_selected_criteria_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionCriteria]:
     service = StudyCriteriaSelectionService()
@@ -2352,7 +2360,7 @@ def get_all_selected_criteria_for_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -2382,7 +2390,7 @@ def get_distinct_criteria_values_for_header(
     project_name: Annotated[str | None, PROJECT_NAME] = None,
     project_number: Annotated[str | None, PROJECT_NUMBER] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -2392,10 +2400,10 @@ def get_distinct_criteria_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyCriteriaSelectionService()
@@ -2493,10 +2501,10 @@ def get_all_selected_criteria(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -2511,10 +2519,10 @@ def get_all_selected_criteria(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -2533,7 +2541,7 @@ def get_all_selected_criteria(
         study_value_version=study_value_version,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -2562,7 +2570,7 @@ def get_distinct_study_criteria_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -2572,10 +2580,10 @@ def get_distinct_study_criteria_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -2840,7 +2848,7 @@ def post_new_criteria_selection_create(
         msg="'StudySelectionCriteriaInput' payload should be sent, referencing an existing library criteria by uid",
     )
 
-    if create_criteria:
+    if create_criteria and isinstance(selection, StudySelectionCriteriaCreateInput):
         return service.make_selection_create_criteria(
             study_uid=study_uid, selection_create_input=selection
         )
@@ -3209,10 +3217,10 @@ def get_all_selected_activity_instances_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -3227,28 +3235,30 @@ def get_all_selected_activity_instances_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionActivityInstance]:
     service = StudyActivityInstanceSelectionService()
-    all_selections = service.get_all_selections_for_all_studies(
-        project_name=project_name,
-        project_number=project_number,
-        activity_names=activity_names,
-        activity_subgroup_names=activity_subgroup_names,
-        activity_group_names=activity_group_names,
-        activity_instance_names=activity_instance_names,
-        page_number=page_number,
-        page_size=page_size,
-        total_count=total_count,
-        filter_by=filters,
-        filter_operator=FilterOperator.from_str(operator),
-        sort_by=sort_by,
+    all_selections: GenericFilteringReturn[StudySelectionActivityInstance] = (
+        service.get_all_selections_for_all_studies(
+            project_name=project_name,
+            project_number=project_number,
+            activity_names=activity_names,
+            activity_subgroup_names=activity_subgroup_names,
+            activity_group_names=activity_group_names,
+            activity_instance_names=activity_instance_names,
+            page_number=page_number,
+            page_size=page_size,
+            total_count=total_count,
+            filter_by=filters,
+            filter_operator=FilterOperator.from_str(operator),
+            sort_by=sort_by,
+        )
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -3340,10 +3350,10 @@ def get_all_selected_activity_instances(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -3358,10 +3368,10 @@ def get_all_selected_activity_instances(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -3382,11 +3392,46 @@ def get_all_selected_activity_instances(
         sort_by=sort_by,
         study_value_version=study_value_version,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
         size=page_size,
+    )
+
+
+@router.get(
+    "/studies/{study_uid}/study-activity-instances/lite",
+    dependencies=[security, rbac.STUDY_READ],
+    summary="Returns all study activity instances currently selected",
+    response_model_exclude_unset=True,
+    status_code=200,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: {
+            "model": ErrorResponse,
+            "description": "Not Found - there is no study with the given uid.",
+        },
+    },
+)
+def get_all_selected_activity_instances_lite(
+    study_uid: Annotated[str, studyUID],
+    study_value_version: Annotated[
+        str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
+    ] = None,
+) -> CustomPage[StudySelectionActivityInstance]:
+    study_selection_activity_instances = (
+        StudyFlowchartService.fetch_study_activity_instances(
+            study_uid=study_uid,
+            study_value_version=study_value_version,
+        )
+    )
+    count = len(study_selection_activity_instances)
+    return CustomPage(
+        items=study_selection_activity_instances,
+        total=count,
+        page=1,
+        size=count,
     )
 
 
@@ -3411,7 +3456,7 @@ def get_distinct_study_activity_instances_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -3421,10 +3466,10 @@ def get_distinct_study_activity_instances_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -3725,10 +3770,10 @@ def get_all_selected_activities_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -3743,27 +3788,29 @@ def get_all_selected_activities_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionActivity]:
     service = StudyActivitySelectionService()
-    all_selections = service.get_all_selections_for_all_studies(
-        project_name=project_name,
-        project_number=project_number,
-        activity_names=activity_names,
-        activity_subgroup_names=activity_subgroup_names,
-        activity_group_names=activity_group_names,
-        page_number=page_number,
-        page_size=page_size,
-        total_count=total_count,
-        filter_by=filters,
-        filter_operator=FilterOperator.from_str(operator),
-        sort_by=sort_by,
+    all_selections: GenericFilteringReturn[StudySelectionActivity] = (
+        service.get_all_selections_for_all_studies(
+            project_name=project_name,
+            project_number=project_number,
+            activity_names=activity_names,
+            activity_subgroup_names=activity_subgroup_names,
+            activity_group_names=activity_group_names,
+            page_number=page_number,
+            page_size=page_size,
+            total_count=total_count,
+            filter_by=filters,
+            filter_operator=FilterOperator.from_str(operator),
+            sort_by=sort_by,
+        )
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -3838,10 +3885,10 @@ def get_all_selected_activities(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -3856,10 +3903,10 @@ def get_all_selected_activities(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -3879,11 +3926,44 @@ def get_all_selected_activities(
         sort_by=sort_by,
         study_value_version=study_value_version,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
         size=page_size,
+    )
+
+
+@router.get(
+    "/studies/{study_uid}/study-activities/lite",
+    dependencies=[security, rbac.STUDY_READ],
+    summary="Returns all study activities currently selected",
+    response_model_exclude_unset=True,
+    status_code=200,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: {
+            "model": ErrorResponse,
+            "description": "Not Found - there is no study with the given uid.",
+        },
+    },
+)
+def get_all_selected_activities_lite(
+    study_uid: Annotated[str, studyUID],
+    study_value_version: Annotated[
+        str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
+    ] = None,
+) -> CustomPage[StudySelectionActivity]:
+    study_selection_activities = StudyFlowchartService.fetch_study_activities(
+        study_uid=study_uid,
+        study_value_version=study_value_version,
+    )
+    count = len(study_selection_activities)
+    return CustomPage(
+        items=study_selection_activities,
+        total=count,
+        page=1,
+        size=count,
     )
 
 
@@ -3908,7 +3988,7 @@ def get_distinct_activity_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -3918,10 +3998,10 @@ def get_distinct_activity_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -4196,10 +4276,10 @@ def get_all_selected_activity_subgroups(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -4214,10 +4294,10 @@ def get_all_selected_activity_subgroups(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -4234,7 +4314,7 @@ def get_all_selected_activity_subgroups(
         sort_by=sort_by,
         study_value_version=study_value_version,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -4332,10 +4412,10 @@ def get_all_selected_activity_groups(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -4350,10 +4430,10 @@ def get_all_selected_activity_groups(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -4370,7 +4450,7 @@ def get_all_selected_activity_groups(
         sort_by=sort_by,
         study_value_version=study_value_version,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -4468,10 +4548,10 @@ def get_all_selected_soa_groups(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -4486,10 +4566,10 @@ def get_all_selected_soa_groups(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -4506,7 +4586,7 @@ def get_all_selected_soa_groups(
         sort_by=sort_by,
         study_value_version=study_value_version,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -4751,6 +4831,47 @@ def patch_new_activity_selection_order(
 
 
 @router.get(
+    "/studies/{study_uid}/study-arms-branches-and-cohorts",
+    dependencies=[security, rbac.STUDY_READ],
+    summary="""List all study arms that contain study cohorts which contain study branch arms""",
+    description=f"""
+State before:
+- Study must exist.
+    
+Business logic:
+- The endpoint returns information about study arms in the highes level.
+- Each study arm object contains list of nested study cohorts.
+- Each study cohort contains information about given study cohort and list of underlying study branch arms.
+
+State after:
+- no change.
+    
+Possible errors:
+- Invalid study-uid.
+
+{_generic_descriptions.DATA_EXPORTS_HEADER}
+""",
+    response_model_exclude_unset=True,
+    status_code=200,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: _generic_descriptions.ERROR_404,
+    },
+)
+def get_all_study_arms_branches_and_cohorts(
+    study_uid: Annotated[str, studyUID],
+    study_value_version: Annotated[
+        str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
+    ] = None,
+) -> list[CompactStudyArm]:
+    service = StudyArmSelectionService()
+    return service.get_arms_branches_and_cohorts(
+        study_uid=study_uid,
+        study_value_version=study_value_version,
+    )
+
+
+@router.get(
     "/studies/{study_uid}/study-arms",
     dependencies=[security, rbac.STUDY_READ],
     summary="""List all study arms currently selected for study with provided uid""",
@@ -4794,6 +4915,7 @@ Possible errors:
             "description",
             "start_date",
             "author_username",
+            "merge_branch_for_this_arm_for_sdtm_adam",
         ],
         "formats": [
             "text/csv",
@@ -4811,10 +4933,10 @@ def get_all_selected_arms(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -4829,10 +4951,10 @@ def get_all_selected_arms(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -4850,7 +4972,7 @@ def get_all_selected_arms(
         study_value_version=study_value_version,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -4879,7 +5001,7 @@ def get_distinct_arm_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -4889,10 +5011,10 @@ def get_distinct_arm_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     service = StudyArmSelectionService()
@@ -4924,10 +5046,10 @@ def get_all_selected_arms_for_all_studies(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -4942,10 +5064,10 @@ def get_all_selected_arms_for_all_studies(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[StudySelectionArmWithConnectedBranchArms]:
     service = StudyArmSelectionService()
@@ -4959,7 +5081,7 @@ def get_all_selected_arms_for_all_studies(
         filter_operator=FilterOperator.from_str(operator),
         sort_by=sort_by,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -5161,6 +5283,25 @@ def delete_selected_arm(
     service.delete_selection(study_uid=study_uid, study_selection_uid=study_arm_uid)
 
 
+@router.post(
+    "/studies/{study_uid}/study-arms/batch",
+    dependencies=[security, rbac.STUDY_WRITE],
+    summary="Batch create and/or edit of study arms",
+    status_code=207,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: _generic_descriptions.ERROR_404,
+    },
+)
+@decorators.validate_if_study_is_not_locked("study_uid")
+def study_arms_batch_operations(
+    study_uid: Annotated[str, studyUID],
+    operations: Annotated[list[StudySelectionArmBatchInput], Body()],
+) -> list[StudySelectionArmBatchOutput]:
+    service = StudyArmSelectionService()
+    return service.handle_batch_operations(study_uid, operations)
+
+
 # API endpoints to study elements
 
 
@@ -5249,10 +5390,10 @@ def get_all_selected_elements(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -5267,10 +5408,10 @@ def get_all_selected_elements(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -5288,7 +5429,7 @@ def get_all_selected_elements(
         study_value_version=study_value_version,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=all_items.items,
         total=all_items.total,
         page=page_number,
@@ -5317,7 +5458,7 @@ def get_distinct_element_values_for_header(
         str, Query(description=_generic_descriptions.HEADER_FIELD_NAME)
     ],
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -5327,10 +5468,10 @@ def get_distinct_element_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
@@ -5620,10 +5761,50 @@ def get_all_selected_branch_arms(
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
-) -> list[StudySelectionBranchArm]:
+    sort_by: Annotated[
+        Json | None, Query(description=_generic_descriptions.SORT_BY)
+    ] = None,
+    page_number: Annotated[
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+    ] = settings.default_page_number,
+    page_size: Annotated[
+        int,
+        Query(
+            ge=0,
+            le=settings.max_page_size,
+            description=_generic_descriptions.PAGE_SIZE,
+        ),
+    ] = settings.default_page_size,
+    filters: Annotated[
+        Json | None,
+        Query(
+            description=_generic_descriptions.FILTERS,
+            openapi_examples=_generic_descriptions.FILTERS_EXAMPLE,
+        ),
+    ] = None,
+    operator: Annotated[
+        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+    ] = settings.default_filter_operator,
+    total_count: Annotated[
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
+    ] = False,
+) -> CustomPage[StudySelectionBranchArm]:
     service = StudyBranchArmSelectionService()
-    return service.get_all_selection(
-        study_uid=study_uid, study_value_version=study_value_version
+    all_selections = service.get_all_selection(
+        study_uid=study_uid,
+        study_value_version=study_value_version,
+        page_number=page_number,
+        page_size=page_size,
+        total_count=total_count,
+        filter_by=filters,
+        filter_operator=FilterOperator.from_str(operator),
+        sort_by=sort_by,
+    )
+    return CustomPage.create(
+        items=all_selections.items,
+        total=all_selections.total,
+        page=page_number,
+        size=page_size,
     )
 
 
@@ -5690,6 +5871,7 @@ def patch_update_branch_arm_selection(
     return service.patch_selection(
         study_uid=study_uid,
         selection_update_input=selection,
+        study_selection_uid=study_branch_arm_uid,
     )
 
 
@@ -5834,6 +6016,25 @@ def get_all_selected_branch_arms_within_arm(
     )
 
 
+@router.post(
+    "/studies/{study_uid}/study-branch-arms/batch",
+    dependencies=[security, rbac.STUDY_WRITE],
+    summary="Batch create and/or edit of study branch arms",
+    status_code=207,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: _generic_descriptions.ERROR_404,
+    },
+)
+@decorators.validate_if_study_is_not_locked("study_uid")
+def study_branch_arms_batch_operations(
+    study_uid: Annotated[str, studyUID],
+    operations: Annotated[list[StudySelectionBranchArmBatchInput], Body()],
+) -> list[StudySelectionBranchArmBatchOutput]:
+    service = StudyBranchArmSelectionService()
+    return service.handle_batch_operations(study_uid, operations)
+
+
 # API Study-Cohorts endpoints
 
 
@@ -5930,10 +6131,10 @@ def get_all_selected_cohorts(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -5948,10 +6149,10 @@ def get_all_selected_cohorts(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     arm_uid: Annotated[
         str | None,
@@ -5962,6 +6163,12 @@ def get_all_selected_cohorts(
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY
     ] = None,
+    split_if_in_multiple_arms_and_branches: Annotated[
+        bool,
+        Query(
+            description="Specifies whether each StudyCohort object should be splitted into multiple objects if it's assigne to many StudyArms and StudyBranches"
+        ),
+    ] = False,
 ) -> CustomPage[StudySelectionCohort]:
     service = StudyCohortSelectionService()
 
@@ -5975,8 +6182,9 @@ def get_all_selected_cohorts(
         study_uid=study_uid,
         arm_uid=arm_uid,
         study_value_version=study_value_version,
+        split_if_in_multiple_arms_and_branches=split_if_in_multiple_arms_and_branches,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=all_selections.items,
         total=all_selections.total,
         page=page_number,
@@ -6110,9 +6318,19 @@ def get_all_cohort_audit_trail(
 def delete_selected_cohort(
     study_uid: Annotated[str, studyUID],
     study_cohort_uid: Annotated[str, study_cohort_uid_path],
+    delete_linked_branches: Annotated[
+        bool,
+        Query(
+            description="Indicates whether the StudyBranchArms linked to given StudyCohort should be cascade deleted",
+        ),
+    ] = False,
 ):
     service = StudyCohortSelectionService()
-    service.delete_selection(study_uid=study_uid, study_selection_uid=study_cohort_uid)
+    service.delete_selection(
+        study_uid=study_uid,
+        study_selection_uid=study_cohort_uid,
+        delete_linked_branches=delete_linked_branches,
+    )
 
 
 @router.patch(
@@ -6144,3 +6362,22 @@ def patch_new_cohort_selection_order(
         study_selection_uid=study_cohort_uid,
         new_order=new_order_input.new_order,
     )
+
+
+@router.post(
+    "/studies/{study_uid}/study-cohorts/batch",
+    dependencies=[security, rbac.STUDY_WRITE],
+    summary="Batch create and/or edit of study cohorts",
+    status_code=207,
+    responses={
+        403: _generic_descriptions.ERROR_403,
+        404: _generic_descriptions.ERROR_404,
+    },
+)
+@decorators.validate_if_study_is_not_locked("study_uid")
+def study_cohorts_batch_operations(
+    study_uid: Annotated[str, studyUID],
+    operations: Annotated[list[StudySelectionCohortBatchInput], Body()],
+) -> list[StudySelectionCohortBatchOutput]:
+    service = StudyCohortSelectionService()
+    return service.handle_batch_operations(study_uid, operations)

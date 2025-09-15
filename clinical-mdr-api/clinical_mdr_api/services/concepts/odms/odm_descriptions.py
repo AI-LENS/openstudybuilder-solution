@@ -95,9 +95,6 @@ class OdmDescriptionService(OdmGenericService[OdmDescriptionAR]):
     ) -> list[OdmDescriptionBatchOutput]:
         results = []
         for operation in operations:
-            result = {}
-            item = None
-
             try:
                 if operation.method == "POST":
                     item = self.create(operation.content)
@@ -107,10 +104,9 @@ class OdmDescriptionService(OdmGenericService[OdmDescriptionAR]):
                     response_code = status.HTTP_200_OK
                 else:
                     raise exceptions.MethodNotAllowedException(method=operation.method)
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(OdmDescriptionBatchOutput(**result))
+                results.append(
+                    OdmDescriptionBatchOutput(response_code=response_code, content=item)  # type: ignore[arg-type]
+                )
             except exceptions.MDRApiBaseException as error:
                 results.append(
                     OdmDescriptionBatchOutput.model_construct(

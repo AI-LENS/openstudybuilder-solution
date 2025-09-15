@@ -31,6 +31,7 @@ from clinical_mdr_api.domains.study_definition_aggregates.root import (
 )
 from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import (
     HighLevelStudyDesignVO,
+    StudyCompactComponentEnum,
     StudyComponentEnum,
     StudyCopyComponentEnum,
     StudyDescriptionVO,
@@ -136,8 +137,12 @@ class StudyService:
     @staticmethod
     def filter_result_by_requested_fields(
         result,
-        include_sections: list[StudyComponentEnum] | None = None,
-        exclude_sections: list[StudyComponentEnum] | None = None,
+        include_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
+        exclude_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
     ):
         default_fields = set(
             [
@@ -177,11 +182,11 @@ class StudyService:
         study_definition_ar: StudyDefinitionAR,
         find_project_by_project_number: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[..., tuple[list[UnitDefinitionAR], int]],
         find_study_parent_part_by_uid: Callable[
             [str], StudyDefinitionAR | None
         ] = lambda _: None,
-        find_term_by_uids: Callable[[str], CTTermNameAR | None] = lambda _: None,
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None] = lambda _: None,
         find_dictionary_term_by_uid: Callable[
             [str], DictionaryTermAR | None
         ] = lambda _: None,
@@ -225,9 +230,13 @@ class StudyService:
         find_study_parent_part_by_uid: Callable[
             [str], StudyDefinitionAR | None
         ] = lambda _: None,
-        find_term_by_uids: Callable[[str], CTTermNameAR | None] = lambda _: None,
-        include_sections: list[StudyComponentEnum] | None = None,
-        exclude_sections: list[StudyComponentEnum] | None = None,
+        find_term_by_uids: Callable[..., list[CTTermNameAR] | None] = lambda _: None,
+        include_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
+        exclude_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
     ) -> CompactStudy:
         result = CompactStudy.from_study_definition_ar(
             study_definition_ar=study_definition_ar,
@@ -302,9 +311,8 @@ class StudyService:
                 study_value_version=study_value_version,
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             return self._models_study_from_study_definition_ar(
                 study_definition_ar=study_definition,
@@ -331,7 +339,7 @@ class StudyService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> list[StudyStructureOverview]:
         all_items = (
@@ -356,9 +364,9 @@ class StudyService:
     def get_study_structure_overview_header(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         all_items = (
@@ -384,7 +392,9 @@ class StudyService:
         counters = (
             self._repos.study_definition_repository.get_study_structure_statistics(uid)
         )
-        NotFoundException.raise_if(counters is None, "Study Definition", uid)
+        if counters is None:
+            raise NotFoundException("Study Definition", uid)
+
         return StudyStructureStatistics(**counters)
 
     def _group_study_structure_overview_by_data(self, items):
@@ -420,7 +430,7 @@ class StudyService:
         return list(parsed_items.values())
 
     @trace_calls
-    def _extract_terms_at_date(self, study_uid, study_value_version: str = None):
+    def _extract_terms_at_date(self, study_uid, study_value_version: str | None = None):
         study_standard_versions = self._repos.study_standard_version_repository.find_standard_versions_in_study(
             study_uid=study_uid,
             study_value_version=study_value_version,
@@ -471,9 +481,8 @@ class StudyService:
                 uid, for_update=True
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             BusinessLogicException.raise_if(
                 study_definition.study_parent_part_uid,
@@ -587,11 +596,12 @@ class StudyService:
                     study_subpart = self._repos.study_definition_repository.find_by_uid(
                         study_subpart_uid, for_update=True
                     )
-                    study_subpart.lock(
-                        version_description=change_description,
-                        author_id=self.author_id,
-                    )
-                    self._repos.study_definition_repository.save(study_subpart)
+                    if study_subpart:
+                        study_subpart.lock(
+                            version_description=change_description,
+                            author_id=self.author_id,
+                        )
+                        self._repos.study_definition_repository.save(study_subpart)
 
             return self._models_study_from_study_definition_ar(
                 study_definition_ar=study_definition,
@@ -612,15 +622,14 @@ class StudyService:
                 uid, for_update=True
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             BusinessLogicException.raise_if(
                 study_definition.study_parent_part_uid,
                 msg=f"Study Subparts cannot be unlocked independently from its Study Parent Part with UID '{study_definition.study_parent_part_uid}'.",
             )
-            study_definition.unlock()
+            study_definition.unlock(self.author_id)
             self._repos.study_definition_repository.save(study_definition)
 
             study_standard_versions: StudyStandardVersionVO
@@ -652,8 +661,9 @@ class StudyService:
                     study_subpart = self._repos.study_definition_repository.find_by_uid(
                         study_subpart_uid, for_update=True
                     )
-                    study_subpart.unlock()
-                    self._repos.study_definition_repository.save(study_subpart)
+                    if study_subpart:
+                        study_subpart.unlock(self.author_id)
+                        self._repos.study_definition_repository.save(study_subpart)
 
             return self._models_study_from_study_definition_ar(
                 study_definition_ar=study_definition,
@@ -674,15 +684,16 @@ class StudyService:
                 uid, for_update=True
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             BusinessLogicException.raise_if(
                 study_definition.study_parent_part_uid,
                 msg=f"Study Subparts cannot be released independently from its Study Parent Part with UID '{study_definition.study_parent_part_uid}'.",
             )
-            study_definition.release(change_description=change_description)
+            study_definition.release(
+                change_description=change_description, author_id=self.author_id
+            )
             self._repos.study_definition_repository.save(study_definition)
 
             if study_definition.study_subpart_uids:
@@ -690,8 +701,12 @@ class StudyService:
                     study_subpart = self._repos.study_definition_repository.find_by_uid(
                         study_subpart_uid, for_update=True
                     )
-                    study_subpart.release(change_description=change_description)
-                    self._repos.study_definition_repository.save(study_subpart)
+                    if study_subpart:
+                        study_subpart.release(
+                            change_description=change_description,
+                            author_id=self.author_id,
+                        )
+                        self._repos.study_definition_repository.save(study_subpart)
 
             return self._models_study_from_study_definition_ar(
                 study_definition_ar=study_definition,
@@ -712,9 +727,8 @@ class StudyService:
                 uid, for_update=True
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             study_definition.mark_deleted()
 
@@ -771,7 +785,7 @@ class StudyService:
         ]
 
         # Only return entries that have at least one audit trail action in them.
-        result = [entry for entry in result if len(entry.actions) > 0]
+        result = [entry for entry in result if len(entry.actions or []) > 0]
 
         return result
 
@@ -788,9 +802,8 @@ class StudyService:
                 self._repos.study_definition_repository.get_audit_trail_by_uid(uid)
             )
 
-            NotFoundException.raise_if(
-                study_fields_audit_trail_vo_sequence is None, "Study", uid
-            )
+            if study_fields_audit_trail_vo_sequence is None:
+                raise NotFoundException("Study", uid)
 
             # Filter to see only the relevant sections.
             result = self._models_study_field_audit_trail_from_audit_trail_vo(
@@ -829,8 +842,12 @@ class StudyService:
     @trace_calls
     def get_all(
         self,
-        include_sections: list[StudyComponentEnum] | None = None,
-        exclude_sections: list[StudyComponentEnum] | None = None,
+        include_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
+        exclude_sections: (
+            list[StudyComponentEnum] | list[StudyCompactComponentEnum] | None
+        ) = None,
         has_study_footnote: bool | None = None,
         has_study_objective: bool | None = None,
         has_study_endpoint: bool | None = None,
@@ -841,7 +858,7 @@ class StudyService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         deleted: bool = False,
     ) -> GenericFilteringReturn[CompactStudy]:
@@ -902,7 +919,7 @@ class StudyService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[CompactStudy]:
         try:
@@ -931,17 +948,16 @@ class StudyService:
                 )
                 for item in all_items.items
             ]
-            all_items.items = parsed_items
-            return all_items
+            return GenericFilteringReturn(items=parsed_items, total=all_items.total)
         finally:
             self._close_all_repos()
 
     def get_distinct_values_for_header(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         # Note that for this endpoint, we have to override the generic filtering
@@ -984,9 +1000,8 @@ class StudyService:
                 uid=uid, study_value_version=study_value_version
             )
 
-            NotFoundException.raise_if(
-                study_definition is None, "Study Definition", uid
-            )
+            if study_definition is None:
+                raise NotFoundException("Study Definition", uid)
 
             result = self._models_study_protocol_title_from_study_definition_ar(
                 study_definition_ar=study_definition,
@@ -1254,14 +1269,22 @@ class StudyService:
             # create SoA preferences by StudySoaPreferencesInput defaults
             self._repos.study_definition_repository.post_soa_preferences(
                 study_uid=study_definition.uid,
-                soa_preferences=StudySoaPreferencesInput(baseline_as_time_zero=True),
+                soa_preferences=StudySoaPreferencesInput(
+                    baseline_as_time_zero=True, show_epochs=True, show_milestones=False
+                ),
             )
 
             # then prepare and return our response
-            return_item = self._models_study_from_study_definition_ar(
+            found_study_definition = (
                 self._repos.study_definition_repository.find_by_uid(
                     study_definition.uid
-                ),
+                )
+            )
+            if found_study_definition is None:
+                raise NotFoundException("Study", study_definition.uid)
+
+            return_item = self._models_study_from_study_definition_ar(
+                found_study_definition,
                 find_project_by_project_number=self._repos.project_repository.find_by_project_number,
                 find_clinical_programme_by_uid=self._repos.clinical_programme_repository.find_by_uid,
                 find_all_study_time_units=self._repos.unit_definition_repository.find_all,
@@ -1276,7 +1299,7 @@ class StudyService:
     def _patch_prepare_new_study_intervention(
         current_study_intervention: StudyInterventionVO,
         request_study_intervention: StudyInterventionJsonModel,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
         find_unit_definition_by_uid: Callable[[str], UnitDefinitionAR | None],
     ) -> StudyInterventionVO:
         fill_missing_values_in_base_model_from_reference_base_model(
@@ -1360,7 +1383,7 @@ class StudyService:
     def _patch_prepare_new_study_population(
         current_study_population: StudyPopulationVO,
         request_study_population: StudyPopulationJsonModel,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
         find_unit_definition_by_uid: Callable[[str], UnitDefinitionAR | None],
     ) -> StudyPopulationVO:
         fill_missing_values_in_base_model_from_reference_base_model(
@@ -1488,7 +1511,7 @@ class StudyService:
     def _patch_prepare_new_high_level_study_design(
         current_high_level_study_design: HighLevelStudyDesignVO,
         request_high_level_study_design: HighLevelStudyDesignJsonModel,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
         find_unit_definition_by_uid: Callable[[str], UnitDefinitionAR | None],
     ) -> HighLevelStudyDesignVO:
         # now we go through fields of request and for those which were not set in the request
@@ -1584,6 +1607,10 @@ class StudyService:
         )
 
         assert request_id_metadata.registry_identifiers is not None
+        if request_id_metadata.project_number is None:
+            raise BusinessLogicException(
+                msg="Project number is required for Study Identification Metadata."
+            )
         new_id_metadata = StudyIdentificationMetadataVO.from_input_values(
             project_number=request_id_metadata.project_number,
             study_number=request_id_metadata.study_number,
@@ -1701,9 +1728,10 @@ class StudyService:
                 uid, for_update=not dry
             )
 
-            initial_study_definition_ar = copy(study_definition_ar)
+            if study_definition_ar is None:
+                raise NotFoundException("Study", uid)
 
-            NotFoundException.raise_if(study_definition_ar is None, "Study", uid)
+            initial_study_definition_ar = copy(study_definition_ar)
 
             if (
                 study_definition_ar.study_parent_part_uid
@@ -1941,6 +1969,9 @@ class StudyService:
                 study_subpart_uid, for_update=True
             )
 
+            if subpart_ar is None:
+                raise NotFoundException("Study Subpart", study_subpart_uid)
+
             subpart_ar.edit_metadata(
                 new_id_metadata=self._patch_prepare_new_id_metadata(
                     current_id_metadata=subpart_ar.current_metadata.id_metadata,
@@ -1982,6 +2013,7 @@ class StudyService:
                 is_subpart=True,
                 previous_is_subpart=True,
                 updatable_subpart=True,
+                author_id=self.author_id,
             )
 
             self._repos.study_definition_repository.save(subpart_ar)
@@ -2074,7 +2106,10 @@ class StudyService:
         )
 
     def _check_repository_output(
-        self, nodes: NodeSet, study_uid: str, for_protocol_soa: bool = False
+        self,
+        nodes: NodeSet,
+        study_uid: str,
+        for_protocol_soa: bool = False,
     ):
         study_field_name = (
             settings.study_field_soa_preferred_time_unit_name
@@ -2153,9 +2188,8 @@ class StudyService:
             self._repos.study_definition_repository.find_by_uid(study_parent_part_uid)
         )
 
-        NotFoundException.raise_if_not(
-            study_parent_part, "Study", study_parent_part_uid
-        )
+        if study_parent_part is None:
+            raise NotFoundException("Study", study_parent_part_uid)
 
         BusinessLogicException.raise_if(
             study_parent_part.current_metadata.ver_metadata.study_status
@@ -2165,12 +2199,16 @@ class StudyService:
 
         study_subparts = sorted(
             [
-                self._repos.study_definition_repository.find_by_uid(
-                    study_subpart_uid, for_update=True
+                study_subpart
+                for study_subpart in (
+                    self._repos.study_definition_repository.find_by_uid(
+                        study_subpart_uid, for_update=True
+                    )
+                    for study_subpart_uid in study_parent_part.study_subpart_uids
                 )
-                for study_subpart_uid in study_parent_part.study_subpart_uids
+                if study_subpart is not None
             ],
-            key=lambda x: x.current_metadata.id_metadata.subpart_id,
+            key=lambda x: x.current_metadata.id_metadata.subpart_id or "",
         )
 
         studies = []
@@ -2217,6 +2255,10 @@ class StudyService:
         )
 
     def _update_study_subpart_id(self, study: StudyDefinitionAR, new_subpart_id: str):
+        if study.current_metadata.id_metadata is None:
+            raise BusinessLogicException(
+                msg=f"Study with UID '{study.uid}' has no identification metadata."
+            )
         new_id_metadata = self._patch_prepare_new_id_metadata(
             current_id_metadata=study.current_metadata.id_metadata,
             request_id_metadata=StudyIdentificationMetadataJsonModel(
@@ -2232,6 +2274,7 @@ class StudyService:
             is_subpart=True,
             previous_is_subpart=True,
             updatable_subpart=True,
+            author_id=self.author_id,
         )
         self._repos.study_definition_repository.save(study)
 
@@ -2254,12 +2297,20 @@ class StudyService:
             ),
             None,
         ):
+            if study_to_reorder.current_metadata.id_metadata.subpart_id is None:
+                raise BusinessLogicException(
+                    msg=f"Study with UID '{reordering_input.uid}' has no subpart_id."
+                )
             new_index = letters.index(reordering_input.subpart_id)
             old_index = letters.index(
                 study_to_reorder.current_metadata.id_metadata.subpart_id
             )
 
             for study_subpart in study_subparts:
+                if study_subpart.current_metadata.id_metadata.subpart_id is None:
+                    raise BusinessLogicException(
+                        msg=f"Study with UID '{study_subpart.uid}' has no subpart_id."
+                    )
                 current_index = letters.index(
                     study_subpart.current_metadata.id_metadata.subpart_id
                 )

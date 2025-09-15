@@ -78,9 +78,7 @@ class FormulationVO:
 
     @classmethod
     def from_repository_values(
-        cls,
-        external_id: str | None,
-        ingredients: list[IngredientVO] = None,
+        cls, external_id: str | None, ingredients: list[IngredientVO] | None = None
     ) -> Self:
         formulation_vo = cls(
             external_id=external_id,
@@ -138,22 +136,23 @@ class PharmaceuticalProductVO(ConceptVO):
 
     def validate(
         self,
-        uid: str | None,
+        uid: str,
         pharmaceutical_product_uid_by_property_value_callback: Callable[
-            [str, str], str
+            [str, str], str | None
         ],
         ct_term_exists_callback: Callable[[str], bool],
         numeric_value_exists_callback: Callable[[str], bool],
         lag_time_exists_callback: Callable[[str], bool],
         active_substance_exists_callback: Callable[[str], bool],
     ):
-        self.validate_uniqueness(
-            lookup_callback=pharmaceutical_product_uid_by_property_value_callback,
-            uid=uid,
-            property_name="external_id",
-            value=self.external_id,
-            error_message=f"Pharmaceutical Product with external_id '{self.external_id}' already exists.",
-        )
+        if self.external_id is not None:
+            self.validate_uniqueness(
+                lookup_callback=pharmaceutical_product_uid_by_property_value_callback,
+                uid=uid,
+                property_name="external_id",
+                value=self.external_id,
+                error_message=f"Pharmaceutical Product with external_id '{self.external_id}' already exists.",
+            )
 
         for dosage_form_uid in self.dosage_form_uids:
             BusinessLogicException.raise_if_not(
@@ -182,6 +181,10 @@ class PharmaceuticalProductAR(ConceptARBase):
     def concept_vo(self) -> PharmaceuticalProductVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: PharmaceuticalProductVO) -> None:
+        self._concept_vo = value
+
     @property
     def name(self) -> str:
         return self.concept_vo.name
@@ -193,13 +196,13 @@ class PharmaceuticalProductAR(ConceptARBase):
         concept_vo: PharmaceuticalProductVO,
         library: LibraryVO,
         pharmaceutical_product_uid_by_property_value_callback: Callable[
-            [str, str], str
+            [str, str], str | None
         ],
         ct_term_exists_callback: Callable[[str], bool],
         numeric_value_exists_callback: Callable[[str], bool],
         lag_time_exists_callback: Callable[[str], bool],
         active_substance_exists_callback: Callable[[str], bool],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str],
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -231,13 +234,15 @@ class PharmaceuticalProductAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: PharmaceuticalProductVO,
-        concept_exists_by_callback: Callable[[str, str], str] | None = None,
-        ct_term_exists_callback: Callable[[str], bool] | None = None,
-        numeric_value_exists_callback: Callable[[str], bool] | None = None,
-        lag_time_exists_callback: Callable[[str], bool] | None = None,
-        active_substance_exists_callback: Callable[[str], bool] | None = None,
+        concept_exists_by_callback: Callable[
+            [str, str], str | None
+        ] = lambda x, y: None,
+        ct_term_exists_callback: Callable[[str], bool] = lambda x: False,
+        numeric_value_exists_callback: Callable[[str], bool] = lambda x: False,
+        lag_time_exists_callback: Callable[[str], bool] = lambda x: False,
+        active_substance_exists_callback: Callable[[str], bool] = lambda x: False,
     ) -> None:
         """
         Creates a new draft version for the object.

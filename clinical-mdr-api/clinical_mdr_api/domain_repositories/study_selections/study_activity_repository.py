@@ -49,8 +49,8 @@ class SelectionHistory:
     show_activity_group_in_protocol_flowchart: bool | None
     show_activity_subgroup_in_protocol_flowchart: bool | None
     show_activity_in_protocol_flowchart: bool | None
-    show_soa_group_in_protocol_flowchart: bool | None
-    order: int | None
+    show_soa_group_in_protocol_flowchart: bool
+    order: int
     end_date: datetime.datetime | None
     activity_version: str | None
 
@@ -83,28 +83,28 @@ class StudySelectionActivityRepository(
             activity_name=selection["activity_name"],
             activity_version=selection["activity_version"],
             activity_library_name=selection["activity_library_name"],
-            soa_group_term_uid=study_soa_group.get("soa_group_term_uid"),
+            soa_group_term_uid=study_soa_group["soa_group_term_uid"],
             soa_group_term_name=study_soa_group.get("soa_group_term_name"),
-            study_soa_group_uid=study_soa_group.get("selection_uid"),
+            study_soa_group_uid=study_soa_group["selection_uid"],
             study_soa_group_order=study_soa_group.get("order"),
             order=selection["order"],
             show_activity_in_protocol_flowchart=selection[
                 "show_activity_in_protocol_flowchart"
             ],
             show_activity_group_in_protocol_flowchart=study_activity_group.get(
-                "show_activity_group_in_protocol_flowchart"
+                "show_activity_group_in_protocol_flowchart", False
             ),
             show_activity_subgroup_in_protocol_flowchart=study_activity_subgroup.get(
-                "show_activity_subgroup_in_protocol_flowchart"
+                "show_activity_subgroup_in_protocol_flowchart", False
             ),
             show_soa_group_in_protocol_flowchart=study_soa_group.get(
-                "show_soa_group_in_protocol_flowchart"
+                "show_soa_group_in_protocol_flowchart", False
             ),
             start_date=convert_to_datetime(value=selection["start_date"]),
             author_id=selection["author_id"],
             author_username=selection["author_username"],
             accepted_version=acv,
-            keep_old_version=selection.get("keep_old_version"),
+            keep_old_version=selection["keep_old_version"],
         )
 
     def _additional_match(self) -> str:
@@ -245,24 +245,27 @@ class StudySelectionActivityRepository(
             """
 
     def get_selection_history(
-        self, selection: dict[Any, Any], change_type: str, end_date: datetime.datetime
+        self,
+        selection: dict[Any, Any],
+        change_type: str,
+        end_date: datetime.datetime | None,
     ):
         study_activity_subgroup = selection.get("study_activity_subgroup") or {}
         study_activity_group = selection.get("study_activity_group") or {}
         study_soa_group = selection.get("study_soa_group") or {}
         return SelectionHistory(
             study_selection_uid=selection["study_selection_uid"],
-            study_activity_subgroup_uid=study_activity_subgroup.get("selection_uid"),
+            study_activity_subgroup_uid=study_activity_subgroup["selection_uid"],
             study_activity_subgroup_order=study_activity_subgroup.get("order"),
-            activity_subgroup_uid=study_activity_subgroup.get("activity_subgroup_uid"),
-            study_activity_group_uid=study_activity_group.get("selection_uid"),
+            activity_subgroup_uid=study_activity_subgroup["activity_subgroup_uid"],
+            study_activity_group_uid=study_activity_group["selection_uid"],
             study_activity_group_order=study_activity_group.get("order"),
-            activity_group_uid=study_activity_group.get("activity_group_uid"),
+            activity_group_uid=study_activity_group["activity_group_uid"],
             activity_uid=selection["activity_uid"],
             order=selection["order"],
             activity_version=selection["activity_version"],
-            soa_group_term_uid=study_soa_group.get("soa_group_term_uid"),
-            study_soa_group_uid=study_soa_group.get("selection_uid"),
+            soa_group_term_uid=study_soa_group["soa_group_term_uid"],
+            study_soa_group_uid=study_soa_group["selection_uid"],
             study_soa_group_order=study_soa_group.get("order"),
             author_id=selection["author_id"],
             change_type=change_type,
@@ -276,13 +279,13 @@ class StudySelectionActivityRepository(
             show_activity_subgroup_in_protocol_flowchart=study_activity_subgroup.get(
                 "show_activity_subgroup_in_protocol_flowchart"
             ),
-            show_soa_group_in_protocol_flowchart=study_soa_group.get(
+            show_soa_group_in_protocol_flowchart=study_soa_group[
                 "show_soa_group_in_protocol_flowchart"
-            ),
+            ],
             end_date=end_date,
         )
 
-    def get_audit_trail_query(self, study_selection_uid: str):
+    def get_audit_trail_query(self, study_selection_uid: str | None):
         if study_selection_uid:
             audit_trail_cypher = """
             MATCH (sr:StudyRoot { uid: $study_uid})-[:AUDIT_TRAIL]->(:StudyAction)-[:BEFORE|AFTER]->(sa:StudyActivity { uid: $study_selection_uid})

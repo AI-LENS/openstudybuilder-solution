@@ -233,12 +233,15 @@ class ActivityInstanceClassInput(InputModel):
     name: Annotated[str | None, Field(min_length=1)] = None
     order: Annotated[int | None, Field()] = None
     definition: Annotated[str | None, Field(min_length=1)] = None
-    is_domain_specific: Annotated[bool | None, Field()] = None
+    is_domain_specific: Annotated[bool, Field()] = False
     level: Annotated[int | None, Field()] = None
     library_name: Annotated[str | None, Field(min_length=1)] = None
     parent_uid: Annotated[str | None, Field(min_length=1)] = None
     dataset_class_uid: Annotated[str | None, Field(min_length=1)] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+
+
+class ActivityInstanceClassEditInput(ActivityInstanceClassInput):
+    change_description: Annotated[str, Field(min_length=1)]
 
 
 class ActivityInstanceClassMappingInput(PatchInputModel):
@@ -260,6 +263,4 @@ class ActivityInstanceClassWithDataset(BaseModel):
         Field(json_schema_extra={"nullable": False}),
     ]
 
-    datasets: list[str] | None = (
-        Field(json_schema_extra={"nullable": True}, default_factory=list),
-    )
+    datasets: list[str] = Field(default_factory=list)

@@ -23,14 +23,14 @@ class EndpointTemplateAR(TemplateAggregateRootBase):
     behavior. Inherits generic template versioning behaviors
     """
 
-    _indications: SimpleTermModel | None = None
+    _indications: list[SimpleTermModel] | None = None
 
     _categories: list[SimpleCTTermNameAndAttributes] | None = None
 
     _subcategories: list[SimpleCTTermNameAndAttributes] | None = None
 
     @property
-    def indications(self) -> SimpleTermModel:
+    def indications(self) -> list[SimpleTermModel]:
         return self._indications
 
     @property
@@ -51,7 +51,7 @@ class EndpointTemplateAR(TemplateAggregateRootBase):
         item_metadata: LibraryItemMetadataVO,
         study_count: int = 0,
         counts: InstantiationCountsVO | None = None,
-        indications: SimpleTermModel | None = None,
+        indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,
         sub_categories: list[SimpleCTTermNameAndAttributes] | None = None,
     ) -> Self:
@@ -75,11 +75,11 @@ class EndpointTemplateAR(TemplateAggregateRootBase):
         author_id: str,
         template: TemplateVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
         next_available_sequence_id_callback: Callable[
-            [str, LibraryVO | None], str | None
-        ] = lambda uid, library: None,
-        indications: SimpleTermModel | None = None,
+            ..., str
+        ] = lambda uid, library: "",
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,
         sub_categories: list[SimpleCTTermNameAndAttributes] | None = None,
     ) -> Self:

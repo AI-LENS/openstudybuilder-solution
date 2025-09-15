@@ -15,7 +15,7 @@ class SimpleParameterTermVO(ParameterTermVO):
     Value object representing single parameter term - a pair of (name, uid)
     """
 
-    value: str
+    value: str | float
     labels: list[str] | None = None
 
     @classmethod
@@ -31,9 +31,9 @@ class SimpleParameterTermVO(ParameterTermVO):
         cls,
         *,
         uid: str,
-        parameter_term_by_uid_lookup_callback: (
-            Callable[[str], str | None] | None
-        ) = None,
+        parameter_term_by_uid_lookup_callback: Callable[
+            [str], tuple[str, list[str]]
+        ] = lambda _: ("", []),
         value: str | None = None,
     ) -> Self:
         labels = None
@@ -68,7 +68,7 @@ class ParameterTermEntryVO:
     values to be combined into resulting name.
     """
 
-    parameters: list[ParameterTermVO]
+    parameters: list[ParameterTermVO] | list[SimpleParameterTermVO]
     conjunction: str
     parameter_name: str
     labels: list[str]
@@ -84,7 +84,7 @@ class ParameterTermEntryVO:
     ) -> Self:
         return cls(
             parameter_name=parameter_name,
-            parameters=tuple(parameters),
+            parameters=parameters,
             conjunction=conjunction,
             labels=labels,
         )
@@ -94,11 +94,13 @@ class ParameterTermEntryVO:
         cls,
         *,
         parameter_name: str,
-        parameters: list[ParameterTermVO],
+        parameters: list[ParameterTermVO] | list[SimpleParameterTermVO],
         conjunction: str,
         labels: list[str],
         parameter_exists_callback: Callable[[str], bool],
-        parameter_term_uid_exists_for_parameter_callback: Callable[[str, str], bool],
+        parameter_term_uid_exists_for_parameter_callback: Callable[
+            [str, str, str], bool
+        ],
         conjunction_exists_callback: Callable[[str], bool],
     ) -> Self:
         ValidationException.raise_if_not(
@@ -122,6 +124,6 @@ class ParameterTermEntryVO:
         return cls(
             parameter_name=parameter_name,
             conjunction=conjunction,
-            parameters=tuple(parameters),
+            parameters=parameters,
             labels=labels,
         )

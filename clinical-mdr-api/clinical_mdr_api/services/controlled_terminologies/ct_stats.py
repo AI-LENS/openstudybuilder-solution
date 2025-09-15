@@ -14,7 +14,7 @@ from common.auth.user import user
 
 class CTStatsService:
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()

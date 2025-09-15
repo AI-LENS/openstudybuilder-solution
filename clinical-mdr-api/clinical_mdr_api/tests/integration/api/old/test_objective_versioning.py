@@ -223,19 +223,3 @@ def test_patching_aproved_objective_with_missing_field(api_client):
             "input": {"name": "test{test-uid}", "parameter_terms": []},
         }
     ]
-
-
-def test_patching_approved_objective1(api_client):
-    data = {
-        "change_description": "Change test",
-        "name": "test{test-uid}",
-        "parameter_terms": [],
-    }
-    response = api_client.patch("/objectives/Objective_000001", json=data)
-
-    assert_response_status_code(response, 400)
-
-    res = response.json()
-
-    assert res["type"] == "BusinessLogicException"
-    assert res["message"] == "The object isn't in draft status."

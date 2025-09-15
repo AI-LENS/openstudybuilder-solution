@@ -109,17 +109,6 @@
             />
           </v-col>
         </v-row>
-        <div class="mt-4">
-          <label class="v-label">{{ $t('StudyBranchArms.colour') }}</label>
-          <v-color-picker
-            v-model="colorHash"
-            clearable
-            show-swatches
-            hide-canvas
-            hide-sliders
-            swatches-max-height="300px"
-          />
-        </div>
       </v-form>
     </template>
   </SimpleFormDialog>
@@ -162,7 +151,6 @@ export default {
       form: {},
       helpItems: [],
       editMode: false,
-      colorHash: null,
       selectedArm: {},
       branchCodeEnable: false,
       codeRules: [],
@@ -192,9 +180,6 @@ export default {
     if (Object.keys(this.editedBranchArm).length !== 0) {
       this.form = JSON.parse(JSON.stringify(this.editedBranchArm))
       this.form.arm_uid = this.editedBranchArm.arm_root.arm_uid
-      if (this.editedBranchArm.colour_code) {
-        this.colorHash = this.editedBranchArm.colour_code
-      }
       this.formStore.save(this.form)
     }
   },
@@ -235,11 +220,6 @@ export default {
       }
     },
     async create() {
-      if (this.colorHash) {
-        this.form.colour_code = this.colorHash
-      } else {
-        this.form.colour_code = '#BDBDBD'
-      }
       let armNumberOfSubjects = 0
       ;(
         await arms.getAllBranchesForArm(
@@ -283,14 +263,6 @@ export default {
       this.$refs.form.working = false
     },
     async edit() {
-      if (this.colorHash) {
-        this.form.colour_code =
-          this.colorHash.hexa !== undefined
-            ? this.colorHash.hexa
-            : this.colorHash
-      } else {
-        this.form.colour_code = '#BDBDBD'
-      }
       let armNumberOfSubjects = 0
       ;(
         await arms.getAllBranchesForArm(
@@ -351,7 +323,6 @@ export default {
     close() {
       this.form = {}
       this.formStore.reset()
-      this.colorHash = null
       this.branchCodeEnable = false
       this.$refs.observer.reset()
       this.$emit('close')

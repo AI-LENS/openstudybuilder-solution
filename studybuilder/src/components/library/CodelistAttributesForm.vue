@@ -34,10 +34,8 @@
               <v-text-field
                 v-model="form.nci_preferred_name"
                 :label="$t('CodelistAttributesForm.nci_pref_name')"
-                :error-messages="errors"
                 density="compact"
                 clearable
-                :rules="[formRules.required]"
               />
             </v-col>
           </v-row>

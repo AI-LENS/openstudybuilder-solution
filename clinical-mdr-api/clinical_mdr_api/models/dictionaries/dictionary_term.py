@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Any, Callable, Self
+from typing import Annotated, Any, Callable, Self, overload
 
 from pydantic import Field
 
@@ -85,13 +85,13 @@ class DictionaryTermEditInput(PatchInputModel):
     name_sentence_case: Annotated[str | None, Field(min_length=1)] = None
     abbreviation: Annotated[str | None, Field(min_length=1)] = None
     definition: Annotated[str | None, Field(min_length=1)] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    change_description: Annotated[str, Field(min_length=1)]
 
 
 class DictionaryTermCreateInput(PostInputModel):
     dictionary_id: Annotated[str, Field(min_length=1)]
     name: Annotated[str, Field(min_length=1)]
-    name_sentence_case: Annotated[str | None, Field(min_length=1)] = None
+    name_sentence_case: Annotated[str, Field(min_length=1)]
     abbreviation: Annotated[str | None, Field(min_length=1)] = None
     definition: Annotated[str | None, Field(min_length=1)] = None
     codelist_uid: Annotated[str, Field(min_length=1)]
@@ -143,19 +143,37 @@ class CompoundSubstance(BaseModel):
     pclass_name: Annotated[str | None, Field()] = None
     pclass_id: Annotated[str | None, Field()] = None
 
+    @overload
     @classmethod
     def from_term_uid(
         cls,
         uid: str,
         find_term_by_uid: Callable[[str], Any | None],
         find_substance_by_uid: Callable[[str], Any | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_term_uid(
+        cls,
+        uid: None,
+        find_term_by_uid: Callable[[str], Any | None],
+        find_substance_by_uid: Callable[[str], Any | None],
+    ) -> None: ...
+    @classmethod
+    def from_term_uid(
+        cls,
+        uid: str | None,
+        find_term_by_uid: Callable[[str], Any | None],
+        find_substance_by_uid: Callable[[str], Any | None],
     ) -> Self | None:
         substance = None
         if uid is not None:
-            substance_term: DictionaryTermSubstanceAR = find_substance_by_uid(uid)
+            substance_term: DictionaryTermSubstanceAR | None = find_substance_by_uid(
+                uid
+            )
 
             if substance_term is not None:
-                pclass_term: SimpleDictionaryTermModel = (
+                pclass_term: SimpleDictionaryTermModel | None = (
                     SimpleDictionaryTermModel.from_ct_code(
                         c_code=substance_term.dictionary_term_vo.pclass_uid,
                         find_term_by_uid=find_term_by_uid,

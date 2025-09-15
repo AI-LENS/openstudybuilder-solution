@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field, field_validator, model_validator
 
@@ -55,7 +55,7 @@ class OdmVendorAttribute(ConceptModel):
     ) -> Self:
         return cls(
             uid=odm_vendor_attribute_ar._uid,
-            name=odm_vendor_attribute_ar.concept_vo.name,
+            name=odm_vendor_attribute_ar.name,
             compatible_types=odm_vendor_attribute_ar.concept_vo.compatible_types,
             data_type=odm_vendor_attribute_ar.concept_vo.data_type,
             value_regex=odm_vendor_attribute_ar.concept_vo.value_regex,
@@ -81,6 +81,7 @@ class OdmVendorAttribute(ConceptModel):
 
 
 class OdmVendorAttributeRelationModel(BaseModel):
+    @overload
     @classmethod
     def from_uid(
         cls,
@@ -91,7 +92,32 @@ class OdmVendorAttributeRelationModel(BaseModel):
             [str, str, RelationType, bool], OdmVendorAttributeRelationVO | None
         ],
         vendor_element_attribute: bool = True,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls,
+        uid: None,
+        odm_element_uid: str,
+        odm_element_type: RelationType,
+        find_by_uid_with_odm_element_relation: Callable[
+            [str, str, RelationType, bool], OdmVendorAttributeRelationVO | None
+        ],
+        vendor_element_attribute: bool = True,
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls,
+        uid: str | None,
+        odm_element_uid: str,
+        odm_element_type: RelationType,
+        find_by_uid_with_odm_element_relation: Callable[
+            [str, str, RelationType, bool], OdmVendorAttributeRelationVO | None
+        ],
+        vendor_element_attribute: bool = True,
     ) -> Self | None:
+        odm_vendor_element_ref_model = None
+
         if uid is not None:
             odm_vendor_attribute_ref_vo = find_by_uid_with_odm_element_relation(
                 uid, odm_element_uid, odm_element_type, vendor_element_attribute
@@ -114,8 +140,6 @@ class OdmVendorAttributeRelationModel(BaseModel):
                     value=None,
                     vendor_namespace_uid=None,
                 )
-        else:
-            odm_vendor_element_ref_model = None
         return odm_vendor_element_ref_model
 
     uid: Annotated[str, Field()]
@@ -131,6 +155,7 @@ class OdmVendorAttributeRelationModel(BaseModel):
 
 
 class OdmVendorElementAttributeRelationModel(BaseModel):
+    @overload
     @classmethod
     def from_uid(
         cls,
@@ -142,7 +167,34 @@ class OdmVendorElementAttributeRelationModel(BaseModel):
             OdmVendorElementAttributeRelationVO | None,
         ],
         vendor_element_attribute: bool = True,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls,
+        uid: None,
+        odm_element_uid: str,
+        odm_element_type: RelationType,
+        find_by_uid_with_odm_element_relation: Callable[
+            [str, str, RelationType, bool],
+            OdmVendorElementAttributeRelationVO | None,
+        ],
+        vendor_element_attribute: bool = True,
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls,
+        uid: str | None,
+        odm_element_uid: str,
+        odm_element_type: RelationType,
+        find_by_uid_with_odm_element_relation: Callable[
+            [str, str, RelationType, bool],
+            OdmVendorElementAttributeRelationVO | None,
+        ],
+        vendor_element_attribute: bool = True,
     ) -> Self | None:
+        odm_vendor_element_ref_model = None
+
         if uid is not None:
             odm_vendor_element_attribute_ref_vo = find_by_uid_with_odm_element_relation(
                 uid, odm_element_uid, odm_element_type, vendor_element_attribute
@@ -165,8 +217,6 @@ class OdmVendorElementAttributeRelationModel(BaseModel):
                     value=None,
                     vendor_element_uid=None,
                 )
-        else:
-            odm_vendor_element_ref_model = None
         return odm_vendor_element_ref_model
 
     uid: Annotated[str, Field()]
@@ -211,6 +261,7 @@ class OdmVendorAttributePostInput(ConceptPostInput):
 
 
 class OdmVendorAttributePatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     compatible_types: Annotated[list[VendorAttributeCompatibleType], Field()]
     data_type: Annotated[str | None, Field(min_length=1)]
     value_regex: Annotated[str | None, Field(min_length=1)]

@@ -1,4 +1,4 @@
-import { apiActivityName } from "./api_library_steps";
+import { apiActivityName, apiGroupName } from "./api_library_steps";
 const { Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
 let activityInstance, topicCode = `Topic${Date.now()}`
@@ -155,13 +155,8 @@ function createActivityInstanceViaApi(customName = '') {
 
 function createAndApproveActivityInstanceViaApi() {
     cy.getClassUid()
-    createAndApproveViaApi(() => cy.createGroup(), () => cy.approveGroup())
-    createAndApproveViaApi(() => cy.createSubGroup(), () => cy.approveSubGroup())
-    createAndApproveViaApi(() => cy.createActivity(), () => cy.approveActivity())
-    createAndApproveViaApi(() => cy.createActivityInstance(), () => cy.approveActivityInstance())
-}
-
-function createAndApproveViaApi(createFunction, approveFunction) {
-    createFunction()
-    approveFunction()
+    cy.createGroup(), cy.approveGroup()
+    cy.createSubGroup(), cy.approveSubGroup()
+    cy.createActivity(), cy.approveActivity()
+    cy.createActivityInstance(), cy.approveActivityInstance()
 }

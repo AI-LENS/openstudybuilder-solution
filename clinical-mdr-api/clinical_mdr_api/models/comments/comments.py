@@ -34,7 +34,7 @@ class CommentReply(BaseModel):
         find_by_uid: Callable[[str], CommentReplyAR | None],
     ) -> Self | None:
         item = None
-        item_ar: CommentReplyAR = find_by_uid(uid)
+        item_ar: CommentReplyAR | None = find_by_uid(uid)
         if item_ar is not None:
             item = CommentReply.from_ar(item_ar)
         return item
@@ -96,7 +96,7 @@ class CommentThread(BaseModel):
         find_by_uid: Callable[[str], CommentThreadAR | None],
     ) -> Self | None:
         comment_thread = None
-        comment_thread_ar: CommentThreadAR = find_by_uid(uid)
+        comment_thread_ar: CommentThreadAR | None = find_by_uid(uid)
         if comment_thread_ar is not None:
             comment_thread = CommentThread.from_ar(comment_thread_ar)
         return comment_thread
@@ -151,7 +151,7 @@ class CommentTopic(BaseModel):
         find_by_uid: Callable[[str], CommentThreadAR | None],
     ) -> Self | None:
         comment_thread = None
-        comment_thread_ar: CommentThreadAR = find_by_uid(uid)
+        comment_thread_ar: CommentThreadAR | None = find_by_uid(uid)
         if comment_thread_ar is not None:
             comment_thread = CommentThread.from_ar(comment_thread_ar)
         return comment_thread

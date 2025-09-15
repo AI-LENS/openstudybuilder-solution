@@ -24,7 +24,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
     @abc.abstractmethod
     def _transform_aggregate_root_to_pydantic_model(
         self, item_ar: _AggregateRootType
-    ) -> BaseModel:
+    ) -> _AggregateRootType:
         raise NotImplementedError
 
     def get_input_or_previous_property(
@@ -36,7 +36,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
     version_class: type
     repository_interface: type
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -61,7 +61,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[BaseModel]:
         self.enforce_codelist_package_library(
@@ -101,7 +101,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[BaseModel]:
         return self.non_transactional_get_all_ct_terms(
@@ -125,9 +125,9 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
         library: str | None,
         package: str | None,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         self.enforce_codelist_package_library(
@@ -165,7 +165,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
         term_uid: str,
         version: str | None = None,
         at_specific_date: datetime | None = None,
-        status: str | None = None,
+        status: LibraryItemStatus | None = None,
     ) -> BaseModel:
         item = self._find_by_uid_or_raise_not_found(
             term_uid=term_uid,
@@ -181,7 +181,7 @@ class CTTermGenericService(Generic[_AggregateRootType], abc.ABC):
         version: str | None = None,
         at_specific_date: datetime | None = None,
         status: LibraryItemStatus | None = None,
-        for_update: bool | None = False,
+        for_update: bool = False,
     ) -> _AggregateRootType:
         item = self.repository.find_by_uid(
             term_uid=term_uid,

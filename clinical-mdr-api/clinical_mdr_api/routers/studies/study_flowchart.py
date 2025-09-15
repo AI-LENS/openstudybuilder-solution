@@ -83,7 +83,7 @@ def get_study_flowchart(
     time_unit: Annotated[str | None, TIME_UNIT_QUERY] = None,
     layout: Annotated[SoALayout, LAYOUT_QUERY] = SoALayout.PROTOCOL,
     force_build: Annotated[
-        bool | None,
+        bool,
         Query(description="Force building of SoA without using any saved snapshot"),
     ] = False,
 ) -> TableWithFootnotes:
@@ -284,10 +284,10 @@ def get_operational_soa_html(
 def get_detailed_soa_history(
     study_uid: Annotated[str, STUDY_UID_PATH],
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -295,7 +295,7 @@ def get_detailed_soa_history(
         ),
     ] = settings.default_page_size,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[DetailedSoAHistory]:
     detailed_soa_history = StudyActivitySelectionService().get_detailed_soa_history(
@@ -304,7 +304,7 @@ def get_detailed_soa_history(
         page_number=page_number,
         total_count=total_count,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=detailed_soa_history.items,
         total=detailed_soa_history.total,
         page=page_number,

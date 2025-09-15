@@ -47,7 +47,7 @@ class OdmGenericRepository(ConceptGenericRepository[_AggregateRootType], ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         return_all_versions: bool = False,
         only_specific_status: str = ObjectStatus.LATEST.name,
@@ -87,7 +87,7 @@ class OdmGenericRepository(ConceptGenericRepository[_AggregateRootType], ABC):
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=self.return_model,
@@ -314,7 +314,7 @@ class OdmGenericRepository(ConceptGenericRepository[_AggregateRootType], ABC):
             MATCH (root:{self.root_class.__label__})-[:LATEST]->(value:{self.value_class.__label__})
         """
 
-        params = {}
+        params: dict[str, Any] = {}
 
         if library_name:
             query += (

@@ -3,6 +3,7 @@ import json
 import os
 import re
 import time
+from typing import Any
 from unittest import TestCase
 from urllib.parse import urljoin
 
@@ -183,6 +184,11 @@ class APITest(TestCase):
             f'Patching scenario "{self.current_scenario_file_path}" index {self.current_scenario_item_index} '
             f"by {updates!s}"
         )
+
+        if not self.current_scenario_file_path:
+            raise RuntimeError(
+                "Cannot patch scenario item, no current_scenario_file_path set"
+            )
 
         # read scenario JSON
         indent = None
@@ -392,14 +398,17 @@ class APITest(TestCase):
 
         filter_element = {"v": [header_value]}
         filters = {filter_field_name: filter_element}
-        get_all_data = {"filters": json.dumps(filters), "total_count": True}
+        get_all_data: dict[str, Any] = {
+            "filters": json.dumps(filters),
+            "total_count": True,
+        }
         get_all_filtered = test_client.get(path_root, params=get_all_data)
         assert get_all_filtered.json()["total"] > 0
         assert len(get_all_filtered.json()["items"]) == get_all_filtered.json()["total"]
 
         wildcard_filter_element = {"v": [wildcard_filter_field_name]}
         wildcard_filter = {"*": wildcard_filter_element}
-        get_wildcard_data = {
+        get_wildcard_data: dict[str, Any] = {
             "filters": json.dumps(wildcard_filter),
             "total_count": True,
         }

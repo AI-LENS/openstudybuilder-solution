@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Self
+from typing import Callable, Self
 
 from clinical_mdr_api.domains.concepts.concept_base import ConceptVO
 from clinical_mdr_api.domains.concepts.odms.odm_ar_base import OdmARBase
@@ -39,7 +39,7 @@ class OdmVendorElementVO(ConceptVO):
         self,
         odm_vendor_namespace_exists_by_callback: Callable[[str, str, bool], bool],
         find_odm_vendor_element_callback: Callable[
-            [dict[Any, Any]], tuple[list["OdmVendorElementAR"], int] | None
+            ..., tuple[list["OdmVendorElementAR"], int]
         ],
     ) -> None:
         if self.vendor_namespace_uid is not None:
@@ -55,7 +55,8 @@ class OdmVendorElementVO(ConceptVO):
             )
 
             BusinessLogicException.raise_if_not(
-                find_odm_vendor_element_callback(self.vendor_namespace_uid),
+                self.vendor_namespace_uid
+                and find_odm_vendor_element_callback(self.vendor_namespace_uid),
                 msg="ODM Vendor Element tried to connect to non-existent concepts "
                 f"[('Concept Name: ODM Vendor Namespace', 'uids: ({self.vendor_namespace_uid})')].",
             )
@@ -84,12 +85,16 @@ class OdmVendorElementAR(OdmARBase):
     def concept_vo(self) -> OdmVendorElementVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmVendorElementVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmVendorElementVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -105,13 +110,13 @@ class OdmVendorElementAR(OdmARBase):
         author_id: str,
         concept_vo: OdmVendorElementVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         odm_vendor_namespace_exists_by_callback: Callable[
             [str, str, bool], bool
         ] = lambda x, y, z: True,
         find_odm_vendor_element_callback: Callable[
-            [dict[Any, Any]], tuple[list["OdmVendorElementAR"], int] | None
-        ] = lambda _: None,
+            ..., tuple[list["OdmVendorElementAR"], int]
+        ] = lambda _: ([], 0),
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -132,7 +137,7 @@ class OdmVendorElementAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmVendorElementVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

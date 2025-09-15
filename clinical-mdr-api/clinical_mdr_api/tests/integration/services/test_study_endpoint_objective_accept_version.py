@@ -1,5 +1,6 @@
-import unittest
+# pylint: disable=redefined-outer-name
 
+import pytest
 from neomodel import db
 
 from clinical_mdr_api.domain_repositories.models.generic import Library
@@ -78,7 +79,7 @@ from clinical_mdr_api.tests.integration.utils.utils import TestUtils
 from common.config import settings
 
 
-class TestStudyEndpointUpversion(unittest.TestCase):
+class TestData:
     TPR_LABEL = "ParameterName"
     default_template_name = f"Test [{TPR_LABEL}]"
     default_template_name_plain = f"Test {TPR_LABEL}"
@@ -86,7 +87,7 @@ class TestStudyEndpointUpversion(unittest.TestCase):
     changed_template_name_plain = f"Changed Test {TPR_LABEL}"
     lib: Library
 
-    def setUp(self):
+    def __init__(self):
         inject_and_clear_db("studyendpointacceptversion")
         db.cypher_query(STARTUP_PARAMETERS_CYPHER)
         db.cypher_query(STARTUP_STUDY_ENDPOINT_CYPHER)
@@ -326,98 +327,101 @@ class TestStudyEndpointUpversion(unittest.TestCase):
             if retired:
                 self.endpoint_service.inactivate_final(item.uid)
 
-    def test__endpoint_accept_version__update(self):
-        # given
 
-        endpoint_data = {
-            "endpoint_level": None,
-            "endpoint_uid": "Endpoint_000005",
-            "endpoint_units": {"separator": "string", "units": ["unit 1", "unit 2"]},
-            "study_objective_uid": self.selection.study_objective_uid,
-            "timeframe_uid": "Timeframe_000005",
-        }
-        endpoint_service = StudyEndpointSelectionService()
-        endpoint_selection_input: StudySelectionEndpointInput = (
-            StudySelectionEndpointInput(**endpoint_data)
-        )
-        endpoint_selection: StudySelectionEndpoint = endpoint_service.make_selection(
-            "study_root", endpoint_selection_input
-        )
+@pytest.fixture(scope="session")
+def test_data():
+    return TestData()
 
-        self.assertIsNone(endpoint_selection.latest_timeframe)
-        self.assertIsNone(endpoint_selection.latest_endpoint)
 
-        self.modify_endpoint_template()
-        self.endpoint_template_service.approve_cascade(self.et_ar.uid)
+def test__endpoint_accept_version__update(test_data):
+    # given
 
-        selection: StudySelectionEndpoint = endpoint_service.get_specific_selection(
-            study_uid="study_root",
-            study_selection_uid=endpoint_selection.study_endpoint_uid,
-        )
+    endpoint_data = {
+        "endpoint_level": None,
+        "endpoint_uid": "Endpoint_000005",
+        "endpoint_units": {"separator": "string", "units": ["unit 1", "unit 2"]},
+        "study_objective_uid": test_data.selection.study_objective_uid,
+        "timeframe_uid": "Timeframe_000005",
+    }
+    endpoint_service = StudyEndpointSelectionService()
+    endpoint_selection_input: StudySelectionEndpointInput = StudySelectionEndpointInput(
+        **endpoint_data
+    )
+    endpoint_selection: StudySelectionEndpoint = endpoint_service.make_selection(
+        "study_root", endpoint_selection_input
+    )
 
-        self.assertNotEqual(
-            selection.endpoint.version, selection.latest_endpoint.version
-        )
-        self.assertFalse(selection.accepted_version)
+    assert endpoint_selection.latest_timeframe is None
+    assert endpoint_selection.latest_endpoint is None
 
-        # locking and unlocking to create multiple study value relationships on the existent StudySelections
-        TestUtils.create_study_fields_configuration()
-        TestUtils.lock_and_unlock_study(study_uid="study_root")
+    test_data.modify_endpoint_template()
+    test_data.endpoint_template_service.approve_cascade(test_data.et_ar.uid)
 
-        # when
+    selection: StudySelectionEndpoint = endpoint_service.get_specific_selection(
+        study_uid="study_root",
+        study_selection_uid=endpoint_selection.study_endpoint_uid,
+    )
 
-        response = endpoint_service.update_selection_accept_versions(
-            "study_root", selection.study_endpoint_uid
-        )
+    assert selection.endpoint.version != selection.latest_endpoint.version
+    assert selection.accepted_version is False
 
-        self.assertIsNotNone(response.latest_endpoint)
-        self.assertTrue(response.accepted_version)
-        # then
-        selection = endpoint_service.get_specific_selection(
-            study_uid="study_root", study_selection_uid=selection.study_endpoint_uid
-        )
-        self.assertIsNotNone(selection.latest_endpoint)
-        self.assertIsNone(selection.latest_timeframe)
-        self.assertTrue(response.accepted_version)
+    # locking and unlocking to create multiple study value relationships on the existent StudySelections
+    TestUtils.create_study_fields_configuration()
+    TestUtils.lock_and_unlock_study(study_uid="study_root")
 
-    def test__objective__accept_version__update(self):
-        # given
-        study_service = StudyObjectiveSelectionService()
-        study_selection_objective_input = StudySelectionObjectiveInput(
-            objective_uid="Objective_000010"
-        )
-        selection: StudySelectionObjective = study_service.make_selection(
-            "study_root", study_selection_objective_input
-        )
+    # when
 
-        self.assertIsNone(selection.latest_objective)
+    response = endpoint_service.update_selection_accept_versions(
+        "study_root", selection.study_endpoint_uid
+    )
 
-        self.modify_objective_template()
-        self.objective_template_service.approve_cascade(self.ot_ar.uid)
+    assert response.latest_endpoint
+    assert response.accepted_version is True
+    # then
+    selection = endpoint_service.get_specific_selection(
+        study_uid="study_root", study_selection_uid=selection.study_endpoint_uid
+    )
+    assert selection.latest_endpoint
+    assert selection.latest_timeframe is None
+    assert response.accepted_version is True
 
-        selection = study_service.get_specific_selection(
-            study_uid="study_root", study_selection_uid=selection.study_objective_uid
-        )
 
-        self.assertFalse(selection.accepted_version)
-        self.assertNotEqual(
-            selection.objective.version, selection.latest_objective.version
-        )
-        # when
+def test__objective__accept_version__update(test_data):
+    # given
+    study_service = StudyObjectiveSelectionService()
+    study_selection_objective_input = StudySelectionObjectiveInput(
+        objective_uid="Objective_000010"
+    )
+    selection: StudySelectionObjective = study_service.make_selection(
+        "study_root", study_selection_objective_input
+    )
 
-        print("SELECTION", selection)
-        response = study_service.update_selection_accept_version(
-            "study_root", selection.study_objective_uid
-        )
+    assert selection.latest_objective is None
 
-        print("RESPONSE", response)
+    test_data.modify_objective_template()
+    test_data.objective_template_service.approve_cascade(test_data.ot_ar.uid)
 
-        self.assertIsNotNone(response.latest_objective)
-        self.assertTrue(response.accepted_version)
-        # then
-        selection = study_service.get_specific_selection(
-            study_uid="study_root", study_selection_uid=selection.study_objective_uid
-        )
-        print("SLDATA", selection)
-        self.assertIsNotNone(selection.latest_objective)
-        self.assertTrue(selection.accepted_version)
+    selection = study_service.get_specific_selection(
+        study_uid="study_root", study_selection_uid=selection.study_objective_uid
+    )
+
+    assert selection.accepted_version is False
+    assert selection.objective.version != selection.latest_objective.version
+    # when
+
+    print("SELECTION", selection)
+    response = study_service.update_selection_accept_version(
+        "study_root", selection.study_objective_uid
+    )
+
+    print("RESPONSE", response)
+
+    assert response.latest_objective
+    assert response.accepted_version is True
+    # then
+    selection = study_service.get_specific_selection(
+        study_uid="study_root", study_selection_uid=selection.study_objective_uid
+    )
+    print("SLDATA", selection)
+    assert selection.latest_objective
+    assert selection.accepted_version is True

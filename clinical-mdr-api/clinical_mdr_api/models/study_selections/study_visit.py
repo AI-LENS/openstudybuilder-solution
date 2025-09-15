@@ -3,13 +3,7 @@ from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field
 
-from clinical_mdr_api.domains.study_selections.study_epoch import StudyEpochEpoch
 from clinical_mdr_api.domains.study_selections.study_visit import (
-    StudyVisitContactMode,
-    StudyVisitEpochAllocation,
-    StudyVisitRepeatingFrequency,
-    StudyVisitTimeReference,
-    StudyVisitType,
     StudyVisitVO,
     VisitGroupFormat,
 )
@@ -218,7 +212,7 @@ class StudyVisitBase(BaseModel):
     # study_epoch_name can be calculated from uid
     epoch_uid: Annotated[str, Field(description="The uid of the study epoch")]
 
-    visit_type: Annotated[SimpleCTTermNameWithConflictFlag, Field()]
+    visit_type: Annotated[SimpleCTTermNameWithConflictFlag | None, Field()]
     visit_type_name: Annotated[str, Field()]
 
     time_reference_uid: Annotated[
@@ -245,7 +239,7 @@ class StudyVisitBase(BaseModel):
         Field(json_schema_extra={"nullable": True}),
     ] = None
     visit_contact_mode_uid: Annotated[str, Field()]
-    visit_contact_mode: Annotated[SimpleCTTermNameWithConflictFlag, Field()]
+    visit_contact_mode: Annotated[SimpleCTTermNameWithConflictFlag | None, Field()]
     epoch_allocation_uid: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
@@ -299,8 +293,9 @@ class StudyVisitBase(BaseModel):
 
     visit_number: Annotated[float, Field()]
     visit_subnumber: Annotated[int, Field()]
+    order: Annotated[int | None, Field()] = None
 
-    unique_visit_number: Annotated[int, Field()]
+    unique_visit_number: Annotated[int | None, Field()]
     visit_subname: Annotated[str, Field()]
 
     visit_name: Annotated[str, Field()]
@@ -342,37 +337,11 @@ class StudyVisitBase(BaseModel):
         visit: StudyVisitVO,
         study_value_version: str | None = None,
         derive_props_based_on_timeline: bool = True,
-        use_global_mappings: bool = True,
     ) -> Self:
         timepoint = visit.timepoint
-        if use_global_mappings:
-            if timepoint:
-                visit_timereference = StudyVisitTimeReference.get(
-                    timepoint.visit_timereference.term_uid
-                )
-                timepoint.visit_timereference = visit_timereference
-            visit.epoch_connector.epoch = StudyEpochEpoch.get(
-                visit.epoch.epoch.term_uid
-            )
-            visit.visit_type = StudyVisitType.get(visit.visit_type.term_uid)
-            visit.visit_contact_mode = StudyVisitContactMode.get(
-                visit.visit_contact_mode.term_uid
-            )
-            epoch_allocation_uid = getattr(visit.epoch_allocation, "term_uid", None)
-            if epoch_allocation_uid:
-                visit.epoch_allocation = StudyVisitEpochAllocation.get(
-                    epoch_allocation_uid
-                )
-            repeating_frequency_uid = getattr(
-                visit.repeating_frequency, "term_uid", None
-            )
-            if repeating_frequency_uid:
-                visit.repeating_frequency = StudyVisitRepeatingFrequency.get(
-                    repeating_frequency_uid
-                )
         return cls(
-            visit_type_name=visit.visit_type.sponsor_preferred_name,
-            uid=visit.uid,
+            visit_type_name=visit.visit_type.sponsor_preferred_name or "",
+            uid=visit.uid or "",
             study_uid=visit.study_uid,
             study_id=(
                 f"{visit.study_id_prefix}-{visit.study_number}"
@@ -424,7 +393,7 @@ class StudyVisitBase(BaseModel):
             visit_short_name=(
                 str(visit.visit_short_name)
                 if derive_props_based_on_timeline
-                else visit.vis_short_name
+                else str(visit.vis_short_name)
             ),
             consecutive_visit_group=(
                 visit.study_visit_group.group_name if visit.study_visit_group else None
@@ -446,7 +415,7 @@ class StudyVisitBase(BaseModel):
             ),
             epoch_allocation=visit.epoch_allocation,
             status=visit.status.value,
-            start_date=visit.start_date.strftime(settings.date_time_format),
+            start_date=visit.start_date,
             author_username=visit.author_username or visit.author_id,
             possible_actions=visit.possible_actions,
             visit_class=visit.visit_class.name,

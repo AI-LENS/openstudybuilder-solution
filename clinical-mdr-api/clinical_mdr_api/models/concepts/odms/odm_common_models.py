@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -34,13 +34,31 @@ class OdmRefVendorPostInput(PostInputModel):
 
 
 class OdmRefVendorAttributeModel(BaseModel):
+    @overload
     @classmethod
     def from_uid(
         cls,
         uid: str,
         value: str,
         find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls,
+        uid: None,
+        value: str,
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls,
+        uid: str | None,
+        value: str,
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
     ) -> Self | None:
+        odm_vendor_element_ref_model = None
+
         if uid is not None:
             odm_vendor_attribute_ar = find_odm_vendor_attribute_by_uid(uid)
             if odm_vendor_attribute_ar is not None:
@@ -61,8 +79,6 @@ class OdmRefVendorAttributeModel(BaseModel):
                     value=None,
                     vendor_namespace_uid=None,
                 )
-        else:
-            odm_vendor_element_ref_model = None
         return odm_vendor_element_ref_model
 
     uid: Annotated[str, Field()]
@@ -82,12 +98,28 @@ class OdmRefVendor(BaseModel):
 
 
 class OdmVendorNamespaceSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_vendor_namespace_uid(
         cls,
         uid: str,
         find_odm_vendor_namespace_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_vendor_namespace_uid(
+        cls,
+        uid: None,
+        find_odm_vendor_namespace_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_vendor_namespace_uid(
+        cls,
+        uid: str | None,
+        find_odm_vendor_namespace_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_vendor_namespace_model = None
+
         if uid is not None:
             odm_vendor_namespace = find_odm_vendor_namespace_by_uid(uid)
 
@@ -113,8 +145,6 @@ class OdmVendorNamespaceSimpleModel(BaseModel):
                     version=None,
                     possible_actions=[],
                 )
-        else:
-            simple_odm_vendor_namespace_model = None
         return simple_odm_vendor_namespace_model
 
     uid: Annotated[str, Field()]
@@ -129,12 +159,28 @@ class OdmVendorNamespaceSimpleModel(BaseModel):
 
 
 class OdmVendorAttributeSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_vendor_attribute_uid(
         cls,
         uid: str,
         find_odm_vendor_attribute_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_vendor_attribute_uid(
+        cls,
+        uid: None,
+        find_odm_vendor_attribute_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_vendor_attribute_uid(
+        cls,
+        uid: str | None,
+        find_odm_vendor_attribute_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_vendor_attribute_model = None
+
         if uid is not None:
             odm_vendor_attribute = find_odm_vendor_attribute_by_uid(uid)
 
@@ -152,10 +198,13 @@ class OdmVendorAttributeSimpleModel(BaseModel):
                 )
             else:
                 simple_odm_vendor_attribute_model = cls(
-                    uid=uid, name=None, status=None, version=None, possible_actions=[]
+                    uid=uid,
+                    name=None,
+                    status=None,
+                    version=None,
+                    compatible_types=[],
+                    possible_actions=[],
                 )
-        else:
-            simple_odm_vendor_attribute_model = None
         return simple_odm_vendor_attribute_model
 
     uid: Annotated[str, Field()]
@@ -170,12 +219,28 @@ class OdmVendorAttributeSimpleModel(BaseModel):
 
 
 class OdmVendorElementSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_vendor_element_uid(
         cls,
         uid: str,
         find_odm_vendor_element_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_vendor_element_uid(
+        cls,
+        uid: None,
+        find_odm_vendor_element_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_vendor_element_uid(
+        cls,
+        uid: str | None,
+        find_odm_vendor_element_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_vendor_element_model = None
+
         if uid is not None:
             odm_vendor_element = find_odm_vendor_element_by_uid(uid)
 
@@ -192,10 +257,13 @@ class OdmVendorElementSimpleModel(BaseModel):
                 )
             else:
                 simple_odm_vendor_element_model = cls(
-                    uid=uid, name=None, status=None, version=None, possible_actions=[]
+                    uid=uid,
+                    name=None,
+                    status=None,
+                    version=None,
+                    compatible_types=[],
+                    possible_actions=[],
                 )
-        else:
-            simple_odm_vendor_element_model = None
         return simple_odm_vendor_element_model
 
     uid: Annotated[str, Field()]

@@ -41,7 +41,7 @@ def get_study_flowchart_html(
     response: Response,
     study_uid: Annotated[str, StudyUID],
     debug: Annotated[
-        bool | None, Query(description="Draw some lines for debugging the image layout")
+        bool, Query(description="Draw some lines for debugging the image layout")
     ] = False,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY

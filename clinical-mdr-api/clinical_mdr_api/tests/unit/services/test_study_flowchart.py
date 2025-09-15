@@ -49,13 +49,13 @@ class MockStudyFlowchartService(StudyFlowchartService):
     def _get_study_visits(self, *_args, **_kwargs):
         return STUDY_VISITS
 
-    def _fetch_study_activities(self, *_args, **_kwargs):
+    def fetch_study_activities(self, *_args, **_kwargs):
         return STUDY_ACTIVITIES
 
     def _get_study_activity_schedules(self, *_args, **_kwargs):
         return STUDY_ACTIVITY_SCHEDULES
 
-    def _fetch_study_activity_instances(self, *_args, **_kwargs):
+    def fetch_study_activity_instances(self, *_args, **_kwargs):
         return []
 
     def _get_study_footnotes(self, *_args, **_kwargs):

@@ -119,10 +119,6 @@ def test_get_table(
         study_uid=tst_study.uid,
         medicinal_product_uid=medicinal_product1.uid,
         compound_alias_uid=compound_alias1a.uid,
-        dose_frequency_uid=ct_term_dose_frequency.term_uid,
-        delivery_device_uid=ct_term_delivery_device.term_uid,
-        dispenser_uid=ct_term_dispenser.term_uid,
-        dose_value_uid=dose_value.uid,
     )
 
     # Make a compound selection with another compound alias, while keeping all other details the same
@@ -133,10 +129,6 @@ def test_get_table(
         selection_create_input=StudySelectionCompoundCreateInput(
             medicinal_product_uid=medicinal_product2.uid,
             compound_alias_uid=compound_alias2a.uid,
-            dose_frequency_uid=ct_term_dose_frequency.term_uid,
-            delivery_device_uid=ct_term_delivery_device.term_uid,
-            dispenser_uid=ct_term_dispenser.term_uid,
-            dose_value_uid=dose_value.uid,
         ),
     )
 
@@ -147,7 +139,6 @@ def test_get_table(
         study_uid=tst_study.uid,
         selection_create_input=StudyCompoundDosingInput(
             study_compound_uid=study_compound_created1.study_compound_uid,
-            dose_frequency_uid=ct_term_dose_frequency.term_uid,
             dose_value_uid=dose_value.uid,
             study_element_uid=study_elements[0].element_uid,
         ),
@@ -158,7 +149,6 @@ def test_get_table(
         study_uid=tst_study.uid,
         selection_create_input=StudyCompoundDosingInput(
             study_compound_uid=study_compound_created2.study_compound_uid,
-            dose_frequency_uid=ct_term_dose_frequency.term_uid,
             dose_value_uid=dose_value.uid,
             study_element_uid=study_elements[1].element_uid,
         ),

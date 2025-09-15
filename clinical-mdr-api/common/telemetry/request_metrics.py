@@ -53,7 +53,7 @@ def init_request_metrics():
     """Initialize request metrics object in request context"""
 
     if context.exists():
-        context["request_metrics"] = RequestMetrics()
+        context["request_metrics"] = RequestMetrics()  # type: ignore[call-arg]
 
 
 def include_request_metrics(span: opencensus.trace.Span):
@@ -79,8 +79,7 @@ def add_request_metrics_header(
 ) -> None:
     """Adds custom response header with request metrics"""
 
-    metrics = get_request_metrics()
-    metrics = metrics.dict(
+    metrics = get_request_metrics().model_dump(
         by_alias=True, include={"cypher_count", "cypher_times", "cypher_slowest_time"}
     )
     metrics = {

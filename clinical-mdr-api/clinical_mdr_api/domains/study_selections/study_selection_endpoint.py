@@ -62,7 +62,7 @@ class StudyEndpointSelectionHistory:
     unit_separator: str | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     change_type: str
     end_date: datetime.datetime | None
     order: int
@@ -85,7 +85,7 @@ class StudySelectionEndpointVO:
     study_objective_uid: str | None
     timeframe_uid: str | None
     timeframe_version: str | None
-    endpoint_units: tuple[dict[str, Any]]
+    endpoint_units: tuple[dict[str, Any], ...]
     unit_separator: str | None
     endpoint_level_order: int | None
     is_instance: bool
@@ -106,15 +106,15 @@ class StudySelectionEndpointVO:
         study_objective_uid: str | None,
         timeframe_uid: str | None,
         timeframe_version: str | None,
-        endpoint_units: list[Any] | None,
+        endpoint_units: tuple[dict[str, Any], ...] | None,
         endpoint_level_order: int | None,
         author_id: str,
         study_uid: str | None = None,
         study_selection_uid: str | None = None,
         is_instance: bool = True,
         start_date: datetime.datetime | None = None,
-        accepted_version: bool | None = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        accepted_version: bool = False,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         """
         Factory method
@@ -140,18 +140,18 @@ class StudySelectionEndpointVO:
 
         if endpoint_units:
             # built-in dict remembers insertion order (guaranteed since Python 3.7)
-            units = {}
+            _units = {}
             for unit in endpoint_units:
                 unit = {
                     k: normalize_string(v) if isinstance(v, str) else v
                     for k, v in unit.items()
                 }
                 if unit["uid"]:
-                    units[unit["uid"]] = unit
-            units = tuple(units.values())
+                    _units[unit["uid"]] = unit
+            units = tuple(_units.values())
 
         else:
-            units = tuple()
+            units = ()
 
         # returns a new instance of the VO
         return StudySelectionEndpointVO(
@@ -176,11 +176,13 @@ class StudySelectionEndpointVO:
 
     def validate(
         self,
-        study_objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        endpoint_exist_callback: Callable[[str], bool] = (lambda _: True),
-        timeframe_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_exists_callback: Callable[[str], bool] = (lambda _: True),
-        unit_definition_exists_callback: Callable[[str], bool] = (lambda _: True),
+        study_objective_exist_callback: Callable[[str], bool] = lambda _: True,
+        endpoint_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        timeframe_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_exists_callback: Callable[[str | None], bool] = lambda _: True,
+        unit_definition_exists_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         """
         Validating business logic for a VO
@@ -222,8 +224,8 @@ class StudySelectionEndpointVO:
         )
         # Check if there exist a Term with the selected uid
         BusinessLogicException.raise_if(
-            not ct_term_exists_callback(self.endpoint_level_uid)
-            and self.endpoint_level_uid,
+            self.endpoint_level_uid
+            and not ct_term_exists_callback(self.endpoint_level_uid),
             msg=f"There is no approved Endpoint Level with UID '{self.endpoint_level_uid}'.",
         )
         BusinessLogicException.raise_if(
@@ -234,9 +236,10 @@ class StudySelectionEndpointVO:
         for unit in self.endpoint_units:
             uid = unit.get("uid")
 
-            ValidationException.raise_if_not(
-                uid, msg=f"There is no uid for unit definition '{unit}'."
-            )
+            if uid is None:
+                raise ValidationException(
+                    msg=f"There is no uid for unit definition '{unit}'."
+                )
             ValidationException.raise_if_not(
                 unit_definition_exists_callback(uid),
                 msg=f"There is no approved Unit Definition with UID '{uid}'.",
@@ -311,11 +314,13 @@ class StudySelectionEndpointsAR:
     def add_endpoint_selection(
         self,
         study_endpoint_selection: StudySelectionEndpointVO,
-        study_objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        endpoint_exist_callback: Callable[[str], bool] = (lambda _: True),
-        timeframe_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_exists_callback: Callable[[str], bool] = (lambda _: True),
-        unit_definition_exists_callback: Callable[[str], bool] = (lambda _: True),
+        study_objective_exist_callback: Callable[[str], bool] = lambda _: True,
+        endpoint_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        timeframe_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_exists_callback: Callable[[str | None], bool] = lambda _: True,
+        unit_definition_exists_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         """
         Adding a new study endpoint to the _study_endpoint_selection
@@ -435,11 +440,13 @@ class StudySelectionEndpointsAR:
     def update_selection(
         self,
         updated_study_endpoint_selection: StudySelectionEndpointVO,
-        study_objective_exist_callback: Callable[[str], bool] = (lambda _: True),
-        endpoint_exist_callback: Callable[[str], bool] = (lambda _: True),
-        timeframe_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_exists_callback: Callable[[str], bool] = (lambda _: True),
-        unit_definition_exists_callback: Callable[[str], bool] = (lambda _: True),
+        study_objective_exist_callback: Callable[[str], bool] = lambda _: True,
+        endpoint_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        timeframe_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_exists_callback: Callable[[str | None], bool] = lambda _: True,
+        unit_definition_exists_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         """
         Used when a study endpoint is patched

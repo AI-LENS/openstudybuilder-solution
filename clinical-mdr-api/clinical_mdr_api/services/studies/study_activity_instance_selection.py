@@ -53,7 +53,13 @@ from common import exceptions
 from common.auth.user import user
 
 
-class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
+class StudyActivityInstanceSelectionService(
+    StudyActivitySelectionBaseService[
+        StudySelectionActivityInstanceAR,
+        StudySelectionActivityInstanceVO,
+        StudySelectionActivityInstance,
+    ]
+):
     _repos: MetaRepository
     repository_interface = StudySelectionActivityInstanceRepository
     selected_object_repository_interface = ActivityInstanceRepository
@@ -120,9 +126,12 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionActivityInstanceAR,
+        study_selection: StudySelectionActivityInstanceAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionActivityInstance]:
+        if study_selection is None:
+            return []
+
         activity_versions_by_uid: dict[str, list[ActivityForStudyActivity]] = (
             defaultdict(list)
         )
@@ -232,6 +241,14 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
             ],
             msg=f"There is no approved Activity Instance with UID '{activity_instance_uid}'.",
         )
+
+        if (
+            study_activity_selection.activity_subgroup_uid is None
+            or study_activity_selection.activity_group_uid is None
+        ):
+            raise exceptions.BusinessLogicException(
+                msg="Activity Subgroup UID and Activity Group UID must be provided for new selections."
+            )
 
         related_activity_instances = self._repos.activity_instance_repository.get_all_activity_instances_for_activity_grouping(
             activity_uid=study_activity_selection.activity_uid,
@@ -493,9 +510,13 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
         }
 
         for activity_instance_uid in create_payload.activity_instance_uids:
-            result = {}
             try:
                 if activity_instance_uid not in selected_instances:
+                    if create_payload.study_activity_uid is None:
+                        raise exceptions.BusinessLogicException(
+                            msg="Study Activity UID must be provided for new selections."
+                        )
+
                     item = self.non_transactional_make_selection(
                         study_uid=study_uid,
                         selection_create_input=StudySelectionActivityInstanceCreateInput(
@@ -510,10 +531,12 @@ class StudyActivityInstanceSelectionService(StudyActivitySelectionBaseService):
                         study_selection_uid=selected_instances[activity_instance_uid],
                     )
                     response_code = status.HTTP_200_OK
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(StudySelectionActivityInstanceBatchOutput(**result))
+                results.append(
+                    StudySelectionActivityInstanceBatchOutput(
+                        response_code=response_code,
+                        content=item if item else None,
+                    )
+                )
             except exceptions.MDRApiBaseException as error:
                 results.append(
                     StudySelectionActivityInstanceBatchOutput.model_construct(

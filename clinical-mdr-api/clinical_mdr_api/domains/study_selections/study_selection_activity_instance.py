@@ -29,7 +29,6 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
     study_activity_uid: str
     activity_uid: str
     activity_name: str | None
-    activity_version: str
     activity_instance_uid: str | None
     activity_instance_name: str | None
     activity_instance_version: str | None
@@ -37,8 +36,9 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
     keep_old_version: bool
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
+    activity_version: str | None = None
     accepted_version: bool = False
     study_activity_subgroup_uid: str | None = None
     activity_subgroup_uid: str | None = None
@@ -56,19 +56,19 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
         study_uid: str,
         author_id: str,
         study_activity_uid: str,
+        activity_uid: str,
         author_username: str | None = None,
-        activity_uid: str | None = None,
         activity_name: str | None = None,
         activity_version: str | None = None,
         activity_instance_uid: str | None = None,
         activity_instance_name: str | None = None,
         activity_instance_version: str | None = None,
-        show_activity_instance_in_protocol_flowchart: bool | None = False,
-        keep_old_version: bool | None = False,
+        show_activity_instance_in_protocol_flowchart: bool = False,
+        keep_old_version: bool = False,
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
         study_activity_subgroup_uid: str | None = None,
         activity_subgroup_uid: str | None = None,
         activity_subgroup_name: str | None = None,
@@ -118,8 +118,8 @@ class StudySelectionActivityInstanceVO(study_selection_base.StudySelectionBaseVO
 
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         # Checks if there exists an activity which is approved with activity_uid
         ValidationException.raise_if(
@@ -148,10 +148,10 @@ class StudySelectionActivityInstanceAR(study_selection_base.StudySelectionBaseAR
     * delete selection
     """
 
-    _object_type = "activity_instance"
-    _object_uid_field = "activity_instance_uid"
-    _object_name_field = "activity_instance_name"
-    _order_field_name = ""
+    _object_type: str = "activity_instance"
+    _object_uid_field: str = "activity_instance_uid"
+    _object_name_field: str = "activity_instance_name"
+    _order_field_name: str = ""
 
     def validate(self):
         objects = []

@@ -69,23 +69,23 @@ FIX_SOME_VALUE_DEFAULT = """
 
 @dataclass_with_default_init(frozen=True)
 class StudyIdentificationMetadataVO:
-    project_number: str | None
+    project_number: str
     study_number: str | None
     subpart_id: str | None
     study_acronym: str | None
     study_subpart_acronym: str | None
     study_id_prefix: str | None
     description: str | None
-    registry_identifiers: RegistryIdentifiersVO | None
+    registry_identifiers: RegistryIdentifiersVO
 
     def __init__(
         self,
-        project_number: str | None,
+        project_number: str,
         study_number: str | None,
         subpart_id: str | None,
         study_acronym: str | None,
         description: str | None,
-        registry_identifiers: RegistryIdentifiersVO,
+        registry_identifiers: RegistryIdentifiersVO | None,
         study_subpart_acronym: str | None = None,
         _study_id_prefix: str | None = None,
         # we denote this param with underscore, for "internal" use
@@ -106,7 +106,7 @@ class StudyIdentificationMetadataVO:
     @classmethod
     def from_input_values(
         cls,
-        project_number: str | None,
+        project_number: str,
         study_number: str | None,
         subpart_id: str | None,
         study_acronym: str | None,
@@ -132,9 +132,11 @@ class StudyIdentificationMetadataVO:
 
     def validate(
         self,
-        project_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_number_exists_callback: Callable[[str, str], bool] = (lambda x, y: False),
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
+        project_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_number_exists_callback: Callable[[str, str | None], bool] = (
+            lambda x, y: False
+        ),
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
         is_subpart: bool = False,
         previous_is_subpart: bool = False,
         updatable_subpart: bool = False,
@@ -201,8 +203,8 @@ class StudyIdentificationMetadataVO:
 
     def is_valid(
         self,
-        project_exists_callback: Callable[[str], bool] = (lambda _: True),
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
+        project_exists_callback: Callable[[str], bool] = lambda _: True,
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> bool:
         """
         Convenience method (mostly for testing purposes).
@@ -227,7 +229,7 @@ class StudyIdentificationMetadataVO:
         study_subpart_acronym: str | None = FIX_SOME_VALUE_DEFAULT,
         study_id_prefix: str | None = FIX_SOME_VALUE_DEFAULT,
         description: str | None = FIX_SOME_VALUE_DEFAULT,
-        registry_identifiers: RegistryIdentifiersVO | None = FIX_SOME_VALUE_DEFAULT,
+        registry_identifiers: RegistryIdentifiersVO | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
     ) -> Self:
         """
         Helper function to produce a new object with some of values different from self.
@@ -267,7 +269,7 @@ class StudyVersionMetadataVO:
     def __init__(
         self,
         study_status: StudyStatus = StudyStatus.DRAFT,
-        version_timestamp: datetime | None = FIX_SOME_VALUE_DEFAULT,
+        version_timestamp: datetime | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         version_author: str | None = None,
         version_description: str | None = None,
         version_number: Decimal | None = None,
@@ -364,11 +366,11 @@ class HighLevelStudyDesignVO:
 
     def validate(
         self,
-        study_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_intent_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_phase_exists_callback: Callable[[str], bool] = (lambda _: True),
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
+        study_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_intent_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_phase_exists_callback: Callable[[str], bool] = lambda _: True,
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         """
         Validates content disregarding state of the study. Optionally (if relevant callback are provided as
@@ -465,10 +467,10 @@ class HighLevelStudyDesignVO:
 
     def is_valid(
         self,
-        study_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_intent_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_phase_exists_callback: Callable[[str], bool] = (lambda _: True),
+        study_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_intent_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_phase_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> bool:
         """
         Convenience method (mostly for testing purposes).
@@ -493,9 +495,9 @@ class HighLevelStudyDesignVO:
         trial_type_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         trial_phase_code: str | None = FIX_SOME_VALUE_DEFAULT,
         trial_phase_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        is_extension_trial: bool | None = FIX_SOME_VALUE_DEFAULT,
+        is_extension_trial: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         is_extension_trial_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        is_adaptive_design: bool | None = FIX_SOME_VALUE_DEFAULT,
+        is_adaptive_design: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         is_adaptive_design_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         study_stop_rules: str | None = FIX_SOME_VALUE_DEFAULT,
         study_stop_rules_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
@@ -503,7 +505,7 @@ class HighLevelStudyDesignVO:
         confirmed_response_minimum_duration_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
-        post_auth_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        post_auth_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         post_auth_indicator_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
     ) -> Self:
         """
@@ -580,7 +582,7 @@ class HighLevelStudyDesignVO:
         *,
         study_type_code: str | None,
         study_type_null_value_code: str | None,
-        trial_type_codes: Iterable[str] | None,
+        trial_type_codes: list[str] | None,
         trial_type_null_value_code: str | None,
         trial_phase_code: str | None,
         trial_phase_null_value_code: str | None,
@@ -598,7 +600,7 @@ class HighLevelStudyDesignVO:
         return HighLevelStudyDesignVO(
             study_type_code=study_type_code,
             study_type_null_value_code=study_type_null_value_code,
-            trial_type_codes=[] if trial_type_codes is None else trial_type_codes,
+            trial_type_codes=trial_type_codes if trial_type_codes is not None else [],
             trial_type_null_value_code=trial_type_null_value_code,
             trial_phase_code=trial_phase_code,
             trial_phase_null_value_code=trial_phase_null_value_code,
@@ -765,13 +767,13 @@ class StudyPopulationVO:
     def validate(
         self,
         *,
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
-        therapeutic_area_exists_callback: Callable[[str], bool] = (lambda _: True),
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        therapeutic_area_exists_callback: Callable[[str], bool] = lambda _: True,
         disease_condition_or_indication_exists_callback: Callable[[str], bool] = (
             lambda _: True
         ),
-        diagnosis_group_exists_callback: Callable[[str], bool] = (lambda _: True),
-        sex_of_participants_exists_callback: Callable[[str], bool] = (lambda _: True),
+        diagnosis_group_exists_callback: Callable[[str], bool] = lambda _: True,
+        sex_of_participants_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         def validate_value_and_associated_null_value_valid(
             value: Any,
@@ -902,13 +904,13 @@ class StudyPopulationVO:
     def is_valid(
         self,
         *,
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
-        therapeutic_area_exists_callback: Callable[[str], bool] = (lambda _: True),
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        therapeutic_area_exists_callback: Callable[[str], bool] = lambda _: True,
         disease_condition_or_indication_exists_callback: Callable[[str], bool] = (
             lambda _: True
         ),
-        diagnosis_group_exists_callback: Callable[[str], bool] = (lambda _: True),
-        sex_of_participants_exists_callback: Callable[[str], bool] = (lambda _: True),
+        diagnosis_group_exists_callback: Callable[[str], bool] = lambda _: True,
+        sex_of_participants_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> bool:
         try:
             self.validate(
@@ -935,9 +937,9 @@ class StudyPopulationVO:
         diagnosis_group_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         sex_of_participants_code: str | None = FIX_SOME_VALUE_DEFAULT,
         sex_of_participants_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        rare_disease_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        rare_disease_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         rare_disease_indicator_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        healthy_subject_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        healthy_subject_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         healthy_subject_indicator_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         planned_minimum_age_of_subjects: str | None = FIX_SOME_VALUE_DEFAULT,
         planned_minimum_age_of_subjects_null_value_code: (
@@ -951,19 +953,19 @@ class StudyPopulationVO:
         stable_disease_minimum_duration_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
-        pediatric_study_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        pediatric_study_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         pediatric_study_indicator_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        pediatric_postmarket_study_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        pediatric_postmarket_study_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         pediatric_postmarket_study_indicator_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
-        pediatric_investigation_plan_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,
+        pediatric_investigation_plan_indicator: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         pediatric_investigation_plan_indicator_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
         relapse_criteria: str | None = FIX_SOME_VALUE_DEFAULT,
         relapse_criteria_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        number_of_expected_subjects: int | None = FIX_SOME_VALUE_DEFAULT,
+        number_of_expected_subjects: int | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         number_of_expected_subjects_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
@@ -1167,11 +1169,11 @@ class StudyInterventionVO:
     def validate(
         self,
         *,
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        control_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_model_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_blinding_schema_exists_callback: Callable[[str], bool] = (lambda _: True),
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        control_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_model_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_blinding_schema_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         def validate_value_and_associated_null_value_valid(
             value: Any,
@@ -1276,11 +1278,11 @@ class StudyInterventionVO:
     def is_valid(
         self,
         *,
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        control_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_model_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_blinding_schema_exists_callback: Callable[[str], bool] = (lambda _: True),
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        control_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_model_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_blinding_schema_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> bool:
         try:
             self.validate(
@@ -1299,15 +1301,15 @@ class StudyInterventionVO:
         *,
         intervention_type_code: str | None = FIX_SOME_VALUE_DEFAULT,
         intervention_type_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        add_on_to_existing_treatments: bool | None = FIX_SOME_VALUE_DEFAULT,
+        add_on_to_existing_treatments: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         add_on_to_existing_treatments_null_value_code: (
             str | None
         ) = FIX_SOME_VALUE_DEFAULT,
         control_type_code: str | None = FIX_SOME_VALUE_DEFAULT,
         control_type_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        intervention_model_code: bool | None = FIX_SOME_VALUE_DEFAULT,
+        intervention_model_code: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         intervention_model_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        is_trial_randomised: bool | None = FIX_SOME_VALUE_DEFAULT,
+        is_trial_randomised: bool | None = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         is_trial_randomised_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         stratification_factor: str | None = FIX_SOME_VALUE_DEFAULT,
         stratification_factor_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
@@ -1315,7 +1317,7 @@ class StudyInterventionVO:
         trial_blinding_schema_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
         planned_study_length: str | None = FIX_SOME_VALUE_DEFAULT,
         planned_study_length_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
-        trial_intent_types_codes: list[str] = FIX_SOME_VALUE_DEFAULT,
+        trial_intent_types_codes: list[str] = FIX_SOME_VALUE_DEFAULT,  # type: ignore[assignment]
         trial_itent_type_null_value_code: str | None = FIX_SOME_VALUE_DEFAULT,
     ) -> Self:
         def helper(parameter: Any, def_value: Any):
@@ -1398,21 +1400,25 @@ class StudyDescriptionVO:
 
     def validate(
         self,
-        study_number: str,
+        study_number: str | None,
         *,
-        study_title_exists_callback: Callable[[str], bool] = (
+        study_title_exists_callback: Callable[[str, str], bool] = (
             lambda _, study_number: True
         ),
-        study_short_title_exists_callback: Callable[[str], bool] = (
+        study_short_title_exists_callback: Callable[[str, str], bool] = (
             lambda _, study_number: True
         ),
     ) -> None:
         exceptions.AlreadyExistsException.raise_if(
-            study_title_exists_callback(self.study_title, study_number),
+            self.study_title is not None
+            and study_number
+            and study_title_exists_callback(self.study_title, study_number),
             msg=f"Study Title '{self.study_title}' already exists.",
         )
         exceptions.AlreadyExistsException.raise_if(
-            study_short_title_exists_callback(self.study_short_title, study_number),
+            self.study_short_title is not None
+            and study_number
+            and study_short_title_exists_callback(self.study_short_title, study_number),
             msg=f"Study Short Title '{self.study_short_title}' already exists.",
         )
 
@@ -1420,8 +1426,10 @@ class StudyDescriptionVO:
         self,
         study_number: str,
         *,
-        title_exists_callback: Callable[[str], bool] = (lambda _, study_number: True),
-        short_title_exists_callback: Callable[[str], bool] = (
+        title_exists_callback: Callable[[str, str], bool] = (
+            lambda _, study_number: True
+        ),
+        short_title_exists_callback: Callable[[str, str], bool] = (
             lambda _, study_number: True
         ),
     ) -> bool:
@@ -1466,11 +1474,11 @@ class StudyFieldAuditTrailActionVO:
     @classmethod
     def from_input_values(
         cls,
-        field_name: str | None,
-        section: str | None,
+        field_name: str,
+        section: str,
         before_value: str | None,
         after_value: str | None,
-        action: str | None,
+        action: str,
     ) -> Self:
         return StudyFieldAuditTrailActionVO(
             field_name=normalize_string(field_name),
@@ -1497,10 +1505,10 @@ class StudyFieldAuditTrailEntryAR:
     @classmethod
     def from_input_values(
         cls,
-        study_uid: str | None,
-        author_id: str | None,
-        author_username: str | None,
-        date: str | None,
+        study_uid: str,
+        author_id: str,
+        author_username: str,
+        date: str,
         actions: list[StudyFieldAuditTrailActionVO],
     ) -> Self:
         return StudyFieldAuditTrailEntryAR(
@@ -1524,27 +1532,29 @@ class StudyMetadataVO:
     def validate(
         self,
         *,
-        project_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_number_exists_callback: Callable[[str, str], bool] = (lambda x, y: False),
-        study_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_intent_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_phase_exists_callback: Callable[[str], bool] = (lambda _: True),
-        null_value_exists_callback: Callable[[str], bool] = (lambda _: True),
-        therapeutic_area_exists_callback: Callable[[str], bool] = (lambda _: True),
+        project_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_number_exists_callback: Callable[[str, str | None], bool] = (
+            lambda x, y: False
+        ),
+        study_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_intent_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_phase_exists_callback: Callable[[str], bool] = lambda _: True,
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        therapeutic_area_exists_callback: Callable[[str], bool] = lambda _: True,
         disease_condition_or_indication_exists_callback: Callable[[str], bool] = (
             lambda _: True
         ),
-        diagnosis_group_exists_callback: Callable[[str], bool] = (lambda _: True),
-        sex_of_participants_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        control_type_exists_callback: Callable[[str], bool] = (lambda _: True),
-        intervention_model_exists_callback: Callable[[str], bool] = (lambda _: True),
-        trial_blinding_schema_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_title_exists_callback: Callable[[str], bool] = (
+        diagnosis_group_exists_callback: Callable[[str], bool] = lambda _: True,
+        sex_of_participants_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        control_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_model_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_blinding_schema_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_title_exists_callback: Callable[[str, str], bool] = (
             lambda _, study_number: False
         ),
-        study_short_title_exists_callback: Callable[[str], bool] = (
+        study_short_title_exists_callback: Callable[[str, str], bool] = (
             lambda _, study_number: False
         ),
         is_subpart: bool = False,

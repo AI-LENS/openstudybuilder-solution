@@ -18,45 +18,45 @@ class SponsorModelDatasetVariableVO:
     The SponsorModelDatasetVariableVO acts as the value object for a single SponsorModelDatasetVariable value object
     """
 
-    dataset_uid: str
-    variable_uid: str
-    sponsor_model_name: str
+    dataset_uid: str | None
+    variable_uid: str | None
+    sponsor_model_name: str | None
     sponsor_model_version_number: str
 
     is_basic_std: bool
-    implemented_parent_dataset_class: str
-    implemented_variable_class: str
-    label: str
-    order: int
-    variable_type: str
-    length: int
-    display_format: str
-    xml_datatype: str
-    references_codelists: list[str]
-    references_terms: list[str]
-    core: str
-    origin: str
-    origin_type: str
-    origin_source: str
-    role: str
-    term: str
-    algorithm: str
-    qualifiers: list[str]
+    implemented_parent_dataset_class: str | None
+    implemented_variable_class: str | None
+    label: str | None
+    order: int | None
+    variable_type: str | None
+    length: int | None
+    display_format: str | None
+    xml_datatype: str | None
+    references_codelists: list[str] | None
+    references_terms: list[str] | None
+    core: str | None
+    origin: str | None
+    origin_type: str | None
+    origin_source: str | None
+    role: str | None
+    term: str | None
+    algorithm: str | None
+    qualifiers: list[str] | None
     is_cdisc_std: bool
-    comment: str
-    ig_comment: str
-    class_table: str
-    class_column: str
-    map_var_flag: str
-    fixed_mapping: str
+    comment: str | None
+    ig_comment: str | None
+    class_table: str | None
+    class_column: str | None
+    map_var_flag: str | None
+    fixed_mapping: str | None
     include_in_raw: bool
     nn_internal: bool
-    value_lvl_where_cols: str
-    value_lvl_label_col: str
-    value_lvl_collect_ct_val: str
-    value_lvl_ct_codelist_id_col: str
-    enrich_build_order: int
-    enrich_rule: str
+    value_lvl_where_cols: str | None
+    value_lvl_label_col: str | None
+    value_lvl_collect_ct_val: str | None
+    value_lvl_ct_codelist_id_col: str | None
+    enrich_build_order: int | None
+    enrich_rule: str | None
     target_data_model_catalogue: str | None = None
 
     @classmethod
@@ -64,42 +64,42 @@ class SponsorModelDatasetVariableVO:
         cls,
         dataset_uid: str,
         variable_uid: str,
-        sponsor_model_name: str | None,
-        sponsor_model_version_number: str | None,
+        sponsor_model_name: str,
+        sponsor_model_version_number: str,
         is_basic_std: bool,
         implemented_parent_dataset_class: str | None,
         implemented_variable_class: str | None,
-        label: str,
-        order: int,
-        variable_type: str,
-        length: int,
-        display_format: str,
-        xml_datatype: str,
-        references_codelists: list[str],
-        references_terms: list[str],
-        core: str,
-        origin: str,
-        origin_type: str,
-        origin_source: str,
-        role: str,
-        term: str,
-        algorithm: str,
-        qualifiers: list[str],
+        label: str | None,
+        order: int | None,
+        variable_type: str | None,
+        length: int | None,
+        display_format: str | None,
+        xml_datatype: str | None,
+        references_codelists: list[str] | None,
+        references_terms: list[str] | None,
+        core: str | None,
+        origin: str | None,
+        origin_type: str | None,
+        origin_source: str | None,
+        role: str | None,
+        term: str | None,
+        algorithm: str | None,
+        qualifiers: list[str] | None,
         is_cdisc_std: bool,
-        comment: str,
-        ig_comment: str,
-        class_table: str,
-        class_column: str,
-        map_var_flag: str,
-        fixed_mapping: str,
+        comment: str | None,
+        ig_comment: str | None,
+        class_table: str | None,
+        class_column: str | None,
+        map_var_flag: str | None,
+        fixed_mapping: str | None,
         include_in_raw: bool,
         nn_internal: bool,
-        value_lvl_where_cols: str,
-        value_lvl_label_col: str,
-        value_lvl_collect_ct_val: str,
-        value_lvl_ct_codelist_id_col: str,
-        enrich_build_order: int,
-        enrich_rule: str,
+        value_lvl_where_cols: str | None,
+        value_lvl_label_col: str | None,
+        value_lvl_collect_ct_val: str | None,
+        value_lvl_ct_codelist_id_col: str | None,
+        enrich_build_order: int | None,
+        enrich_rule: str | None,
         target_data_model_catalogue: str | None = None,
     ) -> Self:
         sponsor_model_dataset_variable_vo = cls(
@@ -161,7 +161,7 @@ class SponsorModelDatasetVariableMetadataVO(LibraryItemMetadataVO):
             _author_id=author_id,
             _start_date=datetime.datetime.now(datetime.timezone.utc),
             _end_date=None,
-            _major_version=version,
+            _major_version=int(version),
             _minor_version=0,
         )
 
@@ -193,8 +193,8 @@ class SponsorModelDatasetVariableAR(LibraryItemAggregateRootBase):
         cls,
         variable_uid: str,
         sponsor_model_dataset_variable_vo: SponsorModelDatasetVariableVO,
-        library: LibraryVO | None,
-        item_metadata: SponsorModelDatasetVariableMetadataVO,
+        library: LibraryVO,
+        item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         sponsor_model_dataset_variable_ar = cls(
             _uid=variable_uid,

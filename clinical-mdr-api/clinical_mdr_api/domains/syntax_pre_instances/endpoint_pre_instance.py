@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Self
 
 from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
@@ -19,14 +19,14 @@ class EndpointPreInstanceAR(PreInstanceAR):
     Implementation of EndpointPreInstanceAR. Solely based on Parametrized Template.
     """
 
-    _indications: SimpleTermModel | None = None
+    _indications: list[SimpleTermModel] = field(default_factory=list)
 
-    _categories: list[SimpleCTTermNameAndAttributes] | None = None
+    _categories: list[SimpleCTTermNameAndAttributes] = field(default_factory=list)
 
-    _subcategories: list[SimpleCTTermNameAndAttributes] | None = None
+    _subcategories: list[SimpleCTTermNameAndAttributes] = field(default_factory=list)
 
     @property
-    def indications(self) -> SimpleTermModel:
+    def indications(self) -> list[SimpleTermModel]:
         return self._indications
 
     @property
@@ -46,7 +46,7 @@ class EndpointPreInstanceAR(PreInstanceAR):
         item_metadata: LibraryItemMetadataVO,
         sequence_id: str,
         study_count: int = 0,
-        indications: SimpleTermModel | None = None,
+        indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,
         sub_categories: list[SimpleCTTermNameAndAttributes] | None = None,
     ) -> Self:
@@ -56,9 +56,9 @@ class EndpointPreInstanceAR(PreInstanceAR):
             _item_metadata=item_metadata,
             _library=library,
             _template=template,
-            _indications=indications,
-            _categories=categories,
-            _subcategories=sub_categories,
+            _indications=indications or [],
+            _categories=categories or [],
+            _subcategories=sub_categories or [],
             _study_count=study_count,
         )
 
@@ -68,11 +68,9 @@ class EndpointPreInstanceAR(PreInstanceAR):
         author_id: str,
         library: LibraryVO,
         template: ParametrizedTemplateVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        next_available_sequence_id_callback: Callable[[str], str | None] = (
-            lambda _: None
-        ),
-        indications: SimpleTermModel | None = None,
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        next_available_sequence_id_callback: Callable[..., str] = lambda _: "",
+        indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,
         sub_categories: list[SimpleCTTermNameAndAttributes] | None = None,
     ) -> Self:
@@ -89,8 +87,8 @@ class EndpointPreInstanceAR(PreInstanceAR):
             _template=template,
             _item_metadata=item_metadata,
         )
-        ar._indications = indications
-        ar._categories = categories
-        ar._subcategories = sub_categories
+        ar._indications = indications or []
+        ar._categories = categories or []
+        ar._subcategories = sub_categories or []
 
         return ar

@@ -104,7 +104,6 @@ def test_data():
         short_name="Arm_Short_Name_1",
         code="Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -115,7 +114,6 @@ def test_data():
         short_name="Arm_Short_Name_2",
         code="Arm_code_2",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup2",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -126,7 +124,6 @@ def test_data():
         short_name="Arm_Short_Name_3",
         code="Arm_code_3",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup3",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -138,7 +135,6 @@ def test_data():
         short_name="Arm_Short_Name_9",
         code="Arm_code_9",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Arm_randomizationGroup9",
         number_of_subjects=100,
         arm_type_uid=arm_type.uid,
@@ -147,13 +143,13 @@ def test_data():
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch.uid,
-        study_arm_uid="StudyArm_000003",
+        study_arm_uid="StudyArm_000002",
         study_uid=study.uid,
     )
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch2.uid,
-        study_arm_uid="StudyArm_000003",
+        study_arm_uid="StudyArm_000002",
         study_uid=study.uid,
     )
 
@@ -170,10 +166,9 @@ def test_data():
         short_name="Branch_Arm_Short_Name_1",
         code="Branch_Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Branch_Arm_randomizationGroup",
         number_of_subjects=100,
-        arm_uid="StudyArm_000003",
+        arm_uid="StudyArm_000002",
     )
     branch_arm = patch_study_branch_arm(
         branch_arm_uid=branch_arm.branch_arm_uid, study_uid=study.uid
@@ -182,7 +177,7 @@ def test_data():
     create_study_design_cell(
         study_element_uid=study_elements[0].element_uid,
         study_epoch_uid=study_epoch2.uid,
-        study_arm_uid="StudyArm_000005",
+        study_arm_uid="StudyArm_000003",
         study_uid=study.uid,
     )
 
@@ -192,7 +187,6 @@ def test_data():
         short_name="Cohort_Short_Name_1",
         code="Cohort_code_1",
         description="desc...",
-        colour_code="desc...",
         number_of_subjects=100,
         arm_uids=["StudyArm_000001"],
     )
@@ -254,7 +248,7 @@ def test_if_the_study_design_cells_connected_to_branch_arm_update_the_connection
 
     assert_response_status_code(response, 200)
 
-    res = response.json()
+    res = response.json()["items"]
 
     assert res[0]["study_uid"] == "study_root"
     assert res[0]["order"] == 1
@@ -264,17 +258,15 @@ def test_if_the_study_design_cells_connected_to_branch_arm_update_the_connection
     assert res[0]["short_name"] == "Branch_Arm_Short_Name_1"
     assert res[0]["code"] == "Branch_Arm_code_1"
     assert res[0]["description"] == "desc..."
-    assert res[0]["colour_code"] == "colour..."
     assert res[0]["randomization_group"] == "Branch_Arm_randomizationGroup"
     assert res[0]["number_of_subjects"] == 100
     assert res[0]["arm_root"]["study_uid"] == "study_root"
     assert res[0]["arm_root"]["order"] == 2
-    assert res[0]["arm_root"]["arm_uid"] == "StudyArm_000003"
+    assert res[0]["arm_root"]["arm_uid"] == "StudyArm_000002"
     assert res[0]["arm_root"]["name"] == "Arm_Name_2"
     assert res[0]["arm_root"]["short_name"] == "Arm_Short_Name_2"
     assert res[0]["arm_root"]["code"] == "Arm_code_2"
     assert res[0]["arm_root"]["description"] == "desc..."
-    assert res[0]["arm_root"]["arm_colour"] is None
     assert res[0]["arm_root"]["randomization_group"] == "Arm_randomizationGroup2"
     assert res[0]["arm_root"]["number_of_subjects"] == 100
     assert res[0]["arm_root"]["arm_type"]["term_uid"] == "ArmType_0001"
@@ -335,10 +327,9 @@ def test_adding_selection_studybrancharm_to_switch_the_studydeisgncells_from_the
         "short_name": "BranchArm_Short_Name_7",
         "code": "BranchArm_code_7",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_7",
         "number_of_subjects": 2,
-        "arm_uid": "StudyArm_000003",
+        "arm_uid": "StudyArm_000002",
     }
     response = api_client.post("/studies/study_root/study-branch-arms", json=data)
 
@@ -348,7 +339,7 @@ def test_adding_selection_studybrancharm_to_switch_the_studydeisgncells_from_the
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000005"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000002"
     assert res["order"] == 1
     assert res["name"] == "BranchArm_Name_7"
     assert res["short_name"] == "BranchArm_Short_Name_7"
@@ -358,7 +349,7 @@ def test_adding_selection_studybrancharm_to_switch_the_studydeisgncells_from_the
     assert res["change_type"] is None
     assert res["accepted_version"] is False
     assert res["arm_root"]["study_uid"] == "study_root"
-    assert res["arm_root"]["arm_uid"] == "StudyArm_000003"
+    assert res["arm_root"]["arm_uid"] == "StudyArm_000002"
     assert res["arm_root"]["order"] == 2
     assert res["arm_root"]["name"] == "Arm_Name_2"
     assert res["arm_root"]["short_name"] == "Arm_Short_Name_2"
@@ -396,12 +387,10 @@ def test_adding_selection_studybrancharm_to_switch_the_studydeisgncells_from_the
         "new_version",
     ]
     assert res["arm_root"]["description"] == "desc..."
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] == 100
     assert res["arm_root"]["randomization_group"] == "Arm_randomizationGroup2"
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_7"
     assert res["author_username"] == "unknown-user@example.com"
@@ -423,10 +412,9 @@ def test_adding_selection_studybrancharm_to_then_test_delete_on_many_studybranch
         "short_name": "BranchArm_Short_Name_9",
         "code": "BranchArm_code_9",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_9",
         "number_of_subjects": 2,
-        "arm_uid": "StudyArm_000003",
+        "arm_uid": "StudyArm_000002",
     }
     response = api_client.post("/studies/study_root/study-branch-arms", json=data)
 
@@ -436,7 +424,7 @@ def test_adding_selection_studybrancharm_to_then_test_delete_on_many_studybranch
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000007"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000003"
     assert res["order"] == 2
     assert res["name"] == "BranchArm_Name_9"
     assert res["short_name"] == "BranchArm_Short_Name_9"
@@ -446,7 +434,7 @@ def test_adding_selection_studybrancharm_to_then_test_delete_on_many_studybranch
     assert res["change_type"] is None
     assert res["accepted_version"] is False
     assert res["arm_root"]["study_uid"] == "study_root"
-    assert res["arm_root"]["arm_uid"] == "StudyArm_000003"
+    assert res["arm_root"]["arm_uid"] == "StudyArm_000002"
     assert res["arm_root"]["order"] == 2
     assert res["arm_root"]["name"] == "Arm_Name_2"
     assert res["arm_root"]["short_name"] == "Arm_Short_Name_2"
@@ -484,12 +472,10 @@ def test_adding_selection_studybrancharm_to_then_test_delete_on_many_studybranch
         "new_version",
     ]
     assert res["arm_root"]["description"] == "desc..."
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] == 100
     assert res["arm_root"]["randomization_group"] == "Arm_randomizationGroup2"
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_9"
     assert res["author_username"] == "unknown-user@example.com"
@@ -497,7 +483,7 @@ def test_adding_selection_studybrancharm_to_then_test_delete_on_many_studybranch
 
 def test_adding_designcell_to_the_many_studybranch(api_client):
     data = {
-        "study_branch_arm_uid": "StudyBranchArm_000007",
+        "study_branch_arm_uid": "StudyBranchArm_000003",
         "study_epoch_uid": "StudyEpoch_000001",
         "study_element_uid": "StudyElement_000001",
         "transition_rule": "Transition_Rule_3",
@@ -714,7 +700,7 @@ def test_patch_specific_try_to_patch_the_studyarm_of_a_studybrancharm_that_has_s
 ):
     data = {"arm_uid": "StudyArm_000001"}
     response = api_client.patch(
-        "/studies/study_root/study-branch-arms/StudyBranchArm_000007", json=data
+        "/studies/study_root/study-branch-arms/StudyBranchArm_000003", json=data
     )
 
     assert_response_status_code(response, 422)
@@ -724,14 +710,14 @@ def test_patch_specific_try_to_patch_the_studyarm_of_a_studybrancharm_that_has_s
     assert res["type"] == "ValidationException"
     assert (
         res["message"]
-        == "Cannot change StudyArm when the BranchArm with UID 'StudyBranchArm_000007' has connected StudyDesignCells."
+        == "Cannot change StudyArm when the BranchArm with UID 'StudyBranchArm_000003' has connected StudyDesignCells."
     )
 
 
 def test_test_if_the_cascade_delete_of_studydesigncells_on_the_study_arm_works(
     api_client,
 ):
-    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000005")
+    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000003")
 
     assert_response_status_code(response, 204)
 
@@ -823,10 +809,9 @@ def test_adding_selection_studybrancharm_and_then_deleting_it_to_test_that_the_n
         "short_name": "BranchArm_Short_Name_10",
         "code": "BranchArm_code_10",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_10",
         "number_of_subjects": 2,
-        "arm_uid": "StudyArm_000003",
+        "arm_uid": "StudyArm_000002",
     }
     response = api_client.post("/studies/study_root/study-branch-arms", json=data)
 
@@ -836,7 +821,7 @@ def test_adding_selection_studybrancharm_and_then_deleting_it_to_test_that_the_n
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000009"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000004"
     assert res["order"] == 3
     assert res["name"] == "BranchArm_Name_10"
     assert res["short_name"] == "BranchArm_Short_Name_10"
@@ -846,7 +831,7 @@ def test_adding_selection_studybrancharm_and_then_deleting_it_to_test_that_the_n
     assert res["change_type"] is None
     assert res["accepted_version"] is False
     assert res["arm_root"]["study_uid"] == "study_root"
-    assert res["arm_root"]["arm_uid"] == "StudyArm_000003"
+    assert res["arm_root"]["arm_uid"] == "StudyArm_000002"
     assert res["arm_root"]["order"] == 2
     assert res["arm_root"]["name"] == "Arm_Name_2"
     assert res["arm_root"]["short_name"] == "Arm_Short_Name_2"
@@ -884,12 +869,10 @@ def test_adding_selection_studybrancharm_and_then_deleting_it_to_test_that_the_n
         "new_version",
     ]
     assert res["arm_root"]["description"] == "desc..."
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] == 100
     assert res["arm_root"]["randomization_group"] == "Arm_randomizationGroup2"
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_10"
     assert res["author_username"] == "unknown-user@example.com"
@@ -897,7 +880,7 @@ def test_adding_selection_studybrancharm_and_then_deleting_it_to_test_that_the_n
 
 def test_adding_designcell_to_the_many_studybranch1(api_client):
     data = {
-        "study_branch_arm_uid": "StudyBranchArm_000009",
+        "study_branch_arm_uid": "StudyBranchArm_000004",
         "study_epoch_uid": "StudyEpoch_000001",
         "study_element_uid": "StudyElement_000001",
         "transition_rule": "Transition_Rule_4",
@@ -910,7 +893,7 @@ def test_adding_designcell_to_the_many_studybranch1(api_client):
 def test_delete_studybrancharms_to_then_be_sure_that_the_connected_branches_are_just_those_who_actually_has_study_value_connection(
     api_client,
 ):
-    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000009")
+    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000005")
 
     assert_response_status_code(response, 204)
 
@@ -918,7 +901,7 @@ def test_delete_studybrancharms_to_then_be_sure_that_the_connected_branches_are_
 def test_be_sure_that_the_connected_branches_are_just_those_who_actually_has_study_value_connection(
     api_client,
 ):
-    response = api_client.get("/studies/study_root/study-arms/StudyArm_000003")
+    response = api_client.get("/studies/study_root/study-arms/StudyArm_000002")
 
     assert_response_status_code(response, 200)
 
@@ -927,12 +910,11 @@ def test_be_sure_that_the_connected_branches_are_just_those_who_actually_has_stu
     assert res["study_uid"] == "study_root"
     assert res["order"] == 2
     assert res["study_version"]
-    assert res["arm_uid"] == "StudyArm_000003"
+    assert res["arm_uid"] == "StudyArm_000002"
     assert res["name"] == "Arm_Name_2"
     assert res["short_name"] == "Arm_Short_Name_2"
     assert res["code"] == "Arm_code_2"
     assert res["description"] == "desc..."
-    assert res["arm_colour"] is None
     assert res["randomization_group"] == "Arm_randomizationGroup2"
     assert res["number_of_subjects"] == 100
     assert res["arm_type"]["term_uid"] == "ArmType_0001"
@@ -961,13 +943,12 @@ def test_be_sure_that_the_connected_branches_are_just_those_who_actually_has_stu
     assert res["arm_connected_branch_arms"][0]["study_uid"] == "study_root"
     assert res["arm_connected_branch_arms"][0]["order"] == 1
     assert (
-        res["arm_connected_branch_arms"][0]["branch_arm_uid"] == "StudyBranchArm_000005"
+        res["arm_connected_branch_arms"][0]["branch_arm_uid"] == "StudyBranchArm_000002"
     )
     assert res["arm_connected_branch_arms"][0]["name"] == "BranchArm_Name_7"
     assert res["arm_connected_branch_arms"][0]["short_name"] == "BranchArm_Short_Name_7"
     assert res["arm_connected_branch_arms"][0]["code"] == "BranchArm_code_7"
     assert res["arm_connected_branch_arms"][0]["description"] == "desc..."
-    assert res["arm_connected_branch_arms"][0]["colour_code"] == "desc..."
     assert (
         res["arm_connected_branch_arms"][0]["randomization_group"]
         == "Randomization_Group_7"
@@ -981,17 +962,16 @@ def test_be_sure_that_the_connected_branches_are_just_those_who_actually_has_stu
     assert res["arm_connected_branch_arms"][0]["end_date"] is None
     assert res["arm_connected_branch_arms"][0]["status"] is None
     assert res["arm_connected_branch_arms"][0]["change_type"] is None
-    assert res["arm_connected_branch_arms"][0]["accepted_version"] is None
+    assert res["arm_connected_branch_arms"][0]["accepted_version"] is False
     assert res["arm_connected_branch_arms"][1]["study_uid"] == "study_root"
     assert res["arm_connected_branch_arms"][1]["order"] == 2
     assert (
-        res["arm_connected_branch_arms"][1]["branch_arm_uid"] == "StudyBranchArm_000007"
+        res["arm_connected_branch_arms"][1]["branch_arm_uid"] == "StudyBranchArm_000003"
     )
     assert res["arm_connected_branch_arms"][1]["name"] == "BranchArm_Name_9"
     assert res["arm_connected_branch_arms"][1]["short_name"] == "BranchArm_Short_Name_9"
     assert res["arm_connected_branch_arms"][1]["code"] == "BranchArm_code_9"
     assert res["arm_connected_branch_arms"][1]["description"] == "desc..."
-    assert res["arm_connected_branch_arms"][1]["colour_code"] == "desc..."
     assert (
         res["arm_connected_branch_arms"][1]["randomization_group"]
         == "Randomization_Group_9"
@@ -1005,13 +985,13 @@ def test_be_sure_that_the_connected_branches_are_just_those_who_actually_has_stu
     assert res["arm_connected_branch_arms"][1]["end_date"] is None
     assert res["arm_connected_branch_arms"][1]["status"] is None
     assert res["arm_connected_branch_arms"][1]["change_type"] is None
-    assert res["arm_connected_branch_arms"][1]["accepted_version"] is None
+    assert res["arm_connected_branch_arms"][1]["accepted_version"] is False
 
 
 def test_patch_specific_set_arm_type_uid_to_null(api_client):
     data = {"arm_type_uid": None}
     response = api_client.patch(
-        "/studies/study_root/study-arms/StudyArm_000003", json=data
+        "/studies/study_root/study-arms/StudyArm_000002", json=data
     )
 
     assert_response_status_code(response, 200)
@@ -1021,12 +1001,11 @@ def test_patch_specific_set_arm_type_uid_to_null(api_client):
     assert res["study_uid"] == "study_root"
     assert res["order"] == 2
     assert res["study_version"]
-    assert res["arm_uid"] == "StudyArm_000003"
+    assert res["arm_uid"] == "StudyArm_000002"
     assert res["name"] == "Arm_Name_2"
     assert res["short_name"] == "Arm_Short_Name_2"
     assert res["code"] == "Arm_code_2"
     assert res["description"] == "desc..."
-    assert res["arm_colour"] is None
     assert res["randomization_group"] == "Arm_randomizationGroup2"
     assert res["number_of_subjects"] == 100
     assert res["arm_type"] is None
@@ -1039,13 +1018,12 @@ def test_patch_specific_set_arm_type_uid_to_null(api_client):
     assert res["arm_connected_branch_arms"][0]["study_uid"] == "study_root"
     assert res["arm_connected_branch_arms"][0]["order"] == 1
     assert (
-        res["arm_connected_branch_arms"][0]["branch_arm_uid"] == "StudyBranchArm_000005"
+        res["arm_connected_branch_arms"][0]["branch_arm_uid"] == "StudyBranchArm_000002"
     )
     assert res["arm_connected_branch_arms"][0]["name"] == "BranchArm_Name_7"
     assert res["arm_connected_branch_arms"][0]["short_name"] == "BranchArm_Short_Name_7"
     assert res["arm_connected_branch_arms"][0]["code"] == "BranchArm_code_7"
     assert res["arm_connected_branch_arms"][0]["description"] == "desc..."
-    assert res["arm_connected_branch_arms"][0]["colour_code"] == "desc..."
     assert (
         res["arm_connected_branch_arms"][0]["randomization_group"]
         == "Randomization_Group_7"
@@ -1059,17 +1037,16 @@ def test_patch_specific_set_arm_type_uid_to_null(api_client):
     assert res["arm_connected_branch_arms"][0]["end_date"] is None
     assert res["arm_connected_branch_arms"][0]["status"] is None
     assert res["arm_connected_branch_arms"][0]["change_type"] is None
-    assert res["arm_connected_branch_arms"][0]["accepted_version"] is None
+    assert res["arm_connected_branch_arms"][0]["accepted_version"] is False
     assert res["arm_connected_branch_arms"][1]["study_uid"] == "study_root"
     assert res["arm_connected_branch_arms"][1]["order"] == 2
     assert (
-        res["arm_connected_branch_arms"][1]["branch_arm_uid"] == "StudyBranchArm_000007"
+        res["arm_connected_branch_arms"][1]["branch_arm_uid"] == "StudyBranchArm_000003"
     )
     assert res["arm_connected_branch_arms"][1]["name"] == "BranchArm_Name_9"
     assert res["arm_connected_branch_arms"][1]["short_name"] == "BranchArm_Short_Name_9"
     assert res["arm_connected_branch_arms"][1]["code"] == "BranchArm_code_9"
     assert res["arm_connected_branch_arms"][1]["description"] == "desc..."
-    assert res["arm_connected_branch_arms"][1]["colour_code"] == "desc..."
     assert (
         res["arm_connected_branch_arms"][1]["randomization_group"]
         == "Randomization_Group_9"
@@ -1083,13 +1060,13 @@ def test_patch_specific_set_arm_type_uid_to_null(api_client):
     assert res["arm_connected_branch_arms"][1]["end_date"] is None
     assert res["arm_connected_branch_arms"][1]["status"] is None
     assert res["arm_connected_branch_arms"][1]["change_type"] is None
-    assert res["arm_connected_branch_arms"][1]["accepted_version"] is None
+    assert res["arm_connected_branch_arms"][1]["accepted_version"] is False
 
 
 def test_test_if_the_cascade_delete_on_the_study_arm_works_with_design_cells(
     api_client,
 ):
-    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000003")
+    response = api_client.delete("/studies/study_root/study-arms/StudyArm_000002")
 
     assert_response_status_code(response, 204)
 
@@ -1257,10 +1234,9 @@ def test_adding_selection_studybrancharm_to_test_that_the_business_exception_has
         "short_name": "BranchArm_Short_Name_15",
         "code": "BranchArm_code_15",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_15",
         "number_of_subjects": 10,
-        "arm_uid": "StudyArm_000007",
+        "arm_uid": "StudyArm_000004",
     }
     response = api_client.post("/studies/study_root/study-branch-arms", json=data)
 
@@ -1271,12 +1247,11 @@ def test_adding_selection_studybrancharm_to_test_that_the_business_exception_has
     assert res["study_uid"] == "study_root"
     assert res["order"] == 1
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000017"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000005"
     assert res["name"] == "BranchArm_Name_15"
     assert res["short_name"] == "BranchArm_Short_Name_15"
     assert res["code"] == "BranchArm_code_15"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["randomization_group"] == "Randomization_Group_15"
     assert res["number_of_subjects"] == 10
     assert res["author_username"] == "unknown-user@example.com"
@@ -1286,12 +1261,11 @@ def test_adding_selection_studybrancharm_to_test_that_the_business_exception_has
     assert res["accepted_version"] is False
     assert res["arm_root"]["study_uid"] == "study_root"
     assert res["arm_root"]["order"] == 1
-    assert res["arm_root"]["arm_uid"] == "StudyArm_000007"
+    assert res["arm_root"]["arm_uid"] == "StudyArm_000004"
     assert res["arm_root"]["name"] == "Arm_Name_9"
     assert res["arm_root"]["short_name"] == "Arm_Short_Name_9"
     assert res["arm_root"]["code"] == "Arm_code_9"
     assert res["arm_root"]["description"] == "desc..."
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["randomization_group"] == "Arm_randomizationGroup9"
     assert res["arm_root"]["number_of_subjects"] == 100
     assert res["arm_root"]["arm_type"]["term_uid"] == "ArmType_0001"
@@ -1350,8 +1324,8 @@ def test_adding_designcell_that_has_a_studyarm_assigned_that_has_studybrancharms
     api_client,
 ):
     data = {
-        "study_arm_uid": "StudyArm_000007",
-        "study_branch_arm_uid": "StudyBranchArm_000015",
+        "study_arm_uid": "StudyArm_000004",
+        "study_branch_arm_uid": "StudyBranchArm_000005",
         "study_epoch_uid": "StudyEpoch_000002",
         "study_element_uid": "StudyElement_000002",
         "transition_rule": "Transition_Rule_4",

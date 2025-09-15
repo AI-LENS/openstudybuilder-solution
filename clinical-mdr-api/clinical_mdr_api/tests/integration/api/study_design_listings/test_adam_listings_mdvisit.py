@@ -10,6 +10,7 @@ Tests for /listings/studies/all/adam/ endpoints
 # which pylint interprets as unused arguments
 
 import logging
+from unittest import mock
 
 import pytest
 from neomodel import db
@@ -20,6 +21,13 @@ from clinical_mdr_api.tests.integration.utils.data_library import (
     STARTUP_CT_CATALOGUE_CYPHER,
     STARTUP_STUDY_LIST_CYPHER,
     fix_study_preferred_time_unit,
+)
+from clinical_mdr_api.tests.integration.utils.factory_controlled_terminology import (
+    get_unit_uid_by_name,
+)
+from clinical_mdr_api.tests.integration.utils.factory_epoch import create_study_epoch
+from clinical_mdr_api.tests.integration.utils.factory_visit import (
+    generate_default_input_data_for_visit,
 )
 from clinical_mdr_api.tests.integration.utils.method_library import (
     create_library_data,
@@ -71,7 +79,7 @@ def test_adam_listing_mdvisit(api_client, test_data):
         STUDYID="SOME_ID-0",
         VISTPCD="BASELINE",
         AVISITN=100,
-        AVISIT="VISIT 1",
+        AVISIT="Visit 1 (day 1)",
         AVISIT1N=1,
         VISLABEL="V1",
         AVISIT1="Day 1",
@@ -182,3 +190,65 @@ def test_adam_listing_mdvisit_versioning(api_client, test_data):
     res = response.json()
     assert_response_status_code(response, 200)
     assert res == md_visit_headers_before_unlock
+
+
+def test_adam_with_protocol_soa_html_with_time_units(api_client):
+    study_for_export = TestUtils.create_study()
+    visit_to_create = generate_default_input_data_for_visit().copy()
+    visit_to_create.update({"time_value": 10})
+    study_epoch = create_study_epoch(
+        "EpochSubType_0001", study_uid=study_for_export.uid
+    )
+    TestUtils.create_study_visit(
+        study_uid=study_for_export.uid,
+        study_epoch_uid=study_epoch.uid,
+        **visit_to_create,
+    )
+    response = api_client.get(
+        f"/listings/studies/{study_for_export.uid}/adam/mdvisit/",
+    )
+    assert response.status_code == 200
+    res = response.json()["items"]
+    assert res is not None
+
+    expected_output = StudyVisitAdamListing(
+        STUDYID="",
+        VISTPCD="Visit Type2",
+        AVISITN=100,
+        AVISIT="Visit 1 (week 11)",
+        AVISIT1N=71,
+        VISLABEL="V1",
+        AVISIT1="Day 71",
+        AVISIT2="Week 11",
+        AVISIT2N="11",
+    )
+    expected_output.STUDYID = mock.ANY
+    assert res[0] == expected_output.model_dump()
+    day_uid = get_unit_uid_by_name("day")
+    response = api_client.patch(
+        f"/studies/{study_for_export.uid}/time-units?for_protocol_soa=true",
+        json={"unit_definition_uid": day_uid},
+    )
+    res = response.json()
+    assert response.status_code == 200
+    assert res["time_unit_name"] == "day"
+
+    response = api_client.get(
+        f"/listings/studies/{study_for_export.uid}/adam/mdvisit/",
+    )
+    assert response.status_code == 200
+    res = response.json()["items"]
+    assert res is not None
+    expected_output = StudyVisitAdamListing(
+        STUDYID="",
+        VISTPCD="Visit Type2",
+        AVISITN=100,
+        AVISIT="Visit 1 (day 71)",
+        AVISIT1N=71,
+        VISLABEL="V1",
+        AVISIT1="Day 71",
+        AVISIT2="Week 11",
+        AVISIT2N="11",
+    )
+    expected_output.STUDYID = mock.ANY
+    assert res[0] == expected_output.model_dump()

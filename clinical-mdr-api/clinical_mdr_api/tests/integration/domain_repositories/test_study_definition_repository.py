@@ -5,7 +5,7 @@ import sys
 import unittest
 
 import pytest
-from neomodel import db  # type: ignore
+from neomodel import db
 
 from clinical_mdr_api.domain_repositories.clinical_programmes.clinical_programme_repository import (
     ClinicalProgrammeRepository,
@@ -30,12 +30,10 @@ from clinical_mdr_api.models.study_selections.study import (
     StudySoaPreferencesInput,
 )
 from clinical_mdr_api.tests.integration.domain_repositories._utils import (
-    wipe_study_definition_repository,  # type: ignore
-)
-from clinical_mdr_api.tests.integration.domain_repositories._utils import (
     current_function_name,
     wipe_clinical_programme_repository,
     wipe_project_repository,
+    wipe_study_definition_repository,
 )
 from clinical_mdr_api.tests.integration.utils.api import inject_and_clear_db
 from clinical_mdr_api.tests.integration.utils.data_library import (
@@ -231,8 +229,8 @@ class TestStudyDefinitionRepository(unittest.TestCase):
             repository2 = StudyDefinitionRepositoryImpl(current_function_name())
             study_to_lock = repository2.find_by_uid(created_study.uid, for_update=True)
             study_to_lock.edit_metadata(
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
                 new_study_description=StudyDescriptionVO.from_input_values(
                     study_title="new_study_title", study_short_title="study_short_title"
                 ),
@@ -323,7 +321,7 @@ class TestStudyDefinitionRepository(unittest.TestCase):
             assert_dataclasses_equal(amended_study, created_study)
             amended_study.edit_metadata(
                 new_id_metadata=amended_study.current_metadata.id_metadata,
-                project_exists_callback=(lambda _: True),
+                project_exists_callback=lambda _: True,
                 author_id=current_function_name(),
             )
             repository2.save(amended_study)
@@ -359,7 +357,7 @@ class TestStudyDefinitionRepository(unittest.TestCase):
             assert_dataclasses_equal(amended_study, created_study)
             make_random_study_metadata_edit(
                 amended_study,
-                new_id_metadata_condition=(lambda _: _.study_number is not None),
+                new_id_metadata_condition=lambda _: _.study_number is not None,
                 new_id_metadata_fixed_values={
                     "project_number": self.project_to_amend.project_number,
                     "study_number": created_study.current_metadata.id_metadata.study_number,
@@ -367,8 +365,8 @@ class TestStudyDefinitionRepository(unittest.TestCase):
                 author_id=current_function_name(),
             )
             amended_study.edit_metadata(
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
                 new_study_description=StudyDescriptionVO.from_input_values(
                     study_title="new_study_title", study_short_title="study_short_title"
                 ),
@@ -571,8 +569,8 @@ class TestStudyDefinitionRepository(unittest.TestCase):
                 author_id=current_function_name(),
             )
             amended_study.edit_metadata(
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
                 new_study_description=StudyDescriptionVO.from_input_values(
                     study_title="new_study_title", study_short_title="study_short_title"
                 ),
@@ -656,7 +654,7 @@ class TestStudyDefinitionRepository(unittest.TestCase):
             assert_dataclasses_equal(amended_study, created_study)
             make_random_study_metadata_edit(
                 amended_study,
-                new_id_metadata_condition=(lambda _: _.study_number is not None),
+                new_id_metadata_condition=lambda _: _.study_number is not None,
                 new_id_metadata_fixed_values={
                     "project_number": self.project_to_amend.project_number,
                     "study_number": created_study.current_metadata.id_metadata.study_number,
@@ -664,8 +662,8 @@ class TestStudyDefinitionRepository(unittest.TestCase):
                 author_id=current_function_name(),
             )
             amended_study.edit_metadata(
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
                 new_study_description=StudyDescriptionVO.from_input_values(
                     study_title="new_study_title", study_short_title="study_short_title"
                 ),
@@ -740,7 +738,7 @@ class TestStudyDefinitionRepository(unittest.TestCase):
             assert_dataclasses_equal(amended_study, released_study)
             make_random_study_metadata_edit(
                 amended_study,
-                new_id_metadata_condition=(lambda _: _.project_number is not None),
+                new_id_metadata_condition=lambda _: _.project_number is not None,
                 new_id_metadata_fixed_values={
                     "project_number": self.project_to_amend.project_number,
                     "study_number": created_study.current_metadata.id_metadata.study_number,

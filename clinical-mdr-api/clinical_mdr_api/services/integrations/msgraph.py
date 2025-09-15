@@ -58,7 +58,7 @@ class MsGraphClientService:
         )
 
         # Dummy expired token to trigger OAuth client to do an authentication flow at first API request
-        self.token: dict[str, Any] = {"expires_at": 1, "access_token": None}
+        self.token: Mapping[str, Any] = {"expires_at": 1, "access_token": None}
 
     # pylint: disable=unused-argument
     async def set_token(
@@ -120,7 +120,7 @@ class MsGraphClientService:
         FETCH_MAX_PAGES limits the number of pages fetched
         """
 
-        next_page_url = LIST_GROUP_MEMBERS_URL.format(id=group_id)
+        next_page_url: str | None = LIST_GROUP_MEMBERS_URL.format(id=group_id)
         results = []
 
         i = 1
@@ -130,7 +130,7 @@ class MsGraphClientService:
             for item in payload["value"]:
                 results.append(GraphUser(**item))
 
-            next_page_url = payload.get("@odata.nextLink")
+            next_page_url = payload.get("@odata.nextLink", None)
             if not next_page_url:
                 break
 
@@ -170,7 +170,7 @@ class MsGraphClientService:
         return sorted(users.values(), key=lambda u: u.display_name or "~")
 
     async def search_all_group_direct_member_users(
-        self, pattern: str
+        self, pattern: str | None
     ) -> list[GraphUser]:
         """
         Searches within all user members of all groups matching the configured query.

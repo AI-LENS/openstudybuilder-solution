@@ -39,7 +39,6 @@ def test_data():
         short_name="Branch_Arm_Short_Name_1",
         code="Branch_Arm_code_1",
         description="desc...",
-        colour_code="colour...",
         randomization_group="Branch_Arm_randomizationGroup",
         number_of_subjects=100,
         arm_uid=arm_uid1,
@@ -50,7 +49,6 @@ def test_data():
         short_name="Branch_Arm_Short_Name_2",
         code="Branch_Arm_code_2",
         description="desc...",
-        colour_code="colour...2",
         randomization_group="Branch_Arm_randomizationGroup2",
         number_of_subjects=20,
         arm_uid=arm_uid1,
@@ -77,7 +75,6 @@ def test_adding_selection5(api_client):
         "short_name": "Cohort_Short_Name_1",
         "code": "Cohort_code_1",
         "description": "desc...",
-        "colour_code": "colour_code_1",
         "number_of_subjects": 1,
         "arm_uids": ["StudyArm_000001", "StudyArm_000002"],
     }
@@ -106,7 +103,6 @@ def test_adding_selection5(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -152,7 +148,6 @@ def test_adding_selection5(api_client):
     assert res["arm_roots"][1]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][1]["code"] is None
     assert res["arm_roots"][1]["description"] is None
-    assert res["arm_roots"][1]["arm_colour"] is None
     assert res["arm_roots"][1]["randomization_group"] is None
     assert res["arm_roots"][1]["number_of_subjects"] is None
     assert res["arm_roots"][1]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -194,7 +189,6 @@ def test_adding_selection5(api_client):
     assert res["arm_roots"][1]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 1
-    assert res["colour_code"] == "colour_code_1"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -224,7 +218,6 @@ def test_get_all_list_non_empty3(api_client):
     assert res["items"][0]["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["items"][0]["arm_roots"][0]["code"] is None
     assert res["items"][0]["arm_roots"][0]["description"] is None
-    assert res["items"][0]["arm_roots"][0]["arm_colour"] is None
     assert res["items"][0]["arm_roots"][0]["randomization_group"] is None
     assert res["items"][0]["arm_roots"][0]["number_of_subjects"] is None
     assert res["items"][0]["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -283,7 +276,6 @@ def test_get_all_list_non_empty3(api_client):
     assert res["items"][0]["arm_roots"][1]["short_name"] == "StudyArm_000002"
     assert res["items"][0]["arm_roots"][1]["code"] is None
     assert res["items"][0]["arm_roots"][1]["description"] is None
-    assert res["items"][0]["arm_roots"][1]["arm_colour"] is None
     assert res["items"][0]["arm_roots"][1]["randomization_group"] is None
     assert res["items"][0]["arm_roots"][1]["number_of_subjects"] is None
     assert (
@@ -340,7 +332,6 @@ def test_get_all_list_non_empty3(api_client):
     assert res["items"][0]["arm_roots"][1]["accepted_version"] is None
     assert res["items"][0]["description"] == "desc..."
     assert res["items"][0]["number_of_subjects"] == 1
-    assert res["items"][0]["colour_code"] == "colour_code_1"
     assert res["items"][0]["author_username"] == "unknown-user@example.com"
 
 
@@ -370,7 +361,6 @@ def test_get_specific3(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -416,7 +406,6 @@ def test_get_specific3(api_client):
     assert res["arm_roots"][1]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][1]["code"] is None
     assert res["arm_roots"][1]["description"] is None
-    assert res["arm_roots"][1]["arm_colour"] is None
     assert res["arm_roots"][1]["randomization_group"] is None
     assert res["arm_roots"][1]["number_of_subjects"] is None
     assert res["arm_roots"][1]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -487,7 +476,6 @@ def test_patch_specific_set_name4(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -533,7 +521,6 @@ def test_patch_specific_set_name4(api_client):
     assert res["arm_roots"][1]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][1]["code"] is None
     assert res["arm_roots"][1]["description"] is None
-    assert res["arm_roots"][1]["arm_colour"] is None
     assert res["arm_roots"][1]["randomization_group"] is None
     assert res["arm_roots"][1]["number_of_subjects"] is None
     assert res["arm_roots"][1]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -575,7 +562,6 @@ def test_patch_specific_set_name4(api_client):
     assert res["arm_roots"][1]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 1
-    assert res["colour_code"] == "colour_code_1"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -598,7 +584,6 @@ def test_all_history_of_specific_selection5(api_client):
     assert res[0]["short_name"] == "Cohort_Short_Name_1"
     assert res[0]["code"] == "Cohort_code_1"
     assert res[0]["description"] == "desc..."
-    assert res[0]["colour_code"] == "colour_code_1"
     assert res[0]["number_of_subjects"] == 1
     assert res[0]["author_username"] == "unknown-user@example.com"
     assert res[0]["end_date"] is None
@@ -625,7 +610,6 @@ def test_all_history_of_specific_selection5(api_client):
     assert res[1]["short_name"] == "Cohort_Short_Name_1"
     assert res[1]["code"] == "Cohort_code_1"
     assert res[1]["description"] == "desc..."
-    assert res[1]["colour_code"] == "colour_code_1"
     assert res[1]["number_of_subjects"] == 1
     assert res[1]["author_username"] == "unknown-user@example.com"
     assert res[1]["end_date"]
@@ -643,7 +627,6 @@ def test_2nd_adding_selection1(api_client):
         "short_name": "Cohort_Short_Name_2",
         "code": "Cohort_code_2",
         "description": "desc...",
-        "colour_code": "colour_code_2",
         "number_of_subjects": 1,
         "arm_uids": ["StudyArm_000001"],
     }
@@ -672,7 +655,6 @@ def test_2nd_adding_selection1(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -713,7 +695,6 @@ def test_2nd_adding_selection1(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 1
-    assert res["colour_code"] == "colour_code_2"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -731,7 +712,6 @@ def test_3rd_adding_selection1(api_client):
         "short_name": "Cohort_Short_Name_3",
         "code": "Cohort_code_3",
         "description": "desc...",
-        "colour_code": "colour_code_3",
         "number_of_subjects": 3,
         "arm_uids": ["StudyArm_000001"],
     }
@@ -760,7 +740,6 @@ def test_3rd_adding_selection1(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -801,7 +780,6 @@ def test_3rd_adding_selection1(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 3
-    assert res["colour_code"] == "colour_code_3"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -811,7 +789,6 @@ def test_4rd_adding_selection_for_another_arm(api_client):
         "short_name": "Cohort_Short_Name_4",
         "code": "Cohort_code_4",
         "description": "desc...",
-        "colour_code": "colour_code_4",
         "number_of_subjects": 4,
         "arm_uids": ["StudyArm_000002"],
     }
@@ -840,7 +817,6 @@ def test_4rd_adding_selection_for_another_arm(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -882,7 +858,6 @@ def test_4rd_adding_selection_for_another_arm(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 4
-    assert res["colour_code"] == "colour_code_4"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -892,7 +867,6 @@ def test_5th_adding_selection_for_another_arm(api_client):
         "short_name": "Cohort_Short_Name_5",
         "code": "Cohort_code_5",
         "description": "desc...",
-        "colour_code": "colour_code_5",
         "number_of_subjects": 5,
         "arm_uids": None,
         "branch_arm_uid": None,
@@ -918,7 +892,6 @@ def test_5th_adding_selection_for_another_arm(api_client):
     assert res["arm_roots"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 5
-    assert res["colour_code"] == "colour_code_5"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -951,7 +924,6 @@ def test_reorder_specific3(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000001"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final"
@@ -992,7 +964,6 @@ def test_reorder_specific3(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 3
-    assert res["colour_code"] == "colour_code_3"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -1002,7 +973,6 @@ def test_adding_selection6(api_client):
         "short_name": "Cohort_Short_Name_6",
         "code": "Cohort_code_6",
         "description": "desc...",
-        "colour_code": "colour_code_6",
         "number_of_subjects": 1,
         "arm_uids": ["StudyArm_000002"],
         "branch_arm_uids": ["StudyBranchArm_000001"],
@@ -1032,7 +1002,6 @@ def test_adding_selection6(api_client):
     assert res["branch_arm_roots"][0]["short_name"] == "Branch_Arm_Short_Name_1"
     assert res["branch_arm_roots"][0]["code"] == "Branch_Arm_code_1"
     assert res["branch_arm_roots"][0]["description"] == "desc..."
-    assert res["branch_arm_roots"][0]["colour_code"] == "colour..."
     assert (
         res["branch_arm_roots"][0]["randomization_group"]
         == "Branch_Arm_randomizationGroup"
@@ -1051,7 +1020,6 @@ def test_adding_selection6(api_client):
     assert res["branch_arm_roots"][0]["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["branch_arm_roots"][0]["arm_root"]["code"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["description"] is None
-    assert res["branch_arm_roots"][0]["arm_root"]["arm_colour"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["randomization_group"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["number_of_subjects"] is None
     assert (
@@ -1129,7 +1097,6 @@ def test_adding_selection6(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -1171,7 +1138,6 @@ def test_adding_selection6(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 1
-    assert res["colour_code"] == "colour_code_6"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -1181,10 +1147,9 @@ def test_adding_selection7(api_client):
         "short_name": "Cohort_Short_Name_7",
         "code": "Cohort_code_7",
         "description": "desc...",
-        "colour_code": "colour_code_7",
         "number_of_subjects": 1,
         "arm_uids": ["StudyArm_000002"],
-        "branch_arm_uids": ["StudyBranchArm_000001", "StudyBranchArm_000003"],
+        "branch_arm_uids": ["StudyBranchArm_000001", "StudyBranchArm_000002"],
     }
     response = api_client.post("/studies/study_root/study-cohorts", json=data)
 
@@ -1211,7 +1176,6 @@ def test_adding_selection7(api_client):
     assert res["branch_arm_roots"][0]["short_name"] == "Branch_Arm_Short_Name_1"
     assert res["branch_arm_roots"][0]["code"] == "Branch_Arm_code_1"
     assert res["branch_arm_roots"][0]["description"] == "desc..."
-    assert res["branch_arm_roots"][0]["colour_code"] == "colour..."
     assert (
         res["branch_arm_roots"][0]["randomization_group"]
         == "Branch_Arm_randomizationGroup"
@@ -1230,7 +1194,6 @@ def test_adding_selection7(api_client):
     assert res["branch_arm_roots"][0]["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["branch_arm_roots"][0]["arm_root"]["code"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["description"] is None
-    assert res["branch_arm_roots"][0]["arm_root"]["arm_colour"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["randomization_group"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["number_of_subjects"] is None
     assert (
@@ -1303,12 +1266,11 @@ def test_adding_selection7(api_client):
     assert res["branch_arm_roots"][1]["study_uid"] == "study_root"
     assert res["branch_arm_roots"][1]["order"] == 2
     assert res["branch_arm_roots"][1]["study_version"]
-    assert res["branch_arm_roots"][1]["branch_arm_uid"] == "StudyBranchArm_000003"
+    assert res["branch_arm_roots"][1]["branch_arm_uid"] == "StudyBranchArm_000002"
     assert res["branch_arm_roots"][1]["name"] == "Branch_Arm_Name_2"
     assert res["branch_arm_roots"][1]["short_name"] == "Branch_Arm_Short_Name_2"
     assert res["branch_arm_roots"][1]["code"] == "Branch_Arm_code_2"
     assert res["branch_arm_roots"][1]["description"] == "desc..."
-    assert res["branch_arm_roots"][1]["colour_code"] == "colour...2"
     assert (
         res["branch_arm_roots"][1]["randomization_group"]
         == "Branch_Arm_randomizationGroup2"
@@ -1327,7 +1289,6 @@ def test_adding_selection7(api_client):
     assert res["branch_arm_roots"][1]["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["branch_arm_roots"][1]["arm_root"]["code"] is None
     assert res["branch_arm_roots"][1]["arm_root"]["description"] is None
-    assert res["branch_arm_roots"][1]["arm_root"]["arm_colour"] is None
     assert res["branch_arm_roots"][1]["arm_root"]["randomization_group"] is None
     assert res["branch_arm_roots"][1]["arm_root"]["number_of_subjects"] is None
     assert (
@@ -1404,7 +1365,6 @@ def test_adding_selection7(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -1446,7 +1406,6 @@ def test_adding_selection7(api_client):
     assert res["arm_roots"][0]["accepted_version"] is None
     assert res["description"] == "desc..."
     assert res["number_of_subjects"] == 1
-    assert res["colour_code"] == "colour_code_7"
     assert res["author_username"] == "unknown-user@example.com"
 
 
@@ -1454,7 +1413,7 @@ def test_studybrancharm_delete_to_ensure_that_the_studybrancharm_cohort_relation
     api_client,
 ):
     response = api_client.delete(
-        "/studies/study_root/study-branch-arms/StudyBranchArm_000003"
+        "/studies/study_root/study-branch-arms/StudyBranchArm_000002"
     )
 
     assert_response_status_code(response, 204)
@@ -1475,7 +1434,6 @@ def test_get_specific4(api_client):
     assert res["short_name"] == "Cohort_Short_Name_7"
     assert res["code"] == "Cohort_code_7"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "colour_code_7"
     assert res["number_of_subjects"] == 1
     assert res["branch_arm_roots"][0]["study_uid"] == "study_root"
     assert res["branch_arm_roots"][0]["order"] == 1
@@ -1485,7 +1443,6 @@ def test_get_specific4(api_client):
     assert res["branch_arm_roots"][0]["short_name"] == "Branch_Arm_Short_Name_1"
     assert res["branch_arm_roots"][0]["code"] == "Branch_Arm_code_1"
     assert res["branch_arm_roots"][0]["description"] == "desc..."
-    assert res["branch_arm_roots"][0]["colour_code"] == "colour..."
     assert (
         res["branch_arm_roots"][0]["randomization_group"]
         == "Branch_Arm_randomizationGroup"
@@ -1504,7 +1461,6 @@ def test_get_specific4(api_client):
     assert res["branch_arm_roots"][0]["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["branch_arm_roots"][0]["arm_root"]["code"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["description"] is None
-    assert res["branch_arm_roots"][0]["arm_root"]["arm_colour"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["randomization_group"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["number_of_subjects"] is None
     assert (
@@ -1581,7 +1537,6 @@ def test_get_specific4(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final_non_edit"
@@ -1645,7 +1600,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[0]["short_name"] == "Cohort_Short_Name_1"
     assert res[0]["code"] == "Cohort_code_1"
     assert res[0]["description"] == "desc..."
-    assert res[0]["colour_code"] == "colour_code_1"
     assert res[0]["number_of_subjects"] == 1
     assert res[0]["author_username"] == "unknown-user@example.com"
     assert res[0]["end_date"] is None
@@ -1671,7 +1625,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[1]["short_name"] == "Cohort_Short_Name_1"
     assert res[1]["code"] == "Cohort_code_1"
     assert res[1]["description"] == "desc..."
-    assert res[1]["colour_code"] == "colour_code_1"
     assert res[1]["number_of_subjects"] == 1
     assert res[1]["author_username"] == "unknown-user@example.com"
     assert res[1]["end_date"]
@@ -1698,7 +1651,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[2]["short_name"] == "Cohort_Short_Name_1"
     assert res[2]["code"] == "Cohort_code_1"
     assert res[2]["description"] == "desc..."
-    assert res[2]["colour_code"] == "colour_code_1"
     assert res[2]["number_of_subjects"] == 1
     assert res[2]["author_username"] == "unknown-user@example.com"
     assert res[2]["end_date"]
@@ -1718,7 +1670,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[3]["short_name"] == "Cohort_Short_Name_2"
     assert res[3]["code"] == "Cohort_code_2"
     assert res[3]["description"] == "desc..."
-    assert res[3]["colour_code"] == "colour_code_2"
     assert res[3]["number_of_subjects"] == 1
     assert res[3]["author_username"] == "unknown-user@example.com"
     assert res[3]["end_date"] is None
@@ -1745,7 +1696,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[4]["short_name"] == "Cohort_Short_Name_2"
     assert res[4]["code"] == "Cohort_code_2"
     assert res[4]["description"] == "desc..."
-    assert res[4]["colour_code"] == "colour_code_2"
     assert res[4]["number_of_subjects"] == 1
     assert res[4]["author_username"] == "unknown-user@example.com"
     assert res[4]["end_date"]
@@ -1765,7 +1715,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[5]["short_name"] == "Cohort_Short_Name_3"
     assert res[5]["code"] == "Cohort_code_3"
     assert res[5]["description"] == "desc..."
-    assert res[5]["colour_code"] == "colour_code_3"
     assert res[5]["number_of_subjects"] == 3
     assert res[5]["author_username"] == "unknown-user@example.com"
     assert res[5]["end_date"] is None
@@ -1792,7 +1741,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[6]["short_name"] == "Cohort_Short_Name_3"
     assert res[6]["code"] == "Cohort_code_3"
     assert res[6]["description"] == "desc..."
-    assert res[6]["colour_code"] == "colour_code_3"
     assert res[6]["number_of_subjects"] == 3
     assert res[6]["author_username"] == "unknown-user@example.com"
     assert res[6]["end_date"]
@@ -1812,7 +1760,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[7]["short_name"] == "Cohort_Short_Name_4"
     assert res[7]["code"] == "Cohort_code_4"
     assert res[7]["description"] == "desc..."
-    assert res[7]["colour_code"] == "colour_code_4"
     assert res[7]["number_of_subjects"] == 4
     assert res[7]["author_username"] == "unknown-user@example.com"
     assert res[7]["end_date"] is None
@@ -1839,7 +1786,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[8]["short_name"] == "Cohort_Short_Name_4"
     assert res[8]["code"] == "Cohort_code_4"
     assert res[8]["description"] == "desc..."
-    assert res[8]["colour_code"] == "colour_code_4"
     assert res[8]["number_of_subjects"] == 4
     assert res[8]["author_username"] == "unknown-user@example.com"
     assert res[8]["end_date"]
@@ -1859,7 +1805,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[9]["short_name"] == "Cohort_Short_Name_5"
     assert res[9]["code"] == "Cohort_code_5"
     assert res[9]["description"] == "desc..."
-    assert res[9]["colour_code"] == "colour_code_5"
     assert res[9]["number_of_subjects"] == 5
     assert res[9]["author_username"] == "unknown-user@example.com"
     assert res[9]["end_date"] is None
@@ -1886,7 +1831,6 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[10]["short_name"] == "Cohort_Short_Name_5"
     assert res[10]["code"] == "Cohort_code_5"
     assert res[10]["description"] == "desc..."
-    assert res[10]["colour_code"] == "colour_code_5"
     assert res[10]["number_of_subjects"] == 5
     assert res[10]["author_username"] == "unknown-user@example.com"
     assert res[10]["end_date"]
@@ -1906,8 +1850,7 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[11]["short_name"] == "Cohort_Short_Name_6"
     assert res[11]["code"] == "Cohort_code_6"
     assert res[11]["description"] == "desc..."
-    assert res[11]["colour_code"] == "colour_code_6"
-    assert res[11]["number_of_subjects"] == 1
+    assert res[11]["number_of_subjects"] == 100
     assert res[11]["author_username"] == "unknown-user@example.com"
     assert res[11]["end_date"] is None
     assert res[11]["status"] is None
@@ -1926,8 +1869,7 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[12]["short_name"] == "Cohort_Short_Name_7"
     assert res[12]["code"] == "Cohort_code_7"
     assert res[12]["description"] == "desc..."
-    assert res[12]["colour_code"] == "colour_code_7"
-    assert res[12]["number_of_subjects"] == 1
+    assert res[12]["number_of_subjects"] == 120
     assert res[12]["author_username"] == "unknown-user@example.com"
     assert res[12]["end_date"] is None
     assert res[12]["status"] is None
@@ -1935,12 +1877,9 @@ def test_all_history_of_all_selection_study_cohort(api_client):
     assert res[12]["accepted_version"] is False
     assert res[12]["branch_arm_roots_uids"] == [
         "StudyBranchArm_000001",
-        "StudyBranchArm_000003",
-        "StudyBranchArm_000003",
+        "StudyBranchArm_000002",
     ]
     assert res[12]["arm_roots_uids"] == [
-        "StudyArm_000002",
-        "StudyArm_000002",
         "StudyArm_000002",
     ]
     assert res[12]["changes"] == []
@@ -1964,7 +1903,6 @@ def test_adding_selection_8_to_ensure_that_the_only_required_fields_are_the_name
     assert res["short_name"] == "Cohort_Short_Name_8"
     assert res["code"] is None
     assert res["description"] is None
-    assert res["colour_code"] is None
     assert res["number_of_subjects"] is None
     assert res["branch_arm_roots"] is None
     assert res["arm_roots"] is None
@@ -1993,7 +1931,6 @@ def test_patch_number_of_subjects_as_null(api_client):
     assert res["short_name"] == "Cohort_Short_Name_7"
     assert res["code"] == "Cohort_code_7"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "colour_code_7"
     assert res["number_of_subjects"] is None
     assert res["author_username"] == "unknown-user@example.com"
     assert res["end_date"] is None
@@ -2008,7 +1945,6 @@ def test_patch_number_of_subjects_as_null(api_client):
     assert res["branch_arm_roots"][0]["short_name"] == "Branch_Arm_Short_Name_1"
     assert res["branch_arm_roots"][0]["code"] == "Branch_Arm_code_1"
     assert res["branch_arm_roots"][0]["description"] == "desc..."
-    assert res["branch_arm_roots"][0]["colour_code"] == "colour..."
     assert (
         res["branch_arm_roots"][0]["randomization_group"]
         == "Branch_Arm_randomizationGroup"
@@ -2027,7 +1963,6 @@ def test_patch_number_of_subjects_as_null(api_client):
     assert res["branch_arm_roots"][0]["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["branch_arm_roots"][0]["arm_root"]["code"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["description"] is None
-    assert res["branch_arm_roots"][0]["arm_root"]["arm_colour"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["randomization_group"] is None
     assert res["branch_arm_roots"][0]["arm_root"]["number_of_subjects"] is None
     assert (
@@ -2104,7 +2039,6 @@ def test_patch_number_of_subjects_as_null(api_client):
     assert res["arm_roots"][0]["short_name"] == "StudyArm_000002"
     assert res["arm_roots"][0]["code"] is None
     assert res["arm_roots"][0]["description"] is None
-    assert res["arm_roots"][0]["arm_colour"] is None
     assert res["arm_roots"][0]["randomization_group"] is None
     assert res["arm_roots"][0]["number_of_subjects"] is None
     assert res["arm_roots"][0]["arm_type"]["term_uid"] == "term_root_final_non_edit"

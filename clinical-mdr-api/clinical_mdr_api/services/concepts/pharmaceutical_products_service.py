@@ -96,7 +96,7 @@ class PharmaceuticalProductService(ConceptGenericService[PharmaceuticalProductAR
                                 [
                                     IngredientVO.from_repository_values(
                                         active_substance_uid=getattr(
-                                            y, "active_substance_uid", None
+                                            y, "active_substance_uid"
                                         ),
                                         formulation_name=getattr(
                                             y, "formulation_name", None

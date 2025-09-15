@@ -159,7 +159,7 @@ class GenericSyntaxTemplateRepository(
         self,
         template_uid: str,
         study_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
         parameter_term_uids_to_fetch: list[str] | None = None,
     ):
         parameter_term_uids_to_fetch_query = (

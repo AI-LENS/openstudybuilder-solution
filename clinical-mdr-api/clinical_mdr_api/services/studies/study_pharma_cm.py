@@ -1,3 +1,5 @@
+from typing import Any
+
 from clinical_mdr_api.models.study_selections.study_pharma_cm import (
     StudyPharmaCM,
     StudyPharmaCMXML,
@@ -9,6 +11,7 @@ from clinical_mdr_api.services.studies.study_criteria_selection import (
 from clinical_mdr_api.services.studies.study_endpoint_selection import (
     StudyEndpointSelectionService,
 )
+from common import exceptions
 from common.auth.user import user
 
 
@@ -25,6 +28,9 @@ class StudyPharmaCMService:
         study = self._repos.study_definition_repository.find_by_uid(
             uid=study_uid, study_value_version=study_value_version
         )
+        if study is None:
+            raise exceptions.NotFoundException("Study", study_uid)
+
         study_arms = self._repos.study_arm_repository.find_by_study(
             study_uid=study_uid, study_value_version=study_value_version
         )
@@ -72,7 +78,7 @@ class StudyPharmaCMService:
 
     def get_pharma_cm_xml(
         self, study_uid: str, study_value_version: str | None
-    ) -> StudyPharmaCMXML:
+    ) -> dict[str, Any]:
         study_pharma_cm: StudyPharmaCM = self.get_pharma_cm_representation(
             study_uid=study_uid, study_value_version=study_value_version
         )

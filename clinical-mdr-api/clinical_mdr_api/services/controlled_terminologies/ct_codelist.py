@@ -34,7 +34,7 @@ _AggregateRootType = TypeVar("_AggregateRootType")
 
 class CTCodelistService:
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -102,6 +102,7 @@ class CTCodelistService:
 
         self._repos.ct_codelist_attribute_repository.save(ct_codelist_attributes_ar)
 
+        ct_codelist_name_ar: CTCodelistNameAR | None
         ct_codelist_name_ar = CTCodelistNameAR.from_input_values(
             author_id=self.author_id,
             ct_codelist_name_vo=CTCodelistNameVO.from_input_values(
@@ -153,7 +154,9 @@ class CTCodelistService:
                                 },
                                 "term_uid": {"v": [term.term_uid], "op": "eq"},
                             }
-                        ).items
+                        )[
+                            0
+                        ]
                     )
                     <= 0,
                     msg=f"Term with UID '{term.term_uid}' isn't in use by Parent Codelist with UID '{parent_codelist_uid}'.",
@@ -171,6 +174,9 @@ class CTCodelistService:
                     author_id=self.author_id,
                     order=term.order,
                 )
+
+        if ct_codelist_name_ar is None or ct_codelist_attributes_ar is None:
+            raise ValueError("CodelistNameAR or CodelistAttributesAR is None.")
 
         return CTCodelist.from_ct_codelist_ar(
             ct_codelist_name_ar, ct_codelist_attributes_ar
@@ -197,13 +203,13 @@ class CTCodelistService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         term_filter: dict[str, str | list[Any]] | None = None,
     ) -> GenericFilteringReturn[CTCodelistNameAndAttributes]:
         self.enforce_catalogue_library_package(catalogue_name, library, package)
 
-        all_aggregated_codelists = (
+        all_aggregated_codelists, total = (
             self._repos.ct_codelist_aggregated_repository.find_all_aggregated_result(
                 catalogue_name=catalogue_name,
                 library=library,
@@ -219,14 +225,14 @@ class CTCodelistService:
             )
         )
 
-        all_aggregated_codelists.items = [
+        items = [
             CTCodelistNameAndAttributes.from_ct_codelist_ar(
                 ct_codelist_name_ar, ct_codelist_attributes_ar
             )
-            for ct_codelist_name_ar, ct_codelist_attributes_ar in all_aggregated_codelists.items
+            for ct_codelist_name_ar, ct_codelist_attributes_ar in all_aggregated_codelists
         ]
 
-        return all_aggregated_codelists
+        return GenericFilteringReturn(items=items, total=total)
 
     def get_sub_codelists_that_have_given_terms(
         self,
@@ -239,12 +245,12 @@ class CTCodelistService:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[CTCodelistNameAndAttributes]:
         self.enforce_catalogue_library_package(catalogue_name, library, package)
 
-        all_aggregated_sub_codelists = (
+        all_aggregated_sub_codelists, total = (
             self._repos.ct_codelist_aggregated_repository.find_all_aggregated_result(
                 library=library,
                 total_count=total_count,
@@ -258,8 +264,8 @@ class CTCodelistService:
 
         uid_of_sub_codelist_with_terms = []
 
-        for sub_codelist in all_aggregated_sub_codelists.items:
-            all_aggregated_terms = (
+        for sub_codelist in all_aggregated_sub_codelists:
+            all_aggregated_terms, _ = (
                 self._repos.ct_term_aggregated_repository.find_all_aggregated_result(
                     codelist_uid=sub_codelist[1].uid,
                     codelist_name=None,
@@ -272,20 +278,20 @@ class CTCodelistService:
                     page_number=page_number,
                     page_size=page_size,
                 )
-            ).items
+            )
 
             if set(term_uids) == {term[1].uid for term in all_aggregated_terms}:
                 uid_of_sub_codelist_with_terms.append(sub_codelist[1].uid)
 
-        all_aggregated_sub_codelists.items = [
+        items = [
             CTCodelistNameAndAttributes.from_ct_codelist_ar(
                 ct_codelist_name_ar, ct_codelist_attributes_ar
             )
-            for ct_codelist_name_ar, ct_codelist_attributes_ar in all_aggregated_sub_codelists.items
+            for ct_codelist_name_ar, ct_codelist_attributes_ar in all_aggregated_sub_codelists
             if ct_codelist_attributes_ar.uid in uid_of_sub_codelist_with_terms
         ]
 
-        return all_aggregated_sub_codelists
+        return GenericFilteringReturn(items=items, total=total)
 
     def get_distinct_values_for_header(
         self,
@@ -294,9 +300,9 @@ class CTCodelistService:
         package: str | None,
         field_name: str,
         is_sponsor: bool = False,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         self.enforce_catalogue_library_package(catalogue_name, library, package)
@@ -347,7 +353,9 @@ class CTCodelistService:
                             },
                             "term_uid": {"v": [term_uid], "op": "eq"},
                         }
-                    ).items
+                    )[
+                        0
+                    ]
                 )
                 <= 0,
                 msg=f"Term with UID '{term_uid}' isn't in use by Parent Codelist with UID '{parent_codelist_uid}'.",
@@ -362,6 +370,11 @@ class CTCodelistService:
             author_id=self.author_id,
             order=order,
         )
+
+        if ct_codelist_attributes_ar is None or ct_codelist_name_ar is None:
+            raise BusinessLogicException(
+                msg=f"Codelist with UID '{codelist_uid}' doesn't exist."
+            )
 
         return CTCodelist.from_ct_codelist_ar(
             ct_codelist_name_ar, ct_codelist_attributes_ar
@@ -397,7 +410,9 @@ class CTCodelistService:
                         },
                         "term_uid": {"v": [term_uid], "op": "eq"},
                     }
-                ).items
+                )[
+                    0
+                ]
                 BusinessLogicException.raise_if(
                     len(terms) > 0,
                     msg=f"The term with UID '{term_uid}' is in use by child codelists"
@@ -410,6 +425,11 @@ class CTCodelistService:
         self._repos.ct_codelist_attribute_repository.remove_term(
             codelist_uid=codelist_uid, term_uid=term_uid, author_id=self.author_id
         )
+
+        if ct_codelist_attributes_ar is None or ct_codelist_name_ar is None:
+            raise BusinessLogicException(
+                msg=f"Codelist with UID '{codelist_uid}' doesn't exist."
+            )
 
         return CTCodelist.from_ct_codelist_ar(
             ct_codelist_name_ar, ct_codelist_attributes_ar

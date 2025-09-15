@@ -51,13 +51,9 @@ Notes:
   ```shell
   APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=00000000-0000-0000-0000-000000000000'
   UVICORN_LOG_CONFIG='logging-azure.yaml'
+  TRACING_ENABLED=true
   ```
 
-- The application uses a tracing middleware to log useful information for each request.
-  If this is not desired, set `TRACING_ENABLED` variable to `false`:
-  ```shell
-  TRACING_ENABLED=false
-  ```
 
 ## Launch API locally
 

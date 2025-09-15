@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -8,8 +8,8 @@ from clinical_mdr_api.domains.concepts.pharmaceutical_product import (
     PharmaceuticalProductAR,
 )
 from clinical_mdr_api.domains.concepts.simple_concepts.lag_time import LagTimeAR
-from clinical_mdr_api.domains.concepts.simple_concepts.numeric_value import (
-    NumericValueAR,
+from clinical_mdr_api.domains.concepts.simple_concepts.numeric_value_with_unit import (
+    NumericValueWithUnitAR,
 )
 from clinical_mdr_api.domains.concepts.unit_definitions.unit_definition import (
     UnitDefinitionAR,
@@ -109,7 +109,7 @@ class PharmaceuticalProduct(VersionProperties):
         cls,
         pharmaceutical_product_ar: PharmaceuticalProductAR,
         find_term_by_uid: Callable[[str], CTTermNameAR | None],
-        find_numeric_value_by_uid: Callable[[str], NumericValueAR | None],
+        find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
         find_lag_time_by_uid: Callable[[str], LagTimeAR | None],
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_active_substance_by_uid: Callable[[str], ActiveSubstanceAR | None],
@@ -214,13 +214,25 @@ class PharmaceuticalProduct(VersionProperties):
 
 
 class SimplePharmaceuticalProduct(BaseModel):
+    @overload
     @classmethod
     def from_uid(
         cls, uid: str, find_by_uid: Callable[[str], PharmaceuticalProductAR | None]
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls, uid: None, find_by_uid: Callable[[str], PharmaceuticalProductAR | None]
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls,
+        uid: str | None,
+        find_by_uid: Callable[[str], PharmaceuticalProductAR | None],
     ) -> Self | None:
         item = None
         if uid is not None:
-            item_ar: PharmaceuticalProductAR = find_by_uid(uid)
+            item_ar: PharmaceuticalProductAR | None = find_by_uid(uid)
             if item_ar is not None:
                 item = cls(uid=uid, external_id=item_ar.concept_vo.external_id)
 
@@ -230,13 +242,6 @@ class SimplePharmaceuticalProduct(BaseModel):
     external_id: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
         None
     )
-
-    @classmethod
-    def from_item_ar(cls, item_ar: PharmaceuticalProductAR) -> Self:
-        return cls(
-            uid=item_ar.uid,
-            name=item_ar.name,
-        )
 
 
 class PharmaceuticalProductCreateInput(PostInputModel):

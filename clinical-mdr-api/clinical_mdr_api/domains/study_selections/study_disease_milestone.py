@@ -5,9 +5,6 @@ from dataclasses import dataclass
 from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import (
     StudyStatus,
 )
-from clinical_mdr_api.domains.study_selections.study_visit import (
-    VisitTimeReferenceNamedTuple,
-)
 
 TypeNameDefinition = namedtuple("TypeNameDefinition", ["named", "definition"])
 
@@ -33,7 +30,7 @@ class StudyDiseaseMilestoneVO:
     uid: str | None = None
 
     @property
-    def dm_type(self) -> VisitTimeReferenceNamedTuple:
+    def dm_type(self) -> DiseaseMilestoneTypeNamedTuple:
         return StudyDiseaseMilestoneType[self.disease_milestone_type]
 
     def edit_core_properties(

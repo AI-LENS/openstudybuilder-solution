@@ -27,7 +27,7 @@ _AggregateRootType = TypeVar("_AggregateRootType")
 
 
 class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC):
-    _aggregate_root_type: StudySelectionBaseAR
+    _aggregate_root_type: type[_AggregateRootType]
 
     @abc.abstractmethod
     def _create_value_object_from_repository(
@@ -57,17 +57,20 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
 
     @abc.abstractmethod
     def get_selection_history(
-        self, selection: dict[Any, Any], change_type: str, end_date: datetime.datetime
+        self,
+        selection: dict[Any, Any],
+        change_type: str,
+        end_date: datetime.datetime | None,
     ):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_audit_trail_query(self, study_selection_uid: str):
+    def get_audit_trail_query(self, study_selection_uid: str | None):
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_study_selection_node_from_latest_study_value(
-        self, study_value: StudyValue, study_selection: StudySelection
+        self, study_value: StudyValue, study_selection: StudySelectionBaseVO
     ):
         raise NotImplementedError
 
@@ -117,8 +120,8 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         project_number: str | None = None,
         study_value_version: str | None = None,
         **kwargs,
-    ) -> tuple[_AggregateRootType]:
-        query_parameters = {}
+    ) -> tuple[StudySelectionBaseVO, ...]:
+        query_parameters: dict[str, Any] = {}
         if study_uids:
             if isinstance(study_uids, str):
                 study_uid_statement = "{uid: $uids}"
@@ -182,7 +185,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         project_number: str | None = None,
         study_uids: list[str] | None = None,
         **kwargs,
-    ) -> list[StudySelectionBaseAR]:
+    ) -> StudySelectionBaseAR:
         """
         Finds all the selected study activities for all studies, and create the aggregate
         :return: List of StudySelectionActivityAR, potentially empty
@@ -194,7 +197,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
             **kwargs,
         )
         selection_aggregate = self._aggregate_root_type.from_repository_values(
-            study_uid=None, study_objects_selection=all_selections
+            study_uid="", study_objects_selection=all_selections
         )
         return selection_aggregate
 
@@ -205,7 +208,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         for_update: bool = False,
         study_value_version: str | None = None,
         **kwargs,
-    ) -> StudySelectionBaseAR | None:
+    ) -> StudySelectionBaseAR:
         if for_update:
             acquire_write_lock_study_value(study_uid)
         all_selections = self._retrieves_all_data(
@@ -221,7 +224,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
         return selection_aggregate
 
     def _get_audit_node(
-        self, study_selection: _AggregateRootType, study_selection_uid: str
+        self, study_selection: StudySelectionBaseAR, study_selection_uid: str
     ):
         if not any(
             item.study_selection_uid == study_selection_uid
@@ -408,7 +411,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
 
     @trace_calls
     def _get_selection_with_history(
-        self, study_uid: str, study_selection_uid: str = None
+        self, study_uid: str, study_selection_uid: str | None = None
     ):
         """
         returns the audit trail for study activity either for a specific selection or for all study activity for the study
@@ -439,7 +442,7 @@ class StudySelectionActivityBaseRepository(Generic[_AggregateRootType], abc.ABC)
 
     def find_selection_history(
         self, study_uid: str, study_selection_uid: str | None = None
-    ) -> list[dict | None]:
+    ):
         if study_selection_uid:
             return self._get_selection_with_history(
                 study_uid=study_uid, study_selection_uid=study_selection_uid

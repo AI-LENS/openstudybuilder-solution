@@ -2,11 +2,7 @@
 import os
 
 from migrations.common import migrate_ct_config_values, migrate_indexes_and_constraints
-from migrations.utils.utils import (
-    get_db_connection,
-    get_db_driver,
-    get_logger,
-)
+from migrations.utils.utils import get_db_connection, get_db_driver, get_logger
 
 logger = get_logger(os.path.basename(__file__))
 DB_DRIVER = get_db_driver()

@@ -3,7 +3,6 @@ import datetime
 from typing import Any
 
 from neomodel import Q, db
-from opencensus.trace import execution_context
 
 from clinical_mdr_api.domain_repositories._utils.helpers import (
     acquire_write_lock_study_value,
@@ -56,20 +55,12 @@ from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import 
     StudyStatus,
 )
 from clinical_mdr_api.domains.study_selections.study_epoch import (
-    StudyEpochEpoch,
-    StudyEpochSubType,
-    StudyEpochType,
     StudyEpochVO,
     TimelineAR,
 )
 from clinical_mdr_api.domains.study_selections.study_visit import (
     NumericValue,
-    StudyVisitContactMode,
-    StudyVisitEpochAllocation,
     StudyVisitHistoryVO,
-    StudyVisitRepeatingFrequency,
-    StudyVisitTimeReference,
-    StudyVisitType,
     StudyVisitVO,
     TextValue,
     TimePoint,
@@ -113,7 +104,7 @@ from common.exceptions import (
     VisitsAreNotEqualException,
 )
 from common.telemetry import trace_calls
-from common.utils import TimeUnit, VisitClass, VisitSubclass
+from common.utils import TimeUnit, VisitClass, VisitSubclass, convert_to_datetime
 
 
 class StudyVisitService(StudySelectionMixin):
@@ -126,183 +117,18 @@ class StudyVisitService(StudySelectionMixin):
     ):
         self._repos = MetaRepository()
         self.repo = self._repos.study_visit_repository
-        self.study_epoch_types: set[str] = set()
-        self.study_epoch_subtypes: set[str] = set()
-        self.study_epoch_epochs: set[str] = set()
-        self.study_visit_types: set[str] = set()
-        self.study_visit_repeating_frequency: set[str] = set()
-        self.study_visit_timeref: set[str] = set()
-        self.study_visit_contact_mode: set[str] = set()
-        self.study_visit_epoch_allocation: set[str] = set()
         self.author = user().id()
-        self.terms_at_specific_datetime = self._extract_effective_date(
-            study_uid=study_uid,
-            study_value_version=study_value_version,
+
+        self.terms_at_specific_datetime = (
+            self.get_study_standard_version_ct_terms_datetime(
+                study_uid=study_uid,
+                study_value_version=study_value_version,
+            )
         )
-        self._create_ctlist_map()
+
+        self.update_ctterm_maps(self.terms_at_specific_datetime)
+
         self._day_unit, self._week_unit = self.repo.get_day_week_units()
-
-    @trace_calls
-    def _extract_effective_date(self, study_uid, study_value_version: str = None):
-        study_standard_versions = self._repos.study_standard_version_repository.find_standard_versions_in_study(
-            study_uid=study_uid,
-            study_value_version=study_value_version,
-        )
-        study_standard_versions_sdtm = [
-            study_standard_version
-            for study_standard_version in study_standard_versions
-            if "SDTM CT" in study_standard_version.ct_package_uid
-        ]
-        study_standard_version_sdtm = (
-            study_standard_versions_sdtm[0] if study_standard_versions_sdtm else None
-        )
-        terms_at_specific_date = None
-        if study_standard_version_sdtm:
-            terms_at_specific_date = self._repos.ct_package_repository.find_by_uid(
-                study_standard_version_sdtm.ct_package_uid
-            ).effective_date
-        dt = (
-            datetime.datetime(
-                terms_at_specific_date.year,
-                terms_at_specific_date.month,
-                terms_at_specific_date.day,
-                23,
-                59,
-                59,
-                999999,
-                tzinfo=datetime.timezone.utc,
-            )
-            if terms_at_specific_date
-            else None
-        )
-
-        if span := execution_context.get_current_span():
-            span.add_attribute("call.return", dt.isoformat() if dt else "None")
-
-        return dt
-
-    @trace_calls
-    def _create_ctlist_map(self):
-        ct_terms = self.repo.fetch_ctlist(
-            codelist_names=[
-                settings.study_epoch_type_name,
-                settings.study_epoch_subtype_name,
-                settings.study_epoch_epoch_name,
-                settings.study_visit_type_name,
-                settings.study_visit_repeating_frequency,
-                settings.study_visit_timeref_name,
-                settings.study_visit_contact_mode_name,
-                settings.study_visit_epoch_allocation_name,
-            ]
-        )
-
-        ctterm_uids = set()
-        for ct_term_uid, codelist_names in ct_terms.items():
-            ctterm_uids.add(ct_term_uid)
-            if settings.study_epoch_type_name in codelist_names:
-                self.study_epoch_types.add(ct_term_uid)
-            if settings.study_epoch_subtype_name in codelist_names:
-                self.study_epoch_subtypes.add(ct_term_uid)
-            if settings.study_epoch_epoch_name in codelist_names:
-                self.study_epoch_epochs.add(ct_term_uid)
-            if settings.study_visit_type_name in codelist_names:
-                self.study_visit_types.add(ct_term_uid)
-            if settings.study_visit_repeating_frequency in codelist_names:
-                self.study_visit_repeating_frequency.add(ct_term_uid)
-            if settings.study_visit_timeref_name in codelist_names:
-                self.study_visit_timeref.add(ct_term_uid)
-            if settings.study_visit_contact_mode_name in codelist_names:
-                self.study_visit_contact_mode.add(ct_term_uid)
-            if settings.study_visit_epoch_allocation_name in codelist_names:
-                self.study_visit_epoch_allocation.add(ct_term_uid)
-
-        if span := execution_context.get_current_span():
-            span.add_attribute(
-                "terms_at_specific_datetime", str(self.terms_at_specific_datetime)
-            )
-
-        if span := execution_context.get_current_span():
-            span.add_attribute(
-                "terms_at_specific_datetime", str(self.terms_at_specific_datetime)
-            )
-
-        ctterms = self._find_terms_by_uids(
-            term_uids=list(ctterm_uids),
-            at_specific_date=self.terms_at_specific_datetime,
-            return_simple_object=True,
-        )
-
-        StudyEpochType.clear()
-        StudyEpochType.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_epoch_types
-            ]
-        )
-
-        StudyEpochSubType.clear()
-        StudyEpochSubType.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_epoch_subtypes
-            ]
-        )
-
-        StudyEpochEpoch.clear()
-        StudyEpochEpoch.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_epoch_epochs
-            ]
-        )
-
-        StudyVisitType.clear()
-        StudyVisitType.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_visit_types
-            ]
-        )
-
-        StudyVisitRepeatingFrequency.clear()
-        StudyVisitRepeatingFrequency.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_visit_repeating_frequency
-            ]
-        )
-
-        StudyVisitTimeReference.clear()
-        StudyVisitTimeReference.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_visit_timeref
-            ]
-        )
-
-        StudyVisitContactMode.clear()
-        StudyVisitContactMode.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_visit_contact_mode
-            ]
-        )
-
-        StudyVisitEpochAllocation.clear()
-        StudyVisitEpochAllocation.update(
-            [
-                (ct_term.term_uid, ct_term)
-                for ct_term in ctterms
-                if ct_term.term_uid in self.study_visit_epoch_allocation
-            ]
-        )
 
     def get_allowed_time_references_for_study(self, study_uid: str):
         resp = []
@@ -324,21 +150,17 @@ class StudyVisitService(StudySelectionMixin):
 
         return resp
 
-    @staticmethod
     def _transform_all_to_response_history_model(
-        visit: StudyVisitHistoryVO,
-    ) -> StudyVisit:
+        self, visit: StudyVisitHistoryVO
+    ) -> StudyVisitBase:
         # For audit trail return model we shouldn't derive properties based on their position in the timeline as we don't know how the visit timeline looked for past visit versions
         # Due to this we have to take the values that are derived based on timeline directly from database representation
+        self.amend_study_visit_vo(visit)
         study_visit: StudyVisitBase = StudyVisitBase.transform_to_response_model(
-            visit, derive_props_based_on_timeline=False, use_global_mappings=True
+            visit, derive_props_based_on_timeline=False
         )
         study_visit.change_type = visit.change_type
-        study_visit.end_date = (
-            visit.end_date.strftime(settings.date_time_format)
-            if visit.end_date
-            else None
-        )
+        study_visit.end_date = convert_to_datetime(visit.end_date)
 
         return study_visit
 
@@ -435,7 +257,7 @@ class StudyVisitService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
     ) -> GenericFilteringReturn[StudyVisit]:
@@ -448,9 +270,7 @@ class StudyVisitService(StudySelectionMixin):
         )
         visits = [
             StudyVisit.transform_to_response_model(
-                visit,
-                study_value_version=study_value_version,
-                use_global_mappings=False,
+                visit, study_value_version=study_value_version
             )
             for visit in visits
         ]
@@ -472,9 +292,9 @@ class StudyVisitService(StudySelectionMixin):
         cls,
         study_uid: str,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         study_value_version: str | None = None,
     ):
@@ -500,10 +320,11 @@ class StudyVisitService(StudySelectionMixin):
         result = []
         sponsor_names = [
             timeref.sponsor_preferred_name
-            for timeref in StudyVisitTimeReference.values()
+            for timeref in self.study_visit_time_references_by_uid.values()
         ]
         for visit in visits:
             if visit.visit_type.sponsor_preferred_name in sponsor_names:
+                self.amend_study_visit_vo(visit)
                 result.append(StudyVisit.transform_to_response_model(visit))
         return result
 
@@ -525,15 +346,13 @@ class StudyVisitService(StudySelectionMixin):
 
         # Find StudyVisitVO by uid in TimelineAR._generate_timeline() results, which sets properties on StudyVisitVOs
         timeline = TimelineAR(study_uid=study_uid, _visits=all_study_visits)
-        study_visit: StudyVisitVO = next(
+        study_visit: StudyVisitVO | None = next(
             (sv for sv in timeline.ordered_study_visits if sv.uid == uid), None
         )
-        exceptions.NotFoundException.raise_if_not(study_visit, "Study Visit")
+        if study_visit is None:
+            raise exceptions.NotFoundException("Study Visit", uid)
 
-        return StudyVisit.transform_to_response_model(
-            study_visit,
-            use_global_mappings=False,
-        )
+        return StudyVisit.transform_to_response_model(study_visit)
 
     def _chronological_order_check(
         self,
@@ -633,12 +452,12 @@ class StudyVisitService(StudySelectionMixin):
 
     def _validate_visit(
         self,
-        visit_input: StudyVisitCreateInput,
+        visit_input: StudyVisitCreateInput | StudyVisitEditInput,
         visit_vo: StudyVisitVO,
         timeline: TimelineAR,
         create: bool = True,
         preview: bool = False,
-        study_visits: list[StudyVisitVO | None] = None,
+        study_visits: list[StudyVisitVO] | None = None,
     ):
         visit_group_name = (
             visit_vo.study_visit_group.group_name if visit_vo.study_visit_group else ""
@@ -669,7 +488,7 @@ class StudyVisitService(StudySelectionMixin):
 
         time_reference_values = [
             timeref.sponsor_preferred_name
-            for timeref in StudyVisitTimeReference.values()
+            for timeref in self.study_visit_time_references_by_uid.values()
         ]
         if len(timeline._visits) == 0:
             is_first_reference_visit = (
@@ -753,7 +572,9 @@ class StudyVisitService(StudySelectionMixin):
             and not is_time_reference_visit
             and visit_vo.visit_class not in visit_classes_without_timing
         ):
-            reference_name = StudyVisitTimeReference[visit_input.time_reference_uid]
+            reference_name = self.study_visit_time_references_by_uid[
+                visit_input.time_reference_uid
+            ]
             for visit in timeline._visits:
                 if (
                     visit.visit_type.sponsor_preferred_name
@@ -840,8 +661,8 @@ class StudyVisitService(StudySelectionMixin):
                                 ),
                                 msg=f"Visit with Study Day '{visit.study_day_number}' from "
                                 f"Epoch with order '{visit.epoch.order}' '{visit.epoch.epoch.sponsor_preferred_name}' is out of order with "
-                                f"Visit with Study Day '{ordered_visits[index+2].study_day_number}' from Epoch with order "
-                                f"'{ordered_visits[index+2].epoch.order}' '{ordered_visits[index+2].epoch.epoch.sponsor_preferred_name}'",
+                                f"Visit with Study Day '{ordered_visits[index + 2].study_day_number}' from Epoch with order "
+                                f"'{ordered_visits[index + 2].epoch.order}' '{ordered_visits[index + 2].epoch.epoch.sponsor_preferred_name}'",
                             )
                 self._validate_derived_properties(
                     visit_vo=visit_vo, ordered_visits=ordered_visits
@@ -896,7 +717,8 @@ class StudyVisitService(StudySelectionMixin):
                 timeline.remove_visit(visit_vo)
 
         ValidationException.raise_if(
-            visit_input.visit_contact_mode_uid not in StudyVisitContactMode,
+            visit_input.visit_contact_mode_uid
+            not in self.study_visit_contact_modes_by_uid,
             msg=f"CT Term with UID '{visit_input.visit_contact_mode_uid}' is not a valid Visit Contact Mode term.",
         )
         visits_class = [visit.visit_class for visit in study_visits]
@@ -920,7 +742,7 @@ class StudyVisitService(StudySelectionMixin):
             is_library_editable_callback=lambda _: lib.is_editable,
         )
 
-    def _create_visit_name_simple_concept(self, visit_name: str):
+    def _create_visit_name_simple_concept(self, visit_name: str | None):
         visit_name_ar = VisitNameAR.from_input_values(
             author_id=self.author,
             simple_concept_vo=VisitNameVO.from_repository_values(
@@ -935,8 +757,7 @@ class StudyVisitService(StudySelectionMixin):
             find_uid_by_name_callback=self._repos.visit_name_repository.find_uid_by_name,
         )
         self._repos.visit_name_repository.save(visit_name_ar)
-        visit_name = TextValue(uid=visit_name_ar.uid, name=visit_name_ar.name)
-        return visit_name
+        return TextValue(uid=visit_name_ar.uid, name=visit_name_ar.name)
 
     def _create_numeric_value_simple_concept(
         self, value: int, numeric_value_type: NumericValueType
@@ -989,8 +810,23 @@ class StudyVisitService(StudySelectionMixin):
         return numeric_value_object
 
     def _create_timepoint_simple_concept(
-        self, study_visit_input: StudyVisitCreateInput
+        self, study_visit_input: StudyVisitCreateInput | StudyVisitEditInput
     ):
+        if study_visit_input.time_value is None:
+            raise exceptions.BusinessLogicException(
+                msg="Time value is required for creating a timepoint."
+            )
+
+        if study_visit_input.time_unit_uid is None:
+            raise exceptions.BusinessLogicException(
+                msg="Time unit UID is required for creating a timepoint."
+            )
+
+        if study_visit_input.time_reference_uid is None:
+            raise exceptions.BusinessLogicException(
+                msg="Time reference UID is required for creating a timepoint."
+            )
+
         numeric_ar = self._create_numeric_value_simple_concept(
             value=study_visit_input.time_value,
             numeric_value_type=NumericValueType.NUMERIC_VALUE,
@@ -1016,7 +852,7 @@ class StudyVisitService(StudySelectionMixin):
         self._repos.time_point_repository.save(timepoint_ar)
         timepoint_object = TimePoint(
             uid=timepoint_ar.uid,
-            visit_timereference=StudyVisitTimeReference[
+            visit_timereference=self.study_visit_time_references_by_uid[
                 study_visit_input.time_reference_uid
             ],
             time_unit_uid=study_visit_input.time_unit_uid,
@@ -1024,7 +860,7 @@ class StudyVisitService(StudySelectionMixin):
         )
         return timepoint_object
 
-    def derive_visit_number(self, visit_class: VisitClass):
+    def derive_visit_number(self, visit_class: VisitClass | None):
         if visit_class == VisitClass.NON_VISIT:
             return settings.non_visit_number
         if visit_class == VisitClass.UNSCHEDULED_VISIT:
@@ -1032,7 +868,9 @@ class StudyVisitService(StudySelectionMixin):
         return 1
 
     def _from_input_values(
-        self, create_input: StudyVisitCreateInput, epoch: StudyEpochVO
+        self,
+        create_input: StudyVisitCreateInput | StudyVisitEditInput,
+        epoch: StudyEpochVO,
     ):
         unit_repository = self._repos.unit_definition_repository
         if create_input.time_unit_uid:
@@ -1042,11 +880,20 @@ class StudyVisitService(StudySelectionMixin):
             req_time_unit = req_time_unit_ar.concept_vo
         else:
             req_time_unit = None
+
         if create_input.visit_window_unit_uid:
             window_time_unit_ar: UnitDefinitionAR = unit_repository.find_by_uid_2(
                 create_input.visit_window_unit_uid
             )
             window_time_unit = window_time_unit_ar.concept_vo
+            if window_time_unit.name is None:
+                raise exceptions.ValidationException(
+                    msg="Visit window unit UID is required for creating a visit window."
+                )
+            if window_time_unit.conversion_factor_to_master is None:
+                raise exceptions.ValidationException(
+                    msg="Visit window unit conversion factor to master is required for creating a visit window."
+                )
             window_unit_object = TimeUnit(
                 name=window_time_unit.name,
                 conversion_factor_to_master=window_time_unit.conversion_factor_to_master,
@@ -1054,7 +901,11 @@ class StudyVisitService(StudySelectionMixin):
         else:
             window_unit_object = None
 
-        if req_time_unit:
+        if req_time_unit and req_time_unit.name:
+            if req_time_unit.conversion_factor_to_master is None:
+                raise exceptions.ValidationException(
+                    msg="Time unit conversion factor to master is required for creating a visit."
+                )
             time_unit_object = TimeUnit(
                 name=req_time_unit.name,
                 conversion_factor_to_master=req_time_unit.conversion_factor_to_master,
@@ -1090,15 +941,17 @@ class StudyVisitService(StudySelectionMixin):
             description=create_input.description,
             start_rule=create_input.start_rule,
             end_rule=create_input.end_rule,
-            visit_contact_mode=StudyVisitContactMode[
+            visit_contact_mode=self.study_visit_contact_modes_by_uid[
                 create_input.visit_contact_mode_uid
             ],
             epoch_allocation=(
-                StudyVisitEpochAllocation[create_input.epoch_allocation_uid]
+                self.study_visit_epoch_allocations_by_uid[
+                    create_input.epoch_allocation_uid
+                ]
                 if create_input.epoch_allocation_uid
                 else None
             ),
-            visit_type=StudyVisitType[create_input.visit_type_uid],
+            visit_type=self.study_visit_types_by_uid[create_input.visit_type_uid],
             start_date=datetime.datetime.now(datetime.timezone.utc),
             author_id=self.author,
             author_username=UserInfoService().get_author_username_from_id(
@@ -1115,7 +968,9 @@ class StudyVisitService(StudySelectionMixin):
             visit_number=self.derive_visit_number(visit_class=visit_class),
             visit_order=self.derive_visit_number(visit_class=visit_class),
             repeating_frequency=(
-                StudyVisitRepeatingFrequency[create_input.repeating_frequency_uid]
+                self.study_visit_repeating_frequencies_by_uid[
+                    create_input.repeating_frequency_uid
+                ]
                 if create_input.repeating_frequency_uid
                 else None
             ),
@@ -1141,7 +996,7 @@ class StudyVisitService(StudySelectionMixin):
             )
 
             if study_visit_vo.visit_class == visit_class.MANUALLY_DEFINED_VISIT:
-                study_visit_vo.visit_number = create_input.visit_number
+                study_visit_vo.visit_number = create_input.visit_number  # type: ignore[assignment]
                 study_visit_vo.vis_unique_number = create_input.unique_visit_number
                 study_visit_vo.vis_short_name = create_input.visit_short_name
                 study_visit_vo.visit_name_sc = self._create_visit_name_simple_concept(
@@ -1203,30 +1058,37 @@ class StudyVisitService(StudySelectionMixin):
             VisitClass.UNSCHEDULED_VISIT,
             VisitClass.SPECIAL_VISIT,
         ]:
-            study_visit_vo.study_day = self._create_numeric_value_simple_concept(
-                value=study_visit_vo.derive_study_day_number(),
-                numeric_value_type=NumericValueType.STUDY_DAY,
-            )
-            study_visit_vo.study_duration_days = (
-                self._create_numeric_value_simple_concept(
-                    value=study_visit_vo.derive_study_duration_days_number(),
-                    numeric_value_type=NumericValueType.STUDY_DURATION_DAYS,
+            if value := study_visit_vo.derive_study_day_number():
+                study_visit_vo.study_day = self._create_numeric_value_simple_concept(
+                    value=value,
+                    numeric_value_type=NumericValueType.STUDY_DAY,
                 )
-            )
-            study_visit_vo.study_week = self._create_numeric_value_simple_concept(
-                value=study_visit_vo.derive_study_week_number(),
-                numeric_value_type=NumericValueType.STUDY_WEEK,
-            )
-            study_visit_vo.study_duration_weeks = (
-                self._create_numeric_value_simple_concept(
-                    value=study_visit_vo.derive_study_duration_weeks_number(),
-                    numeric_value_type=NumericValueType.STUDY_DURATION_WEEKS,
+            if value := study_visit_vo.derive_study_duration_days_number():
+                study_visit_vo.study_duration_days = (
+                    self._create_numeric_value_simple_concept(
+                        value=value,
+                        numeric_value_type=NumericValueType.STUDY_DURATION_DAYS,
+                    )
                 )
-            )
-            study_visit_vo.week_in_study = self._create_numeric_value_simple_concept(
-                value=study_visit_vo.derive_week_in_study_number(),
-                numeric_value_type=NumericValueType.WEEK_IN_STUDY,
-            )
+            if value := study_visit_vo.derive_study_week_number():
+                study_visit_vo.study_week = self._create_numeric_value_simple_concept(
+                    value=value,
+                    numeric_value_type=NumericValueType.STUDY_WEEK,
+                )
+            if value := study_visit_vo.derive_study_duration_weeks_number():
+                study_visit_vo.study_duration_weeks = (
+                    self._create_numeric_value_simple_concept(
+                        value=value,
+                        numeric_value_type=NumericValueType.STUDY_DURATION_WEEKS,
+                    )
+                )
+            if value := study_visit_vo.derive_study_duration_weeks_number():
+                study_visit_vo.week_in_study = (
+                    self._create_numeric_value_simple_concept(
+                        value=value,
+                        numeric_value_type=NumericValueType.WEEK_IN_STUDY,
+                    )
+                )
 
     @db.transaction
     def create(self, study_uid: str, study_visit_input: StudyVisitCreateInput):
@@ -1258,7 +1120,36 @@ class StudyVisitService(StudySelectionMixin):
                 ordered_visits=ordered_visits,
                 start_index_to_synchronize=int(added_item.visit_number),
             )
+        self.amend_study_visit_vo(added_item)
         return StudyVisit.transform_to_response_model(added_item)
+
+    def amend_study_visit_vo(self, visit: StudyVisitVO) -> StudyVisitVO:
+        timepoint = visit.timepoint
+        if timepoint:
+            visit_timereference = self.study_visit_time_references_by_uid.get(
+                timepoint.visit_timereference.term_uid
+            )
+            timepoint.visit_timereference = visit_timereference
+        visit.epoch_connector.epoch = self.study_epoch_epochs_by_uid.get(
+            visit.epoch.epoch.term_uid
+        )
+        visit.visit_type = self.study_visit_types_by_uid.get(visit.visit_type.term_uid)
+        visit.visit_contact_mode = self.study_visit_contact_modes_by_uid.get(
+            visit.visit_contact_mode.term_uid
+        )
+        epoch_allocation_uid = getattr(visit.epoch_allocation, "term_uid", None)
+        if epoch_allocation_uid:
+            visit.epoch_allocation = self.study_visit_epoch_allocations_by_uid.get(
+                epoch_allocation_uid
+            )
+        repeating_frequency_uid = getattr(visit.repeating_frequency, "term_uid", None)
+        if repeating_frequency_uid:
+            visit.repeating_frequency = (
+                self.study_visit_repeating_frequencies_by_uid.get(
+                    repeating_frequency_uid
+                )
+            )
+        return visit
 
     @db.transaction
     def preview(self, study_uid: str, study_visit_input: StudyVisitCreateInput):
@@ -1276,6 +1167,7 @@ class StudyVisitService(StudySelectionMixin):
         study_visit.uid = "preview"
         timeline.add_visit(study_visit)
         self.assign_props_derived_from_visit_absolute_timing(study_visit_vo=study_visit)
+        self.amend_study_visit_vo(study_visit)
         return StudyVisit.transform_to_response_model(study_visit)
 
     @db.transaction
@@ -1340,6 +1232,7 @@ class StudyVisitService(StudySelectionMixin):
 
         self.repo.save(new_study_visit)
 
+        self.amend_study_visit_vo(new_study_visit)
         return StudyVisit.transform_to_response_model(new_study_visit)
 
     @db.transaction
@@ -1347,16 +1240,16 @@ class StudyVisitService(StudySelectionMixin):
         study_visits = self.repo.find_all_visits_by_study_uid(study_uid)
         timeline = TimelineAR(study_uid=study_uid, _visits=study_visits)
         ordered_visits = timeline.ordered_study_visits
-        study_visit = None
+        study_visit: StudyVisitVO | None = None
         for visit in ordered_visits:
             if visit.uid == study_visit_uid:
                 study_visit = visit
                 break
         else:
-            ValidationException.raise_if(
-                study_visit is None,
-                msg=f"StudyVisit with UID '{study_visit_uid}' doesn't exist in Study '{study_uid}'",
-            )
+            if study_visit is None:
+                raise ValidationException(
+                    f"StudyVisit with UID '{study_visit_uid}' doesn't exist in Study '{study_uid}'",
+                )
         group_name = (
             study_visit.study_visit_group.group_name
             if study_visit.study_visit_group
@@ -1440,14 +1333,14 @@ class StudyVisitService(StudySelectionMixin):
             study_uid=study_uid, list_of_start_dates=start_dates
         )
 
-        selection_history: list[StudyVisit] = []
+        selection_history = []
         previous_effective_date = None
         for study_visit_version, effective_date in zip(all_versions, effective_dates):
             # The CTTerms should be only reloaded when effective_date changed for some of StudyVisits
             if effective_date != previous_effective_date:
                 previous_effective_date = effective_date
                 self.terms_at_specific_datetime = effective_date
-                self._create_ctlist_map()
+                self.update_ctterm_maps(self.terms_at_specific_datetime)
             selection_history.append(
                 self._transform_all_to_response_history_model(
                     study_visit_version
@@ -1474,7 +1367,7 @@ class StudyVisitService(StudySelectionMixin):
             study_uid=study_uid, list_of_start_dates=start_dates
         )
 
-        selection_history: list[StudyVisit] = []
+        selection_history = []
         previous_effective_date = None
         all_versions_dict: dict[Any, Any] = {}
         for study_visit_version, effective_date in zip(all_versions, effective_dates):
@@ -1488,7 +1381,7 @@ class StudyVisitService(StudySelectionMixin):
                 if effective_date != previous_effective_date:
                     previous_effective_date = effective_date
                     self.terms_at_specific_datetime = effective_date
-                    self._create_ctlist_map()
+                    self.update_ctterm_maps(self.terms_at_specific_datetime)
                 selection_history.append(
                     self._transform_all_to_response_history_model(
                         study_visit_version
@@ -1542,7 +1435,7 @@ class StudyVisitService(StudySelectionMixin):
         found_visit_uids = [study_visit.uid for study_visit in visits_to_be_assigned]
         ValidationException.raise_if(
             len(visits_to_assign) != len(found_visit_uids),
-            msg=f"The following Visits were not found {set(visits_to_assign)- set(found_visit_uids)}",
+            msg=f"The following Visits were not found {set(visits_to_assign) - set(found_visit_uids)}",
         )
         self._validate_consecutive_visit_group_assignment(
             study_uid=study_uid,
@@ -1583,7 +1476,7 @@ class StudyVisitService(StudySelectionMixin):
 
         return [
             StudyVisit.transform_to_response_model(visit)
-            for visit in visits_to_be_assigned
+            for visit in map(self.amend_study_visit_vo, visits_to_be_assigned)
         ]
 
     def _validate_consecutive_visit_group_assignment(

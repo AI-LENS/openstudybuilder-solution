@@ -136,8 +136,10 @@ export default {
       { new_order: newOrder }
     )
   },
-  deleteCohort(uid, cohortUid) {
-    return repository.delete(`${resource}/${uid}/study-cohorts/${cohortUid}`)
+  deleteCohort(uid, cohortUid, deleteBranches = false) {
+    return repository.delete(
+      `${resource}/${uid}/study-cohorts/${cohortUid}?delete_linked_branches=${deleteBranches}`
+    )
   },
   cellsBatchUpdate(uid, data) {
     return repository.post(`${resource}/${uid}/study-design-cells/batch`, data)

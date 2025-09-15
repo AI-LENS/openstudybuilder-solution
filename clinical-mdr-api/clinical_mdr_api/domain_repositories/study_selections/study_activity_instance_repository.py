@@ -65,7 +65,7 @@ class StudySelectionActivityInstanceRepository(
             study_uid=selection["study_uid"],
             study_selection_uid=selection["study_selection_uid"],
             study_activity_uid=selection["study_activity_uid"],
-            activity_uid=activity.get("uid"),
+            activity_uid=activity["uid"],
             activity_name=activity.get("name"),
             activity_version=f"{activity.get('major_version')}.{activity.get('minor_version')}",
             activity_instance_uid=activity_instance.get("uid"),
@@ -212,7 +212,10 @@ class StudySelectionActivityInstanceRepository(
         """
 
     def get_selection_history(
-        self, selection: dict[Any, Any], change_type: str, end_date: datetime.datetime
+        self,
+        selection: dict[Any, Any],
+        change_type: str,
+        end_date: datetime.datetime | None,
     ):
         study_activity = selection.get("study_activity", {})
         activity_instance = selection.get("activity_instance", {})
@@ -241,7 +244,7 @@ class StudySelectionActivityInstanceRepository(
             end_date=end_date,
         )
 
-    def get_audit_trail_query(self, study_selection_uid: str):
+    def get_audit_trail_query(self, study_selection_uid: str | None):
         if study_selection_uid:
             audit_trail_cypher = """
             MATCH (sr:StudyRoot { uid: $study_uid})-[:AUDIT_TRAIL]->(:StudyAction)-[:BEFORE|AFTER]->(sa:StudyActivityInstance {uid: $study_selection_uid})

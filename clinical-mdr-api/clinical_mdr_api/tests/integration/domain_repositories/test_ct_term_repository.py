@@ -264,7 +264,7 @@ class TestCTTermRepository(unittest.TestCase):
                         codelist_name=filter_tuple[1],
                         library=filter_tuple[2],
                         package=filter_tuple[3],
-                    ).items
+                    )[0]
                 )
                 all_filters_results = []
                 # check if Terms are properly filtered

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from neomodel import db
 from pydantic import BaseModel
@@ -32,10 +32,8 @@ from common.exceptions import (
     ValidationException,
 )
 
-_AggregateRootType = TypeVar("_AggregateRootType")
 
-
-class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
+class DictionaryTermGenericService(ABC):
     @classmethod
     def get_input_or_previous_property(
         cls, input_property: Any, previous_property: Any
@@ -46,7 +44,7 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
     version_class = DictionaryTermVersion
     repository_interface = DictionaryTermGenericRepository
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -61,13 +59,13 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
         return self.repository_interface()
 
     def _transform_aggregate_root_to_pydantic_model(
-        self, item_ar: _AggregateRootType
-    ) -> BaseModel:
+        self, item_ar: DictionaryTermAR
+    ) -> DictionaryTerm:
         return DictionaryTerm.from_dictionary_term_ar(item_ar)
 
     def _create_aggregate_root(
         self, term_input: BaseModel, library: LibraryVO
-    ) -> _AggregateRootType:
+    ) -> DictionaryTermAR:
         return DictionaryTermAR.from_input_values(
             author_id=self.author_id,
             dictionary_term_vo=DictionaryTermVO.from_input_values(
@@ -84,8 +82,8 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
         )
 
     def _edit_aggregate(
-        self, item: _AggregateRootType, term_input: BaseModel
-    ) -> _AggregateRootType:
+        self, item: DictionaryTermAR, term_input: BaseModel
+    ) -> DictionaryTermAR:
         item.edit_draft(
             author_id=self.author_id,
             change_description=term_input.change_description,
@@ -109,10 +107,10 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[DictionaryTerm]:
-        items, total = self.repository.find_all(
+        item_ars, total = self.repository.find_all(
             codelist_uid=codelist_uid,
             sort_by=sort_by,
             filter_by=filter_by,
@@ -122,21 +120,19 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
             total_count=total_count,
         )
 
-        all_dictionary_terms = GenericFilteringReturn.create(items, total)
-        all_dictionary_terms.items = [
+        items = [
             self._transform_aggregate_root_to_pydantic_model(dictionary_term_ar)
-            for dictionary_term_ar in all_dictionary_terms.items
+            for dictionary_term_ar in item_ars
         ]
-
-        return all_dictionary_terms
+        return GenericFilteringReturn(items=items, total=total)
 
     def get_distinct_values_for_header(
         self,
         codelist_uid: str,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[str]:
         # First, check that attributes provided for filtering exist in the return class
@@ -162,8 +158,8 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
         return self._transform_aggregate_root_to_pydantic_model(item)
 
     def _find_by_uid_or_raise_not_found(
-        self, term_uid: str, for_update: bool | None = False
-    ) -> _AggregateRootType:
+        self, term_uid: str, for_update: bool = False
+    ) -> DictionaryTermAR:
         item = self.repository.find_by_uid_2(uid=term_uid, for_update=for_update)
 
         NotFoundException.raise_if(
@@ -195,14 +191,14 @@ class DictionaryTermGenericService(Generic[_AggregateRootType], ABC):
     def create(self, term_input: BaseModel) -> BaseModel:
         BusinessLogicException.raise_if_not(
             self._repos.dictionary_codelist_generic_repository.codelist_exists(
-                normalize_string(term_input.codelist_uid)
+                normalize_string(term_input.codelist_uid)  # type: ignore[arg-type]
             ),
             msg=f"Dictionary Codelist with UID '{term_input.codelist_uid}' doesn't exist.",
         )
 
         BusinessLogicException.raise_if_not(
             self._repos.library_repository.library_exists(
-                normalize_string(term_input.library_name)
+                normalize_string(term_input.library_name)  # type: ignore[arg-type]
             ),
             msg=f"Library with Name '{term_input.library_name}' doesn't exist.",
         )

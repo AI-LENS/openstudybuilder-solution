@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field, model_validator
 
@@ -67,16 +67,39 @@ from common.config import settings
 
 
 class OdmItemTermRelationshipModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_item_uid(
         cls,
         uid: str,
         term_uid: str,
-        find_term_with_item_relation_by_item_uid: Callable[[str], OdmItemTermVO | None],
+        find_term_with_item_relation_by_item_uid: Callable[
+            [str, str], OdmItemTermVO | None
+        ],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_item_uid(
+        cls,
+        uid: str,
+        term_uid: None,
+        find_term_with_item_relation_by_item_uid: Callable[
+            [str, str], OdmItemTermVO | None
+        ],
+    ) -> None: ...
+    @classmethod
+    def from_odm_item_uid(
+        cls,
+        uid: str,
+        term_uid: str | None,
+        find_term_with_item_relation_by_item_uid: Callable[
+            [str, str], OdmItemTermVO | None
+        ],
     ) -> Self | None:
         simple_term_model = None
+
         if term_uid is not None:
-            term = find_term_with_item_relation_by_item_uid(uid=uid, term_uid=term_uid)
+            term = find_term_with_item_relation_by_item_uid(uid, term_uid)
 
             if term is not None:
                 simple_term_model = cls(
@@ -91,20 +114,16 @@ class OdmItemTermRelationshipModel(BaseModel):
                 simple_term_model = cls(
                     term_uid=term_uid,
                     name=None,
-                    mandatory=None,
+                    mandatory=False,
                     order=None,
                     display_text=None,
                     version=None,
                 )
-        else:
-            simple_term_model = None
         return simple_term_model
 
     term_uid: Annotated[str, Field()]
     name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
-    mandatory: Annotated[bool | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
+    mandatory: Annotated[bool, Field()] = False
     order: Annotated[int | None, Field(json_schema_extra={"nullable": True})] = None
     display_text: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
         None
@@ -113,6 +132,7 @@ class OdmItemTermRelationshipModel(BaseModel):
 
 
 class OdmItemUnitDefinitionWithRelationship(BaseModel):
+    @overload
     @classmethod
     def from_unit_definition_uid(
         cls,
@@ -124,7 +144,34 @@ class OdmItemUnitDefinitionWithRelationship(BaseModel):
         ],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
         find_term_by_uid: Callable[[str], CTTermNameAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_unit_definition_uid(
+        cls,
+        uid: None,
+        unit_definition_uid: str,
+        find_unit_definition_by_uid: Callable[[str], ConceptARBase | None],
+        find_unit_definition_with_item_relation_by_item_uid: Callable[
+            [str, str], OdmItemUnitDefinitionVO | None
+        ],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        find_term_by_uid: Callable[[str], CTTermNameAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_unit_definition_uid(
+        cls,
+        uid: str | None,
+        unit_definition_uid: str,
+        find_unit_definition_by_uid: Callable[[str], ConceptARBase | None],
+        find_unit_definition_with_item_relation_by_item_uid: Callable[
+            [str, str], OdmItemUnitDefinitionVO | None
+        ],
+        find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
+        find_term_by_uid: Callable[[str], CTTermNameAR | None],
     ) -> Self | None:
+        simple_unit_definition_model = None
+
         if uid is not None:
             unit_definition_rel = find_unit_definition_with_item_relation_by_item_uid(
                 uid, unit_definition_uid
@@ -167,20 +214,16 @@ class OdmItemUnitDefinitionWithRelationship(BaseModel):
                 simple_unit_definition_model = cls(
                     uid=unit_definition_uid,
                     name=None,
-                    mandatory=None,
+                    mandatory=False,
                     order=None,
                     ucum=None,
                     ct_units=[],
                 )
-        else:
-            simple_unit_definition_model = None
         return simple_unit_definition_model
 
     uid: Annotated[str, Field()]
     name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
-    mandatory: Annotated[bool | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
+    mandatory: Annotated[bool, Field()] = False
     order: Annotated[int | None, Field(json_schema_extra={"nullable": True})] = None
     ucum: Annotated[
         SimpleTermModel | SimpleDictionaryTermModel | None,
@@ -253,7 +296,7 @@ class OdmItem(ConceptModel):
         return cls(
             uid=odm_item_ar._uid,
             oid=odm_item_ar.concept_vo.oid,
-            name=odm_item_ar.concept_vo.name,
+            name=odm_item_ar.name,
             prompt=odm_item_ar.concept_vo.prompt,
             datatype=odm_item_ar.concept_vo.datatype,
             length=odm_item_ar.concept_vo.length,
@@ -277,7 +320,7 @@ class OdmItem(ConceptModel):
                     )
                     for description_uid in odm_item_ar.concept_vo.description_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             aliases=sorted(
                 [
@@ -287,7 +330,7 @@ class OdmItem(ConceptModel):
                     )
                     for alias_uid in odm_item_ar.concept_vo.alias_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             unit_definitions=sorted(
                 [
@@ -332,7 +375,7 @@ class OdmItem(ConceptModel):
                     )
                     for vendor_element_uid in odm_item_ar.concept_vo.vendor_element_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_attributes=sorted(
                 [
@@ -340,12 +383,12 @@ class OdmItem(ConceptModel):
                         uid=vendor_attribute_uid,
                         odm_element_uid=odm_item_ar._uid,
                         odm_element_type=RelationType.ITEM,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                         vendor_element_attribute=False,
                     )
                     for vendor_attribute_uid in odm_item_ar.concept_vo.vendor_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_element_attributes=sorted(
                 [
@@ -353,11 +396,11 @@ class OdmItem(ConceptModel):
                         uid=vendor_element_attribute_uid,
                         odm_element_uid=odm_item_ar._uid,
                         odm_element_type=RelationType.ITEM,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                     )
                     for vendor_element_attribute_uid in odm_item_ar.concept_vo.vendor_element_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_item_ar.get_possible_actions()]
@@ -366,6 +409,7 @@ class OdmItem(ConceptModel):
 
 
 class OdmItemRefModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_item_uid(
         cls,
@@ -375,7 +419,30 @@ class OdmItemRefModel(BaseModel):
             [str, str], OdmItemRefVO | None
         ],
         find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_item_uid(
+        cls,
+        uid: None,
+        item_group_uid: str,
+        find_odm_item_by_uid_with_item_group_relation: Callable[
+            [str, str], OdmItemRefVO | None
+        ],
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_item_uid(
+        cls,
+        uid: str | None,
+        item_group_uid: str,
+        find_odm_item_by_uid_with_item_group_relation: Callable[
+            [str, str], OdmItemRefVO | None
+        ],
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
     ) -> Self | None:
+        odm_item_ref_model = None
+
         if uid is not None:
             odm_item_ref_vo = find_odm_item_by_uid_with_item_group_relation(
                 uid, item_group_uid
@@ -424,8 +491,6 @@ class OdmItemRefModel(BaseModel):
                     collection_exception_condition_oid=None,
                     vendor=OdmRefVendor(attributes=[]),
                 )
-        else:
-            odm_item_ref_model = None
         return odm_item_ref_model
 
     uid: Annotated[str, Field()]
@@ -519,6 +584,7 @@ class OdmItemPostInput(ConceptPostInput):
 
 
 class OdmItemPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     datatype: Annotated[str | None, Field(min_length=1)]
     prompt: Annotated[str | None, Field()]

@@ -1,5 +1,79 @@
 # OpenStudyBuilder (OSB) Commits changelog
 
+## V 0.20
+
+New Features and Enhancements
+============
+
+### Fixes and Enhancements
+
+- The consumer API for Papillon has been updated to include topic codes that have no crosses (i.e. no visits linked to it).
+
+### New Features
+
+- In the Studies module, the Analysis Study Metadata page has been expanded with a MVP of the MDFLOW view.  
+  MDFLOW is a representation of the flowchart (Schedule of Activity) containing one record (row) per parameter per analysis visit. 
+  Organising the SoA in this way helps to generate ADaM datasets.   
+  Please note that the MVP is not compliant with the NN ADaM master model.
+- The users will be able to set up studies with subgroups now. This will allow the users to onboard studies with cohorts as well as disease sub-groups e.g. renal impairment studies.
+
+### Performance improvement
+
+- Introduced compact versions of GET /study-activities, /study-activitiy-instances, /study-soa-footnotes endpoints that are going to be used on the Detailed SoA page in the UI.
+- Introduced compression of API responses.
+- Improved throughput of the Consumer API by allowing it to process multiple requests concurrently.
+
+### End-to-End Automated test enhancements
+ 
+- Various code improvements to ensure easier maintenance and overall tests stability.
+- Library > Concepts > Activities > Overview Pages: Refactored test code and extended test scope.
+- Library > Concepts > CRFs > CRF View: Updated Gherkin specifactions and tests implementation.
+- Studies > Define Study > Study Structure Wizard Stepper: Defined Gherkin specifactions and added tests implementation.
+- Studies > Define Study > Study Activities > Schedule of Activities: Extended scope of tests for Protocol and Detailed view.
+
+Solved Bugs
+============
+
+### Library
+
+ **Code Lists -> Sponsor** 
+
+- Code list table does not refresh after adding a new code list
+- NCI preferred name should not be mandatory when adding a new code list
+
+ **Code lists -> CT catalogues -> Show term -> Add term** 
+
+- Missing check that name and sentence case name match
+
+ **Concepts -> Activities -> Activity Instances** 
+
+- Creating new activity instances error, odm mandatory when they should not.
+- Wizard stepper gets stuck when adding a new instance
+
+ **Concepts -> Activities -> Requested Activities** 
+
+- ActivityRequest get automatically Retired when removing ActivityPlaceholder in a Study
+
+### Studies
+
+ **Define Study -> Data Specifications -> Study Activity Instances** 
+
+- Filtering unstable
+
+ **Define Study -> Study Activities -> Study Activities** 
+
+- The filter restriction carries over when users try to add a new activity
+
+ **Define Study -> Study Structure -> Study Visits** 
+
+- Export of study visits: study_id is empty
+
+ **Manage Study -> Study** 
+
+- User with Read-only permissions allowing to delete the Study in the Application
+
+
+
 ## V 0.19
 
 New Features and Enhancements
@@ -53,6 +127,13 @@ New Features and Enhancements
          - activity_nci_concept_name
          - activity_instance_nci_concept_id
          - activity_instance_nci_concept_name
+
+### End-to-End Automated test enhancements
+ 
+- Various code improvements to ensure easier maintenance and overall tests stability.
+- Library > Concepts > CRFs > CRF View: Added Gherkins specifications for CRF View page.
+- Library > Concepts > Activities: Added tests for new way of filtering by Status.
+- Studies > Define Study > Study Activities > Study Activities Placeholder: Added tests for red bell.
 
 Solved Bugs
 ============
@@ -124,9 +205,9 @@ New Features and Enhancements
 ### End-to-End Automated test enhancements
  
 - Various code improvements to ensure easier maintenance and overall tests stability.
-- Library > Concepts > CRFs > CRF View: Added Gherkins specifications for CRF View page.
-- Library > Concepts > Activities: Added tests for new way of filtering by Status.
-- Studies > Define Study > Study Activities > Study Activities Placeholder: Added tests for red bell.
+- Library > Concepts > Activity > Overview Pages: Added Gherkins specification for table Filtering.
+- Library > Concepts > Activity > Activity Instance > Overview Page: Enabled tests verifing linked items.
+
 
 Solved Bugs
 ============

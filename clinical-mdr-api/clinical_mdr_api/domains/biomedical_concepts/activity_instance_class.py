@@ -55,7 +55,7 @@ class ActivityInstanceClassVO:
     def validate(
         self,
         activity_instance_class_exists_by_name_callback: Callable[[str], bool],
-        dataset_class_exists_by_uid: Callable[[str], DatasetClass],
+        dataset_class_exists_by_uid: Callable[[str], DatasetClass | None],
         previous_name: str | None = None,
     ) -> None:
         AlreadyExistsException.raise_if(
@@ -99,7 +99,7 @@ class ActivityInstanceClassAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         activity_instance_class_vo: ActivityInstanceClassVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         activity_instance_class_ar = cls(
@@ -118,8 +118,8 @@ class ActivityInstanceClassAR(LibraryItemAggregateRootBase):
         activity_instance_class_vo: ActivityInstanceClassVO,
         library: LibraryVO,
         activity_instance_class_exists_by_name_callback: Callable[[str], bool],
-        dataset_class_exists_by_uid: Callable[[str], DatasetClass],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        dataset_class_exists_by_uid: Callable[..., DatasetClass | None],
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -143,10 +143,10 @@ class ActivityInstanceClassAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         activity_instance_class_vo: ActivityInstanceClassVO,
         activity_instance_class_exists_by_name_callback: Callable[[str], bool],
-        dataset_class_exists_by_uid: Callable[[str], DatasetClass],
+        dataset_class_exists_by_uid: Callable[..., DatasetClass | None],
     ) -> None:
         """
         Creates a new draft version for the object.

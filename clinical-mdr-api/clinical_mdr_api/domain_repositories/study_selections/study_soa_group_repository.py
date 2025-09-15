@@ -35,7 +35,7 @@ class SelectionHistory:
     soa_group_term_uid: str
     soa_group_term_name: str | None
     show_soa_group_in_protocol_flowchart: bool
-    author_id: str | None
+    author_id: str
     change_type: str
     order: int | None
     study_activity_group_uids: list[str] | None
@@ -111,7 +111,10 @@ class StudySoAGroupRepository(StudySelectionActivityBaseRepository[StudySoAGroup
         """
 
     def get_selection_history(
-        self, selection: dict[str, Any], change_type: str, end_date: datetime.datetime
+        self,
+        selection: dict[str, Any],
+        change_type: str,
+        end_date: datetime.datetime | None,
     ):
         return SelectionHistory(
             study_selection_uid=selection["study_selection_uid"],
@@ -130,7 +133,7 @@ class StudySoAGroupRepository(StudySelectionActivityBaseRepository[StudySoAGroup
             end_date=end_date,
         )
 
-    def get_audit_trail_query(self, study_selection_uid: str):
+    def get_audit_trail_query(self, study_selection_uid: str | None):
         if study_selection_uid:
             audit_trail_cypher = """
             MATCH (sr:StudyRoot { uid: $study_uid})-[:AUDIT_TRAIL]->(:StudyAction)-[:BEFORE|AFTER]->(sa:StudySoAGroup {uid: $study_selection_uid})

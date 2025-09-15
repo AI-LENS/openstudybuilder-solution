@@ -58,10 +58,13 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionCriteriaAR,
+        study_selection: StudySelectionCriteriaAR | None,
         no_brackets: bool,
         study_value_version: str | None = None,
     ) -> list[StudySelectionCriteria]:
+        if study_selection is None:
+            return []
+
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
             study_value_version=study_value_version,
@@ -224,7 +227,9 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
             repos.close()
 
     def _create_or_get_criteria_instance(
-        self, criteria_data: CriteriaCreateInput, criteria_type_uid: str
+        self,
+        criteria_data: CriteriaCreateInput | CriteriaUpdateWithCriteriaKeyInput,
+        criteria_type_uid: str,
     ) -> CriteriaAR:
         # check if name exists
         criteria_service: CriteriaService = CriteriaService()
@@ -352,7 +357,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                 study_uid=study_uid, for_update=True
             )
             criteria_repo = self._repos.criteria_repository
-            criteria_uid = getattr(selection_create_input, "criteria_uid", None)
+            criteria_uid = getattr(selection_create_input, "criteria_uid")
             selected_criteria = criteria_repo.find_by_uid(
                 criteria_uid, status=LibraryItemStatus.FINAL
             )
@@ -511,7 +516,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                 # create criteria instance
                 criteria_ar = criteria_service.create_ar_from_input_values(
                     selection_create_input.criteria_data,
-                    generate_uid_callback=(lambda: "preview"),
+                    generate_uid_callback=lambda: "preview",
                 )
 
                 criteria_ar.approve(self.author)
@@ -526,13 +531,13 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                     syntax_object_uid=criteria_ar.uid,
                     syntax_object_version=criteria_ar.item_metadata.version,
                     criteria_type_uid=criteria_type_uid,
-                    generate_uid_callback=(lambda: "preview"),
+                    generate_uid_callback=lambda: "preview",
                 )
 
                 # add VO to aggregate
                 selection_aggregate.add_criteria_selection(
                     new_selection,
-                    (lambda _: True),
+                    lambda _: True,
                     self._repos.ct_term_name_repository.term_specific_exists_by_uid,
                 )
 
@@ -559,7 +564,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                         )
                     ),
                     get_criteria_by_uid_version_callback=(
-                        lambda _: Criteria.from_criteria_ar(
+                        lambda uid, version: Criteria.from_criteria_ar(
                             criteria_ar,
                         )
                     ),
@@ -580,7 +585,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudySelectionCriteria]:
         # Extract the study uids to use database level filtering for these
@@ -627,9 +632,9 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
         study_uid: str | None = None,
         project_name: str | None = None,
         project_number: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         study_value_version: str | None = None,
     ):
@@ -708,7 +713,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
     ) -> GenericFilteringReturn[StudySelectionCriteria]:
@@ -755,13 +760,13 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                     page_size=page_size,
                 )
                 # Put the sorted and filtered items back into the AR and transform them to the response model
-                criteria_selection_ar.study_criteria_selection = filtered_items
+                criteria_selection_ar.study_criteria_selection = tuple(filtered_items)
                 filtered_items = self._transform_all_to_response_model(
                     criteria_selection_ar,
                     no_brackets=no_brackets,
                     study_value_version=study_value_version,
                 )
-                return GenericFilteringReturn.create(filtered_items, count)
+                return GenericFilteringReturn(items=filtered_items, total=count)
 
             # Fall back to full generic filtering
             selection = self._transform_all_to_response_model(
@@ -770,7 +775,7 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                 study_value_version=study_value_version,
             )
             # Do filtering, sorting, pagination and count
-            selection = service_level_generic_filtering(
+            return service_level_generic_filtering(
                 items=selection,
                 filter_by=filter_by,
                 filter_operator=filter_operator,
@@ -779,7 +784,6 @@ class StudyCriteriaSelectionService(StudySelectionMixin):
                 page_number=page_number,
                 page_size=page_size,
             )
-            return selection
         finally:
             repos.close()
 

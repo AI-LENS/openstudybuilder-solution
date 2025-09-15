@@ -22,7 +22,7 @@ class SimpleConceptVO(ConceptVO):
     @classmethod
     def from_repository_values(
         cls,
-        name: str,
+        name: str | None,
         name_sentence_case: str | None,
         definition: str | None,
         abbreviation: str | None,
@@ -56,7 +56,7 @@ class SimpleConceptAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         simple_concept_vo: SimpleConceptVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         activity_ar = cls(
@@ -74,8 +74,8 @@ class SimpleConceptAR(LibraryItemAggregateRootBase):
         author_id: str,
         simple_concept_vo: SimpleConceptVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        find_uid_by_name_callback: Callable[[str], str | None] = (lambda _: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        find_uid_by_name_callback: Callable[[str], str | None] = lambda _: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO(
             _change_description="Initial version",
@@ -93,6 +93,10 @@ class SimpleConceptAR(LibraryItemAggregateRootBase):
         )
 
         # Check whether simple concept with the same name already exits. If yes, return its uid, otherwise None.
+        if simple_concept_vo.name is None:
+            raise ValueError(
+                "SimpleConcept name cannot be None. Please provide a valid name."
+            )
         simple_concept_uid = find_uid_by_name_callback(simple_concept_vo.name)
 
         simple_concept_ar = cls(

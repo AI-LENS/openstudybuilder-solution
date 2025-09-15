@@ -25,13 +25,13 @@ class CTTermAttributesVO:
     The CTTermAttributesVO acts as the value object for a single CTTerm attribute
     """
 
-    codelists: list[CTTermCodelistVO] | None
+    codelists: list[CTTermCodelistVO]
     catalogue_name: str
     concept_id: str | None
     code_submission_value: str | None
     name_submission_value: str | None
     preferred_term: str | None
-    definition: str | None
+    definition: str
 
     @classmethod
     def from_repository_values(
@@ -42,7 +42,7 @@ class CTTermAttributesVO:
         code_submission_value: str | None,
         name_submission_value: str | None,
         preferred_term: str | None,
-        definition: str | None,
+        definition: str,
     ) -> Self:
         ct_term_attributes_vo = cls(
             codelists=codelists,
@@ -63,7 +63,7 @@ class CTTermAttributesVO:
         code_submission_value: str | None,
         name_submission_value: str | None,
         preferred_term: str | None,
-        definition: str | None,
+        definition: str,
         codelist_exists_callback: Callable[[str], bool],
         catalogue_exists_callback: Callable[[str], bool],
         term_exists_by_name_callback: Callable[[str], bool] = lambda _: False,
@@ -82,13 +82,15 @@ class CTTermAttributesVO:
             msg=f"Catalogue with Name '{catalogue_name}' doesn't exist.",
         )
         AlreadyExistsException.raise_if(
-            term_exists_by_name_callback(name_submission_value),
+            name_submission_value
+            and term_exists_by_name_callback(name_submission_value),
             "CT Term Attributes",
             name_submission_value,
             "Name",
         )
         AlreadyExistsException.raise_if(
-            term_exists_by_code_submission_value_callback(code_submission_value),
+            code_submission_value
+            and term_exists_by_code_submission_value_callback(code_submission_value),
             "CT Term Attributes",
             code_submission_value,
             "Code Submission Value",
@@ -123,7 +125,7 @@ class CTTermAttributesAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         ct_term_attributes_vo: CTTermAttributesVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         ct_term_ar = cls(
@@ -142,7 +144,7 @@ class CTTermAttributesAR(LibraryItemAggregateRootBase):
         ct_term_attributes_vo: CTTermAttributesVO,
         library: LibraryVO,
         start_date: datetime | None = None,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id, start_date=start_date
@@ -161,7 +163,7 @@ class CTTermAttributesAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         ct_term_vo: CTTermAttributesVO,
         term_exists_by_name_callback: Callable[[str], bool],
         term_exists_by_code_submission_value_callback: Callable[[str], bool],
@@ -170,7 +172,8 @@ class CTTermAttributesAR(LibraryItemAggregateRootBase):
         Creates a new draft version for the object.
         """
         AlreadyExistsException.raise_if(
-            term_exists_by_name_callback(ct_term_vo.name_submission_value)
+            ct_term_vo.name_submission_value
+            and term_exists_by_name_callback(ct_term_vo.name_submission_value)
             and self.ct_term_vo.name_submission_value
             != ct_term_vo.name_submission_value,
             "CT Term Attributes",
@@ -178,7 +181,8 @@ class CTTermAttributesAR(LibraryItemAggregateRootBase):
             "Name",
         )
         AlreadyExistsException.raise_if(
-            term_exists_by_code_submission_value_callback(
+            ct_term_vo.code_submission_value
+            and term_exists_by_code_submission_value_callback(
                 ct_term_vo.code_submission_value
             )
             and self.ct_term_vo.code_submission_value

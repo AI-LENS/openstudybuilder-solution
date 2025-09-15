@@ -17,7 +17,6 @@ from clinical_mdr_api.domains.controlled_terminologies.ct_term_attributes import
 )
 from clinical_mdr_api.domains.controlled_terminologies.ct_term_name import CTTermNameAR
 from clinical_mdr_api.models.controlled_terminologies.ct_stats import TermCount
-from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import (
     CypherQueryBuilder,
     FilterDict,
@@ -152,9 +151,9 @@ class CTTermAggregatedRepository:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
-    ) -> GenericFilteringReturn[tuple[CTTermNameAR, CTTermAttributesAR]]:
+    ) -> tuple[list[tuple[CTTermNameAR, CTTermAttributesAR]], int]:
         """
         Method runs a cypher query to fetch all data related to the CTTermName* and CTTermAttributes*.
         It allows to filter the query output by codelist_uid, codelist_name, library and package.
@@ -173,7 +172,7 @@ class CTTermAggregatedRepository:
         :param filter_by:
         :param filter_operator:
         :param total_count:
-        :return GenericFilteringReturn[tuple[CTTermNameAR, CTTermAttributesAR]]:
+        :return tuple[list[tuple[CTTermNameAR, CTTermAttributesAR]], int]:
         """
         # Build match_clause
         match_clause, filter_query_parameters = self._generate_generic_match_clause(
@@ -197,7 +196,7 @@ class CTTermAggregatedRepository:
             implicit_sort_by="term_uid",
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             wildcard_properties_list=list_term_wildcard_properties(),
@@ -226,7 +225,7 @@ class CTTermAggregatedRepository:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=terms_ars, total=total)
+        return terms_ars, total
 
     def get_distinct_headers(
         self,
@@ -236,9 +235,9 @@ class CTTermAggregatedRepository:
         library: str | None = None,
         package: str | None = None,
         is_sponsor: bool = False,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         """
@@ -277,7 +276,7 @@ class CTTermAggregatedRepository:
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,

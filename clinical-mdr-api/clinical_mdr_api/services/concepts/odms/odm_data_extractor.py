@@ -89,7 +89,7 @@ class OdmDataExtractor:
 
         self.odm_vendor_namespaces = {}
         self.odm_vendor_elements = {}
-        self.ref_odm_vendor_attributes: dict[str, dict[str, str]] = {}
+        self.ref_odm_vendor_attributes: dict[str, dict[str, dict[str, str]]] = {}
         self.odm_forms = []
         self.odm_item_groups = []
         self.odm_items = []

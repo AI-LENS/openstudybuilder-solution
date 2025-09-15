@@ -103,17 +103,17 @@ class StudyPharmaCM(BaseModel):
     def from_various_data(
         cls,
         study: StudyDefinitionAR,
-        study_arms: list[StudySelectionArmAR],
+        study_arms: StudySelectionArmAR,
         study_endpoints: list[StudySelectionEndpoint],
         inclusion_criterias: list[StudySelectionCriteria],
         exclusion_criterias: list[StudySelectionCriteria],
-        find_term_by_uid: Callable[[str], CTTermNameAR | None],
+        find_term_by_uid: Callable[..., CTTermNameAR | None],
         find_dictionary_term_by_uid: Callable[[str], DictionaryTermAR | None],
-        find_all_units: Callable[[], UnitDefinitionAR],
+        find_all_units: Callable[..., tuple[list[UnitDefinitionAR], int]],
     ) -> Self:
         study_type = get_name_or_none(
             find_term_by_uid(
-                term_uid=study.current_metadata.high_level_study_design.study_type_code
+                study.current_metadata.high_level_study_design.study_type_code
             )
         )
         is_trial_randomized = (
@@ -254,21 +254,21 @@ class StudyPharmaCM(BaseModel):
             study_type=study_type,
             secondary_ids=secondary_ids,
             primary_disease_or_condition_being_studied=[
-                find_dictionary_term_by_uid(term_uid=code).name
+                find_dictionary_term_by_uid(code).name
                 for code in study.current_metadata.study_population.disease_condition_or_indication_codes
             ],
             primary_purpose=[
-                find_term_by_uid(term_uid=code).name
+                find_term_by_uid(code).name
                 for code in study.current_metadata.study_intervention.trial_intent_types_codes
             ],
             study_phase=get_name_or_none(
                 find_term_by_uid(
-                    term_uid=study.current_metadata.high_level_study_design.trial_phase_code
+                    study.current_metadata.high_level_study_design.trial_phase_code
                 )
             ),
             interventional_study_model=get_name_or_none(
                 find_term_by_uid(
-                    term_uid=study.current_metadata.study_intervention.intervention_model_code
+                    study.current_metadata.study_intervention.intervention_model_code
                 )
             ),
             number_of_arms=number_of_arms,
@@ -280,9 +280,7 @@ class StudyPharmaCM(BaseModel):
             ),
             study_arms=[
                 CompactStudyArm(
-                    arm_type=get_name_or_none(
-                        find_term_by_uid(term_uid=study_arm.arm_type_uid)
-                    ),
+                    arm_type=get_name_or_none(find_term_by_uid(study_arm.arm_type_uid)),
                     arm_title=study_arm.name,
                     arm_description=study_arm.description,
                 )
@@ -290,7 +288,7 @@ class StudyPharmaCM(BaseModel):
             ],
             intervention_type=get_name_or_none(
                 find_term_by_uid(
-                    term_uid=study.current_metadata.study_intervention.intervention_type_code
+                    study.current_metadata.study_intervention.intervention_type_code
                 )
             ),
             outcome_measures=[
@@ -307,11 +305,19 @@ class StudyPharmaCM(BaseModel):
                     ),
                     description=(
                         f" {study_endpoint.endpoint_units.separator} ".join(
-                            [unit.name for unit in study_endpoint.endpoint_units.units]
+                            [
+                                unit.name
+                                for unit in study_endpoint.endpoint_units.units
+                                if unit.name is not None
+                            ]
                         )
-                        if len(study_endpoint.endpoint_units.units) > 1
+                        if len(study_endpoint.endpoint_units.units or []) > 1
                         else "".join(
-                            [unit.name for unit in study_endpoint.endpoint_units.units]
+                            [
+                                unit.name
+                                for unit in study_endpoint.endpoint_units.units
+                                if unit.name is not None
+                            ]
                         )
                     ),
                 )
@@ -323,10 +329,12 @@ class StudyPharmaCM(BaseModel):
             inclusion_criteria=[
                 inclusion_criteria.criteria.name_plain
                 for inclusion_criteria in inclusion_criterias
+                if inclusion_criteria.criteria.name_plain is not None
             ],
             exclusion_criteria=[
                 exclusion_criteria.criteria.name_plain
                 for exclusion_criteria in exclusion_criterias
+                if exclusion_criteria.criteria.name_plain is not None
             ],
         )
 

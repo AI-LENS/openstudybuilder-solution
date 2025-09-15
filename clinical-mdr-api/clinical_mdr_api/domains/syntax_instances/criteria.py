@@ -32,7 +32,7 @@ class CriteriaTemplateVO(ParametrizedTemplateVO):
             template_uid=template_uid,
             template_sequence_id=template_sequence_id,
             template_name=template_name,
-            parameter_terms=tuple(parameter_terms),
+            parameter_terms=parameter_terms,
             guidance_text=guidance_text,
             library_name=library_name,
         )
@@ -62,7 +62,7 @@ class CriteriaTemplateVO(ParametrizedTemplateVO):
             template_name=template.name,
             template_uid=template_uid,
             template_sequence_id=template_sequence_id,
-            parameter_terms=tuple(parameter_terms),
+            parameter_terms=parameter_terms,
             guidance_text=template.guidance_text,
             library_name=library_name,
         )

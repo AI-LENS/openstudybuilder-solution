@@ -46,7 +46,7 @@ class CriteriaPreInstanceRepository(
             guidance_text=getattr(value, "guidance_text", None),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
             template=self.get_template_vo(root, value, kwargs["instance_template"]),

@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -99,7 +99,7 @@ class OdmForm(ConceptModel):
         return cls(
             uid=odm_form_ar._uid,
             oid=odm_form_ar.concept_vo.oid,
-            name=odm_form_ar.concept_vo.name,
+            name=odm_form_ar.name,
             sdtm_version=odm_form_ar.concept_vo.sdtm_version,
             repeating=booltostr(odm_form_ar.concept_vo.repeating),
             library_name=odm_form_ar.library.name,
@@ -121,7 +121,7 @@ class OdmForm(ConceptModel):
                     )
                     for description_uid in odm_form_ar.concept_vo.description_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             aliases=sorted(
                 [
@@ -131,7 +131,7 @@ class OdmForm(ConceptModel):
                     )
                     for alias_uid in odm_form_ar.concept_vo.alias_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             activity_groups=sorted(
                 [
@@ -141,7 +141,7 @@ class OdmForm(ConceptModel):
                     )
                     for activity_group_uid in odm_form_ar.concept_vo.activity_group_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             item_groups=sorted(
                 [
@@ -153,7 +153,7 @@ class OdmForm(ConceptModel):
                     )
                     for item_group_uid in odm_form_ar.concept_vo.item_group_uids
                 ],
-                key=lambda item: item.order_number,
+                key=lambda item: item.order_number or "",
             ),
             vendor_elements=sorted(
                 [
@@ -165,7 +165,7 @@ class OdmForm(ConceptModel):
                     )
                     for vendor_element_uid in odm_form_ar.concept_vo.vendor_element_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_attributes=sorted(
                 [
@@ -173,12 +173,12 @@ class OdmForm(ConceptModel):
                         uid=vendor_attribute_uid,
                         odm_element_uid=odm_form_ar._uid,
                         odm_element_type=RelationType.FORM,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                         vendor_element_attribute=False,
                     )
                     for vendor_attribute_uid in odm_form_ar.concept_vo.vendor_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_element_attributes=sorted(
                 [
@@ -186,11 +186,11 @@ class OdmForm(ConceptModel):
                         uid=vendor_element_attribute_uid,
                         odm_element_uid=odm_form_ar._uid,
                         odm_element_type=RelationType.FORM,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                     )
                     for vendor_element_attribute_uid in odm_form_ar.concept_vo.vendor_element_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_form_ar.get_possible_actions()]
@@ -199,6 +199,7 @@ class OdmForm(ConceptModel):
 
 
 class OdmFormRefModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_form_uid(
         cls,
@@ -207,7 +208,28 @@ class OdmFormRefModel(BaseModel):
         find_odm_form_by_uid_with_study_event_relation: Callable[
             [str, str], OdmFormRefVO | None
         ],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_form_uid(
+        cls,
+        uid: None,
+        study_event_uid: str,
+        find_odm_form_by_uid_with_study_event_relation: Callable[
+            [str, str], OdmFormRefVO | None
+        ],
+    ) -> None: ...
+    @classmethod
+    def from_odm_form_uid(
+        cls,
+        uid: str | None,
+        study_event_uid: str,
+        find_odm_form_by_uid_with_study_event_relation: Callable[
+            [str, str], OdmFormRefVO | None
+        ],
     ) -> Self | None:
+        odm_form_ref_model = None
+
         if uid is not None:
             odm_form_ref_vo = find_odm_form_by_uid_with_study_event_relation(
                 uid, study_event_uid
@@ -230,8 +252,6 @@ class OdmFormRefModel(BaseModel):
                     locked=None,
                     collection_exception_condition_oid=None,
                 )
-        else:
-            odm_form_ref_model = None
         return odm_form_ref_model
 
     uid: Annotated[str, Field()]
@@ -256,6 +276,7 @@ class OdmFormPostInput(ConceptPostInput):
 
 
 class OdmFormPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     sdtm_version: Annotated[str | None, Field()]
     repeating: Annotated[str | None, Field()]

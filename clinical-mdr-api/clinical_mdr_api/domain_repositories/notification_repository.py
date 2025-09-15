@@ -1,4 +1,6 @@
 # pylint: disable=invalid-name
+from datetime import datetime
+
 from neomodel import db
 
 from clinical_mdr_api.domain_repositories.models.notification import (
@@ -63,18 +65,18 @@ class NotificationRepository:
             resolve_objects=True,
         )
 
-        NotFoundException.raise_if_not(rs[0], "Notification", sn, "Serial Number")
+        NotFoundException.raise_if_not(rs[0], "Notification", str(sn), "Serial Number")
 
         return self._transform_to_model(rs[0][0][0])
 
     def create_notification(
         self,
         title: str,
-        description: str,
+        description: str | None,
         notification_type: str,
-        started_at: str,
-        ended_at: str,
-        published_at: str,
+        started_at: datetime | None,
+        ended_at: datetime | None,
+        published_at: datetime | None,
     ) -> Notification:
         newest_sn = db.cypher_query(
             """
@@ -116,11 +118,11 @@ class NotificationRepository:
         self,
         sn: int,
         title: str,
-        description: str,
+        description: str | None,
         notification_type: str,
-        started_at: str,
-        ended_at: str,
-        published_at: str,
+        started_at: datetime | None,
+        ended_at: datetime | None,
+        published_at: datetime | None,
     ) -> Notification:
         rs = db.cypher_query(
             """
@@ -146,7 +148,7 @@ class NotificationRepository:
             resolve_objects=True,
         )
 
-        NotFoundException.raise_if_not(rs[0], "Notification", sn, "Serial Number")
+        NotFoundException.raise_if_not(rs[0], "Notification", str(sn), "Serial Number")
 
         return self._transform_to_model(rs[0][0][0])
 

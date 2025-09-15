@@ -3,7 +3,6 @@ from typing import Annotated, Callable, Self
 
 from pydantic import ConfigDict, Field, field_validator
 
-from clinical_mdr_api.domains.controlled_terminologies.ct_package import CTPackageAR
 from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import (
     StudyStatus,
 )
@@ -70,7 +69,7 @@ class StudyStandardVersionOGM(BaseModel, StudyStandardVersionVO):
         return StudyStatus[value]
 
     start_date: Annotated[
-        datetime | None,
+        datetime,
         Field(
             description="The most recent point in time when the study standard_version was edited."
             "The format is ISO 8601 in UTC±0, e.g.: '2020-10-31T16:00:00+00:00' for October 31, 2020 at 6pm in UTC+2 timezone.",
@@ -78,7 +77,7 @@ class StudyStandardVersionOGM(BaseModel, StudyStandardVersionVO):
         ),
     ]
     author_id: Annotated[
-        str | None,
+        str,
         Field(
             description="ID of user that created last modification",
             json_schema_extra={"source": "has_after.author_id", "nullable": True},
@@ -186,13 +185,13 @@ class StudyStandardVersion(BaseModel):
     def from_study_standard_version_vo(
         cls,
         study_standard_version_vo: StudyStandardVersionVO,
-        find_ct_package_by_uid: Callable[[str], CTPackageAR | None],
+        find_ct_package_by_uid: Callable[..., CTPackage | None],
         study_value_version: str | None = None,
     ) -> Self:
         ct_package = None
         ct_package = find_ct_package_by_uid(study_standard_version_vo.ct_package_uid)
         return cls(
-            uid=study_standard_version_vo.uid,
+            uid=study_standard_version_vo.uid or "",
             study_uid=study_standard_version_vo.study_uid,
             study_version=(
                 study_value_version

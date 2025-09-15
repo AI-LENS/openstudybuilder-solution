@@ -29,22 +29,22 @@ class CTTermNameVO:
     The CTTermNameVO acts as the value object for a single CTTerm name
     """
 
-    name: str | None
-    name_sentence_case: str | None
+    name: str
+    name_sentence_case: str
     catalogue_name: str
-    codelists: list[CTTermCodelistVO] | None
+    codelists: list[CTTermCodelistVO]
     queried_effective_date: datetime | None = None
-    date_conflict: bool | None = False
+    date_conflict: bool = False
 
     @classmethod
     def from_repository_values(
         cls,
         codelists: list[CTTermCodelistVO],
-        name: str | None,
-        name_sentence_case: str | None,
+        name: str,
+        name_sentence_case: str,
         catalogue_name: str,
         queried_effective_date: datetime | None = None,
-        date_conflict: bool | None = False,
+        date_conflict: bool = False,
     ) -> Self:
         ct_term_name_vo = cls(
             codelists=codelists,
@@ -61,8 +61,8 @@ class CTTermNameVO:
     def from_input_values(
         cls,
         codelists: list[CTTermCodelistVO],
-        name: str | None,
-        name_sentence_case: str | None,
+        name: str,
+        name_sentence_case: str,
         catalogue_name: str,
         codelist_exists_callback: Callable[[str], bool],
         catalogue_exists_callback: Callable[[str], bool],
@@ -80,7 +80,8 @@ class CTTermNameVO:
             msg=f"Catalogue with Name '{catalogue_name}' doesn't exist.",
         )
         AlreadyExistsException.raise_if(
-            term_exists_by_name_in_codelists_callback(
+            name
+            and term_exists_by_name_in_codelists_callback(
                 name, [codelist.codelist_uid for codelist in codelists]
             ),
             "CT Term Name",
@@ -96,6 +97,14 @@ class CTTermNameVO:
         )
 
         return ct_term_name_vo
+
+    def validate(
+        self,
+    ) -> None:
+        ValidationException.raise_if(
+            self.name_sentence_case.lower() != self.name.lower(),
+            msg=f"{self.name_sentence_case} isn't an independent case version of {self.name}",
+        )
 
 
 @dataclass
@@ -118,7 +127,7 @@ class CTTermNameAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         ct_term_name_vo: CTTermNameVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         ct_term_ar = cls(
@@ -137,7 +146,7 @@ class CTTermNameAR(LibraryItemAggregateRootBase):
         ct_term_name_vo: CTTermNameVO,
         library: LibraryVO,
         start_date: datetime | None = None,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id, start_date=start_date
@@ -156,7 +165,7 @@ class CTTermNameAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         ct_term_vo: CTTermNameVO,
         term_exists_by_name_in_codelists_callback: Callable[[str, list[str]], bool],
     ) -> None:
@@ -164,7 +173,8 @@ class CTTermNameAR(LibraryItemAggregateRootBase):
         Creates a new draft version for the object.
         """
         AlreadyExistsException.raise_if(
-            term_exists_by_name_in_codelists_callback(
+            ct_term_vo.name
+            and term_exists_by_name_in_codelists_callback(
                 ct_term_vo.name,
                 [codelist.codelist_uid for codelist in self.ct_term_vo.codelists],
             )
@@ -173,6 +183,7 @@ class CTTermNameAR(LibraryItemAggregateRootBase):
             ct_term_vo.name,
             "Name",
         )
+        ct_term_vo.validate()
         if self._ct_term_name_vo != ct_term_vo:
             super()._edit_draft(
                 change_description=change_description, author_id=author_id

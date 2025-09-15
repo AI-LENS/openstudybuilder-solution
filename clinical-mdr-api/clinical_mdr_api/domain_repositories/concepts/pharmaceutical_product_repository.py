@@ -167,13 +167,10 @@ class PharmaceuticalProductRepository(ConceptGenericRepository):
         return [
             IngredientVO.from_repository_values(
                 active_substance_uid=next(
-                    (
-                        x["ingr_substance_rel"].end_node.get("uid")
-                        for x in ingredient_substances
-                        if x["ingr_substance_rel"].start_node.element_id
-                        == ingredient_node.element_id
-                    ),
-                    None,
+                    x["ingr_substance_rel"].end_node.get("uid")
+                    for x in ingredient_substances
+                    if x["ingr_substance_rel"].start_node.element_id
+                    == ingredient_node.element_id
                 ),
                 formulation_name=ingredient_node.get("formulation_name"),
                 external_id=ingredient_node.get("external_id"),
@@ -208,9 +205,9 @@ class PharmaceuticalProductRepository(ConceptGenericRepository):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> PharmaceuticalProductAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         ar = PharmaceuticalProductAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=PharmaceuticalProductVO.from_repository_values(
                 external_id=input_dict.get("external_id"),
                 dosage_form_uids=[
@@ -223,45 +220,39 @@ class PharmaceuticalProductRepository(ConceptGenericRepository):
                         "routes_of_administration"
                     )
                 ],
-                formulations=list(
-                    map(
-                        lambda x: FormulationVO.from_repository_values(
-                            external_id=x.get("external_id"),
-                            ingredients=self._get_formulation_ingredients(
-                                formulation=x,
-                                formulation_ingredients=input_dict.get(
-                                    "formulation_ingredients"
-                                ),
-                                ingredient_substances=input_dict.get(
-                                    "ingredient_substances"
-                                ),
-                                ingredient_strengths=input_dict.get(
-                                    "ingredient_strengths"
-                                ),
-                                ingredient_half_lives=input_dict.get(
-                                    "ingredient_half_lives"
-                                ),
-                                ingredient_lag_times=input_dict.get(
-                                    "ingredient_lag_times"
-                                ),
+                formulations=[
+                    FormulationVO.from_repository_values(
+                        external_id=formulation.get("external_id"),
+                        ingredients=self._get_formulation_ingredients(
+                            formulation=formulation,
+                            formulation_ingredients=input_dict.get(
+                                "formulation_ingredients"
                             ),
+                            ingredient_substances=input_dict.get(
+                                "ingredient_substances"
+                            ),
+                            ingredient_strengths=input_dict.get("ingredient_strengths"),
+                            ingredient_half_lives=input_dict.get(
+                                "ingredient_half_lives"
+                            ),
+                            ingredient_lag_times=input_dict.get("ingredient_lag_times"),
                         ),
-                        input_dict.get("formulations"),
                     )
-                ),
+                    for formulation in input_dict["formulations"]
+                ],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=convert_to_datetime(value=input_dict.get("end_date")),
                 major_version=int(major),
                 minor_version=int(minor),
@@ -272,7 +263,7 @@ class PharmaceuticalProductRepository(ConceptGenericRepository):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -287,44 +278,40 @@ class PharmaceuticalProductRepository(ConceptGenericRepository):
                 route_of_administration_uids=[
                     x.uid for x in value.has_route_of_administration.all()
                 ],
-                formulations=list(
-                    map(
-                        lambda x: FormulationVO.from_repository_values(
-                            external_id=x.external_id,
-                            ingredients=[
-                                IngredientVO.from_repository_values(
-                                    active_substance_uid=getattr(
-                                        ingredient.has_substance.get_or_none(),
-                                        "uid",
-                                        None,
-                                    ),
-                                    formulation_name=ingredient.formulation_name,
-                                    external_id=ingredient.external_id,
-                                    strength_uid=getattr(
-                                        ingredient.has_strength_value.get_or_none(),
-                                        "uid",
-                                        None,
-                                    ),
-                                    half_life_uid=getattr(
-                                        ingredient.has_half_life.get_or_none(),
-                                        "uid",
-                                        None,
-                                    ),
-                                    lag_time_uids=[
-                                        lag_time.uid
-                                        for lag_time in ingredient.has_lag_time.all()
-                                    ],
-                                )
-                                for ingredient in x.has_ingredient.all()
-                            ],
-                        ),
-                        formulation_nodes,
+                formulations=[
+                    FormulationVO.from_repository_values(
+                        external_id=formulation_node.external_id,
+                        ingredients=[
+                            IngredientVO.from_repository_values(
+                                active_substance_uid=getattr(
+                                    ingredient.has_substance.get_or_none(), "uid"
+                                ),
+                                formulation_name=ingredient.formulation_name,
+                                external_id=ingredient.external_id,
+                                strength_uid=getattr(
+                                    ingredient.has_strength_value.get_or_none(),
+                                    "uid",
+                                    None,
+                                ),
+                                half_life_uid=getattr(
+                                    ingredient.has_half_life.get_or_none(),
+                                    "uid",
+                                    None,
+                                ),
+                                lag_time_uids=[
+                                    lag_time.uid
+                                    for lag_time in ingredient.has_lag_time.all()
+                                ],
+                            )
+                            for ingredient in formulation_node.has_ingredient.all()
+                        ],
                     )
-                ),
+                    for formulation_node in formulation_nodes
+                ],
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

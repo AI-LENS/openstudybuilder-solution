@@ -31,7 +31,7 @@ CACHE_STORE_NAMES = [
     },
 )
 def get_caches(
-    show_items: Annotated[bool | None, Query()] = False,
+    show_items: Annotated[bool, Query()] = False,
 ) -> list[dict[Any, Any]]:
     all_repos = _get_all_repos()
     return [_get_cache_info(x, show_items) for x in all_repos]

@@ -21,8 +21,10 @@ from clinical_mdr_api.domain_repositories.models.study_audit_trail import (
 from clinical_mdr_api.domain_repositories.models.study_selections import (
     StudyArm,
     StudyBranchArm,
+    StudyCohort,
 )
 from clinical_mdr_api.domains.study_selections.study_selection_branch_arm import (
+    CompactStudyCohortVO,
     StudySelectionBranchArmAR,
     StudySelectionBranchArmVO,
 )
@@ -40,13 +42,12 @@ class SelectionHistoryBranchArm:
     branch_arm_short_name: str | None
     branch_arm_code: str | None
     branch_arm_description: str | None
-    branch_arm_colour_code: str | None
     branch_arm_randomization_group: str | None
     branch_arm_number_of_subjects: int | None
-    arm_root: str | None
+    arm_root: str
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     change_type: str
     end_date: datetime.datetime | None
     order: int
@@ -64,7 +65,7 @@ class StudySelectionBranchArmRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionBranchArmVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_value_version:
             if study_uid:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
@@ -96,21 +97,10 @@ class StudySelectionBranchArmRepository:
         query += """
             WITH sr, sv
             MATCH (sv)-[:HAS_STUDY_BRANCH_ARM]->(sba:StudyBranchArm)
-            WITH DISTINCT sr, sba 
-
-        """
-        if study_value_version:
-            query += """
-                OPTIONAL MATCH (sba)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(ar:StudyArm)<-[:HAS_STUDY_ARM]-(:StudyValue)<-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]-(:StudyRoot)
-            """
-        else:
-            query += """
-            
-                OPTIONAL MATCH (:StudyValue)--(ar:StudyArm)-[:STUDY_ARM_HAS_BRANCH_ARM]->(sba)
-        
-             """
-
-        query += """
+            WITH DISTINCT sr, sv, sba
+            OPTIONAL MATCH (sba)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(ar:StudyArm)<-[:HAS_STUDY_ARM]-(sv)
+            OPTIONAL MATCH (sba)-[:STUDY_BRANCH_ARM_HAS_COHORT]->(sc:StudyCohort)<-[:HAS_STUDY_COHORT]-(sv)
+            WITH sr, sba, ar, collect(sc {.uid, .name, .cohort_code}) as study_cohorts
             MATCH (sba)<-[:AFTER]-(sa:StudyAction)
 
             RETURN DISTINCT 
@@ -120,17 +110,17 @@ class StudySelectionBranchArmRepository:
                 sba.short_name AS branch_arm_short_name,
                 sba.branch_arm_code AS branch_arm_code,
                 sba.description AS branch_arm_description,
-                sba.colour_code AS branch_arm_colour_code,
                 sba.order AS order,
                 sba.accepted_version AS accepted_version,
                 sba.number_of_subjects AS number_of_subjects,
                 sba.randomization_group AS randomization_group,
-                ar.uid AS arm_root_uid,
                 sba.text AS text,
+                ar.uid AS arm_root_uid,
+                ar.order AS arm_order,
+                study_cohorts,
                 sa.date AS start_date,
-                sa.author_id AS author_id,
-                ar.order AS arm_order
-                ORDER BY arm_order, order
+                sa.author_id AS author_id
+            ORDER BY arm_order, order
             """
 
         all_branch_arm_selections = db.cypher_query(query, query_parameters)
@@ -147,9 +137,16 @@ class StudySelectionBranchArmRepository:
                 short_name=selection["branch_arm_short_name"],
                 code=selection["branch_arm_code"],
                 description=selection["branch_arm_description"],
-                colour_code=selection["branch_arm_colour_code"],
                 study_selection_uid=selection["study_selection_uid"],
                 arm_root_uid=selection["arm_root_uid"],
+                study_cohorts=[
+                    CompactStudyCohortVO(
+                        study_cohort_uid=study_cohort.get("uid"),
+                        study_cohort_name=study_cohort.get("name"),
+                        study_cohort_code=study_cohort.get("cohort_code"),
+                    )
+                    for study_cohort in selection.get("study_cohorts", [])
+                ],
                 number_of_subjects=selection["number_of_subjects"],
                 randomization_group=selection["randomization_group"],
                 start_date=convert_to_datetime(value=selection["start_date"]),
@@ -167,7 +164,7 @@ class StudySelectionBranchArmRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionBranchArmVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_value_version:
             if study_uid:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
@@ -218,7 +215,6 @@ class StudySelectionBranchArmRepository:
                 sba.short_name AS branch_arm_short_name,
                 sba.branch_arm_code AS branch_arm_code,
                 sba.description AS branch_arm_description,
-                sba.colour_code AS branch_arm_colour_code,
                 sba.order AS order,
                 sba.accepted_version AS accepted_version,
                 sba.number_of_subjects AS number_of_subjects,
@@ -244,7 +240,6 @@ class StudySelectionBranchArmRepository:
                 short_name=selection["branch_arm_short_name"],
                 code=selection["branch_arm_code"],
                 description=selection["branch_arm_description"],
-                colour_code=selection["branch_arm_colour_code"],
                 study_selection_uid=selection["study_selection_uid"],
                 arm_root_uid=selection["arm_root_uid"],
                 number_of_subjects=selection["number_of_subjects"],
@@ -260,7 +255,7 @@ class StudySelectionBranchArmRepository:
         study_uid: str,
         for_update: bool = False,
         study_value_version: str | None = None,
-    ) -> StudySelectionBranchArmAR | None:
+    ) -> StudySelectionBranchArmAR:
         """
         Finds all the selected study branch arms for a given study
         :param study_uid:
@@ -362,15 +357,14 @@ class StudySelectionBranchArmRepository:
                             short_name=i_sdc_node.short_name,
                             code=i_sdc_node.branch_arm_code,
                             description=i_sdc_node.description,
-                            colour_code=i_sdc_node.colour_code,
                             randomization_group=i_sdc_node.randomization_group,
                             number_of_subjects=i_sdc_node.number_of_subjects,
-                            arm_root_uid=None,
+                            arm_root_uid="",
                             start_date=i_sdc_node.has_after.single().date,
                             end_date=None,
                             status=None,
                             change_type=None,
-                            accepted_version=None,
+                            accepted_version=False,
                         ),
                         i_sdc_node.order,
                     )
@@ -413,6 +407,23 @@ class StudySelectionBranchArmRepository:
         sdc_nodes = (
             StudyArm.nodes.fetch_relations("has_branch_arm__study_value__latest_value")
             .filter(uid=study_arm_uid, study_value__latest_value__uid=study_uid)
+            .order_by("order")
+            .all()
+        )
+        return sorted(
+            [i_th[1] for i_th in sdc_nodes],
+            key=lambda branch_arm: branch_arm.order,
+            reverse=False,
+        )
+
+    def get_branch_arms_connected_to_cohort(
+        self, study_uid: str, study_cohort_uid: str
+    ):
+        sdc_nodes = (
+            StudyCohort.nodes.fetch_relations(
+                "branch_arm_root__study_value__latest_value"
+            )
+            .filter(uid=study_cohort_uid, study_value__latest_value__uid=study_uid)
             .order_by("order")
             .all()
         )
@@ -473,35 +484,39 @@ class StudySelectionBranchArmRepository:
         )
 
         # group closure by parent arm
-        closure_group_by_root: dict[str, Any] = {}
+        closure_group_by_root: dict[str, list[Any]] = {}
         for selected_object in study_selection.repository_closure_data:
-            if selected_object.arm_root_uid not in closure_group_by_root:
-                closure_group_by_root[selected_object.arm_root_uid] = []
-            closure_group_by_root[selected_object.arm_root_uid].append(selected_object)
-        # group branch arm by root
-        branch_arm_group_by_root: dict[str, Any] = {}
-        for selected_object in study_selection.study_branch_arms_selection:
-            if selected_object.arm_root_uid not in branch_arm_group_by_root:
-                branch_arm_group_by_root[selected_object.arm_root_uid] = []
-            branch_arm_group_by_root[selected_object.arm_root_uid].append(
+            closure_group_by_root.setdefault(selected_object.arm_root_uid, []).append(
                 selected_object
             )
 
+        # group branch arm by root
+        branch_arm_group_by_root: dict[str, list[Any]] = {}
+        for selected_object in study_selection.study_branch_arms_selection:
+            branch_arm_group_by_root.setdefault(
+                selected_object.arm_root_uid, []
+            ).append(selected_object)
+
         # process new/changed/deleted elements for each parent arm
-        selections_to_remove: dict[Any, Any] = {}
-        selections_to_add: dict[Any, Any] = {}
+        selections_to_remove: dict[Any, list[Any]] = {}
+        selections_to_add: dict[Any, list[Any]] = {}
 
         # first, check for deleted elements
-        for arm_root, branch_arm_list in closure_group_by_root.items():
-            # check if object is removed from the selection list - delete has been called
-            # two options to detect object is removed : list for given criteria type is empty or smaller than the list in the closure
-            if (arm_root not in branch_arm_group_by_root) or len(branch_arm_list) > len(
-                branch_arm_group_by_root[arm_root]
-            ):
-                # remove the last item from old list, as there will no longer be any study criteria with that high order
-                selections_to_remove[arm_root] = [
-                    (len(branch_arm_list), branch_arm_list[-1])
-                ]
+        for arm_root, closure_branch_arm_list in closure_group_by_root.items():
+
+            # two options to detect object is removed: list for parent StudyArm is empty or smaller than the list in the closure
+            current_branch_arm_list: list[Any] = branch_arm_group_by_root.get(
+                arm_root, []
+            )
+            if (arm_root not in branch_arm_group_by_root) or len(
+                closure_branch_arm_list
+            ) > len(current_branch_arm_list):
+                # remove StudyBranchArms that were avaiable in the closure but are not present in the current object
+                branch_arms_to_remove = []
+                for idx, branch_arm in enumerate(closure_branch_arm_list, start=1):
+                    if branch_arm not in current_branch_arm_list:
+                        branch_arms_to_remove.append((idx, branch_arm))
+                selections_to_remove[arm_root] = branch_arms_to_remove
 
         # then, check for new/changed elements
         for arm_root, branch_arm_list in branch_arm_group_by_root.items():
@@ -512,27 +527,24 @@ class StudySelectionBranchArmRepository:
                     if len(_closure_data) > order - 1:
                         # check if anything has changed
                         if selected_object is not _closure_data[order - 1]:
-                            # update the selection by removing the old if the old exists, and adding new selection
-                            if arm_root in selections_to_remove:
-                                selections_to_remove[arm_root].append(
-                                    (order, _closure_data[order - 1])
-                                )
-                            else:
-                                selections_to_remove[arm_root] = [
-                                    (order, _closure_data[order - 1])
-                                ]
-                            if arm_root in selections_to_add:
-                                selections_to_add[arm_root].append(
-                                    (order, selected_object)
-                                )
-                            else:
-                                selections_to_add[arm_root] = [(order, selected_object)]
+                            for closure_item in _closure_data:
+                                if (
+                                    selected_object.study_selection_uid
+                                    == closure_item.study_selection_uid
+                                ):
+                                    # update the selection by removing the old if the old exists, and adding new selection
+                                    selections_to_remove.setdefault(
+                                        arm_root, []
+                                    ).append((order, closure_item))
+                                    selections_to_add.setdefault(arm_root, []).append(
+                                        (order, selected_object)
+                                    )
+                                    break
                     else:
                         # else something new has been added
-                        if arm_root in selections_to_add:
-                            selections_to_add[arm_root].append((order, selected_object))
-                        else:
-                            selections_to_add[arm_root] = [(order, selected_object)]
+                        selections_to_add.setdefault(arm_root, []).append(
+                            (order, selected_object)
+                        )
                 else:
                     selections_to_add[arm_root] = [(1, branch_arm_list[0])]
 
@@ -672,21 +684,17 @@ class StudySelectionBranchArmRepository:
             - StudyCohort - optional
         """
         # Create new arm selection
-        study_branch_arm_selection_node = StudyBranchArm(order=order).save()
-        study_branch_arm_selection_node.uid = selection.study_selection_uid
-        study_branch_arm_selection_node.accepted_version = selection.accepted_version
-        study_branch_arm_selection_node.name = selection.name
-        study_branch_arm_selection_node.short_name = selection.short_name
-        study_branch_arm_selection_node.branch_arm_code = selection.code
-        study_branch_arm_selection_node.description = selection.description
-        study_branch_arm_selection_node.colour_code = selection.colour_code
-        study_branch_arm_selection_node.randomization_group = (
-            selection.randomization_group
-        )
-        study_branch_arm_selection_node.number_of_subjects = (
-            selection.number_of_subjects
-        )
-        study_branch_arm_selection_node.save()
+        study_branch_arm_selection_node = StudyBranchArm(
+            uid=selection.study_selection_uid,
+            order=order,
+            accepted_version=selection.accepted_version,
+            name=selection.name,
+            short_name=selection.short_name,
+            branch_arm_code=selection.code,
+            description=selection.description,
+            randomization_group=selection.randomization_group,
+            number_of_subjects=selection.number_of_subjects,
+        ).save()
 
         # Connect new node with study value
         if not for_deletion:
@@ -707,13 +715,21 @@ class StudySelectionBranchArmRepository:
 
         # check if arm root is set
         if selection.arm_root_uid:
-            # find the objective
+            # find the study arm
             study_arm_root = latest_study_value_node.has_study_arm.get(
                 uid=selection.arm_root_uid
             )
             # connect to node
-            # pylint: disable=no-member
             study_branch_arm_selection_node.arm_root.connect(study_arm_root)
+
+        # check if study cohort is set
+        for study_cohort in selection.study_cohorts:
+            # find the study cohort
+            study_cohort = latest_study_value_node.has_study_cohort.get(
+                uid=study_cohort.study_cohort_uid
+            )
+            # connect to node
+            study_branch_arm_selection_node.has_cohort.connect(study_cohort)
 
     def generate_uid(self) -> str:
         return StudyBranchArm.get_next_free_uid_and_increment_counter()
@@ -753,7 +769,6 @@ class StudySelectionBranchArmRepository:
                 all_sba.short_name AS branch_arm_short_name,
                 all_sba.branch_arm_code AS branch_arm_code,
                 all_sba.description AS branch_arm_description,
-                all_sba.colour_code AS branch_arm_colour_code,
                 all_sba.order AS order,
                 all_sba.accepted_version AS accepted_version,
                 all_sba.number_of_subjects AS number_of_subjects,
@@ -784,7 +799,6 @@ class StudySelectionBranchArmRepository:
                     branch_arm_short_name=res["branch_arm_short_name"],
                     branch_arm_code=res["branch_arm_code"],
                     branch_arm_description=res["branch_arm_description"],
-                    branch_arm_colour_code=res["branch_arm_colour_code"],
                     branch_arm_randomization_group=res["randomization_group"],
                     branch_arm_number_of_subjects=res["number_of_subjects"],
                     arm_root=res["arm_root_uid"],

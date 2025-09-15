@@ -288,10 +288,10 @@ export default {
     this.fetchItem()
   },
   methods: {
-    closeForm() {
+    async closeForm() {
       this.showForm = false
       this.navigateToVersion(this.item, null)
-      this.fetchItem()
+      await this.fetchItem()
     },
     closePage() {
       this.$router.go(-1)
@@ -300,7 +300,7 @@ export default {
       this.tab = 'html'
     },
     fetchItem() {
-      activities.getObject(this.source, this.itemUid).then((resp) => {
+      return activities.getObject(this.source, this.itemUid).then((resp) => {
         this.item = resp.data
         this.transformFunc(this.item)
         this.$emit('refresh')
@@ -309,25 +309,23 @@ export default {
     editItem() {
       this.showForm = true
     },
-    inactivateItem() {
-      activities.inactivate(this.itemUid, this.source).then(() => {
-        this.eventBusEmit('notification', {
-          msg: this.$t(`ActivitiesTable.inactivate_${this.source}_success`),
-          type: 'success',
-        })
-        this.navigateToVersion(this.item, null)
-        this.fetchItem()
+    async inactivateItem() {
+      await activities.inactivate(this.itemUid, this.source)
+      this.eventBusEmit('notification', {
+        msg: this.$t(`ActivitiesTable.inactivate_${this.source}_success`),
+        type: 'success',
       })
+      this.navigateToVersion(this.item, null)
+      await this.fetchItem()
     },
-    reactivateItem() {
-      activities.reactivate(this.itemUid, this.source).then(() => {
-        this.eventBusEmit('notification', {
-          msg: this.$t(`ActivitiesTable.reactivate_${this.source}_success`),
-          type: 'success',
-        })
-        this.navigateToVersion(this.item, null)
-        this.fetchItem()
+    async reactivateItem() {
+      await activities.reactivate(this.itemUid, this.source)
+      this.eventBusEmit('notification', {
+        msg: this.$t(`ActivitiesTable.reactivate_${this.source}_success`),
+        type: 'success',
       })
+      this.navigateToVersion(this.item, null)
+      await this.fetchItem()
     },
     deleteItem() {
       activities.delete(this.itemUid, this.source).then(() => {
@@ -338,29 +336,27 @@ export default {
         this.$router.push({ name: 'Activities', params: { tab: this.source } })
       })
     },
-    approveItem() {
+    async approveItem() {
       const options = {}
       if (this.source === 'activities') {
         options.cascade_edit_and_approve = true
       }
-      activities.approve(this.itemUid, this.source, options).then(() => {
-        this.eventBusEmit('notification', {
-          msg: this.$t(`ActivitiesTable.approve_${this.source}_success`),
-          type: 'success',
-        })
-        this.navigateToVersion(this.item, null)
-        this.fetchItem()
+      await activities.approve(this.itemUid, this.source, options)
+      this.eventBusEmit('notification', {
+        msg: this.$t(`ActivitiesTable.approve_${this.source}_success`),
+        type: 'success',
       })
+      this.navigateToVersion(this.item, null)
+      await this.fetchItem()
     },
-    newItemVersion() {
-      activities.newVersion(this.itemUid, this.source).then(() => {
-        this.eventBusEmit('notification', {
-          msg: this.$t('_global.new_version_success'),
-          type: 'success',
-        })
-        this.navigateToVersion(this.item, null)
-        this.fetchItem()
+    async newItemVersion() {
+      await activities.newVersion(this.itemUid, this.source)
+      this.eventBusEmit('notification', {
+        msg: this.$t('_global.new_version_success'),
+        type: 'success',
       })
+      this.navigateToVersion(this.item, null)
+      await this.fetchItem()
     },
     async openHistory() {
       const resp = await activities.getVersions(this.source, this.itemUid)

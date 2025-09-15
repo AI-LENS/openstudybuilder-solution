@@ -15,17 +15,17 @@ class StudySelectionCriteriaVO:
 
     study_selection_uid: str
     study_uid: str | None
-    syntax_object_uid: str | None
-    syntax_object_version: str | None
-    criteria_type_uid: str | None
-    criteria_type_order: int | None
+    syntax_object_uid: str
+    syntax_object_version: str
+    criteria_type_uid: str
+    criteria_type_order: int
     is_instance: bool
     key_criteria: bool
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
-    author_username: str | None = None
+    author_id: str
     accepted_version: bool = False
+    author_username: str | None = None
 
     @classmethod
     def from_input_values(
@@ -33,14 +33,14 @@ class StudySelectionCriteriaVO:
         syntax_object_uid: str,
         syntax_object_version: str,
         author_id: str,
-        criteria_type_uid: str | None,
-        criteria_type_order: int | None = 0,
+        criteria_type_uid: str,
+        criteria_type_order: int = 0,
         is_instance: bool = True,
         key_criteria: bool = False,
         study_uid: str | None = None,
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
         accepted_version: bool = False,
     ):
         if study_selection_uid is None:
@@ -66,8 +66,10 @@ class StudySelectionCriteriaVO:
 
     def validate(
         self,
-        criteria_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_criteria_type_exist_callback: Callable[[str], bool] = (lambda _: True),
+        criteria_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_criteria_type_exist_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         # Checks if there exists a criteria which is approved with criteria_uid
         exceptions.ValidationException.raise_if_not(
@@ -75,8 +77,8 @@ class StudySelectionCriteriaVO:
             msg=f"There is no approved Criteria with UID '{self.syntax_object_uid}'.",
         )
         exceptions.ValidationException.raise_if(
-            not ct_term_criteria_type_exist_callback(self.criteria_type_uid)
-            and self.criteria_type_uid,
+            self.criteria_type_uid
+            and not ct_term_criteria_type_exist_callback(self.criteria_type_uid),
             msg=f"There is no approved Criteria Type with UID '{self.criteria_type_uid}'.",
         )
 
@@ -109,7 +111,7 @@ class StudySelectionCriteriaAR:
         return self._study_uid
 
     @property
-    def study_criteria_selection(self) -> tuple[StudySelectionCriteriaVO]:
+    def study_criteria_selection(self) -> tuple[StudySelectionCriteriaVO, ...]:
         return self._study_criteria_selection
 
     @study_criteria_selection.setter
@@ -118,7 +120,7 @@ class StudySelectionCriteriaAR:
 
     def get_specific_criteria_selection(
         self, study_criteria_uid: str, criteria_type_uid: str | None = None
-    ) -> tuple[StudySelectionCriteriaVO, int] | None:
+    ) -> tuple[StudySelectionCriteriaVO, int]:
         # First, filter on criteria selection with the same criteria type
         # to get the order in the context of the criteria type
         # The criteria type might not be known by some caller methods
@@ -148,8 +150,10 @@ class StudySelectionCriteriaAR:
     def add_criteria_selection(
         self,
         study_criteria_selection: StudySelectionCriteriaVO,
-        criteria_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_criteria_type_exist_callback: Callable[[str], bool] = (lambda _: True),
+        criteria_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_criteria_type_exist_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         study_criteria_selection.validate(
             criteria_exist_callback, ct_term_criteria_type_exist_callback
@@ -161,7 +165,7 @@ class StudySelectionCriteriaAR:
                 study_criteria_selection,
             )
             self._study_criteria_selection = tuple(
-                sorted(new_selections, key=lambda sel: sel.criteria_type_order)
+                sorted(new_selections, key=lambda sel: sel.criteria_type_order or 0)
             )
         else:
             self._study_criteria_selection = self._study_criteria_selection + (
@@ -243,7 +247,9 @@ class StudySelectionCriteriaAR:
             if x.criteria_type_uid == selected_value.criteria_type_uid
         ]
         # then, make sure that the list is properly ordered
-        study_criteria_selection_with_type.sort(key=lambda x: x.criteria_type_order)
+        study_criteria_selection_with_type.sort(
+            key=lambda x: x.criteria_type_order or 0
+        )
         del study_criteria_selection_with_type[old_order - 1]
         study_criteria_selection_with_type.insert(new_order - 1, selected_value)
 
@@ -261,8 +267,10 @@ class StudySelectionCriteriaAR:
     def update_selection(
         self,
         updated_study_criteria_selection: StudySelectionCriteriaVO,
-        criteria_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_criteria_type_exist_callback: Callable[[str], bool] = (lambda _: True),
+        criteria_exist_callback: Callable[[str | None], bool] = lambda _: True,
+        ct_term_criteria_type_exist_callback: Callable[[str | None], bool] = (
+            lambda _: True
+        ),
     ) -> None:
         updated_study_criteria_selection.validate(
             criteria_exist_callback=criteria_exist_callback,

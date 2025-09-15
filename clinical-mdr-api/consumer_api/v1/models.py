@@ -74,9 +74,7 @@ class Study(BaseModel):
             return cls(
                 version_status=val.get("version_status", None),
                 version_number=val.get("version_number", None),
-                version_started_at=convert_to_datetime(
-                    val.get("version_started_at", None)
-                ),
+                version_started_at=convert_to_datetime(val["version_started_at"]),
                 version_ended_at=convert_to_datetime(val.get("version_ended_at", None)),
                 version_author=author_username,
                 version_description=val.get("version_description", None),
@@ -227,7 +225,7 @@ class StudyVisit(BaseModel):
         ),
     ] = None
     anchor_visit: Annotated[
-        Self,
+        Self | None,
         Field(
             description="Anchor Visit for given StudyVisit",
             json_schema_extra={"nullable": True},

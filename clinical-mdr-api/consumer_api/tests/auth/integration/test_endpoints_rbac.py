@@ -368,7 +368,7 @@ def _mk_schema_example_payload(schema, openapi_schemas):
                 payload[name] = _schema_default_value(schem, name)
 
     if is_array:
-        payload = [payload]
+        return [payload]
 
     return payload
 

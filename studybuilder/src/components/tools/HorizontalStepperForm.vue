@@ -22,7 +22,7 @@
         {{ $t('_global.copy_link') }}
       </v-btn>
     </v-card-title>
-    <v-card-text class="mt-4 mb-12 pb-12 bg-dfltBackground">
+    <v-card-text class="mt-4 mb-12 pb-12 bg-dfltBackground" rounded>
       <v-stepper
         v-model="currentStep"
         bg-color="white"
@@ -31,14 +31,19 @@
         :non-linear="editable"
         :editable="editable"
         hide-actions
+        rounded="xl"
       >
         <template
           v-for="(step, index) in stepTitles"
           :key="`content-${index}`"
           #[`item.${index+1}`]
         >
-          <v-sheet elevation="0" class="ma-2 pa-4">
-            <v-row>
+          <v-sheet
+            elevation="0"
+            class="ma-2 pa-4"
+            style="overflow-x: auto !important"
+          >
+            <v-row style="width: 100%">
               <v-col :cols="12" class="pr-0">
                 <slot :name="`step.${steps[index].name}`" :step="index + 1" />
               </v-col>
@@ -51,7 +56,13 @@
         </template>
       </v-stepper>
     </v-card-text>
-    <v-card-actions class="bg-white fixed-actions border-t-thin">
+    <v-card-actions
+      v-if="customActions"
+      class="bg-white fixed-actions border-t-thin"
+    >
+      <slot name="customActions" />
+    </v-card-actions>
+    <v-card-actions v-else class="bg-white fixed-actions border-t-thin">
       <v-col>
         <v-btn
           class="secondary-btn"
@@ -187,6 +198,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  customActions: {
+    type: Boolean,
+    default: false,
+  },
 })
 const emit = defineEmits(['close', 'change', 'save', 'stepLoaded'])
 const formStore = useFormStore()
@@ -289,7 +304,11 @@ async function submit() {
 defineExpose({
   reset,
   loading,
+  currentStep,
   close,
+  cancel,
+  validateStepObserver,
+  goToNextStep,
 })
 </script>
 

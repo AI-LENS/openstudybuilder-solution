@@ -118,17 +118,6 @@
             />
           </v-col>
         </v-row>
-        <div class="mt-4">
-          <label class="v-label">{{ $t('StudyCohorts.colour') }}</label>
-          <v-color-picker
-            v-model="colorHash"
-            clearable
-            show-swatches
-            hide-canvas
-            hide-sliders
-            swatches-max-height="300px"
-          />
-        </div>
       </v-form>
     </template>
   </SimpleFormDialog>
@@ -173,7 +162,6 @@ export default {
     return {
       form: {},
       helpItems: [],
-      colorHash: null,
     }
   },
   computed: {
@@ -196,9 +184,6 @@ export default {
             this.form.branch_arm_uids = resp.data.branch_arm_roots
               ? resp.data.branch_arm_roots.map((el) => el.branch_arm_uid)
               : null
-            if (value.colour_code) {
-              this.colorHash = resp.data.colour_code
-            }
             this.formStore.save(this.form)
           })
       }
@@ -213,9 +198,6 @@ export default {
       this.form.branch_arm_uids = this.editedCohort.branch_arm_roots
         ? this.editedCohort.branch_arm_roots.map((el) => el.branch_arm_uid)
         : null
-      if (this.editedCohort.colour_code) {
-        this.colorHash = this.editedCohort.colour_code
-      }
       this.formStore.save(this.form)
     }
   },
@@ -242,11 +224,6 @@ export default {
       }
     },
     async create() {
-      if (this.colorHash) {
-        this.form.colour_code = this.colorHash.hexa
-      } else {
-        this.form.colour_code = '#BDBDBD'
-      }
       arms.createCohort(this.selectedStudy.uid, this.form).then(
         () => {
           this.eventBusEmit('notification', {
@@ -260,14 +237,6 @@ export default {
       )
     },
     edit() {
-      if (this.colorHash) {
-        this.form.colour_code =
-          this.colorHash.hexa !== undefined
-            ? this.colorHash.hexa
-            : this.colorHash
-      } else {
-        this.form.colour_code = '#BDBDBD'
-      }
       arms
         .editCohort(
           this.selectedStudy.uid,
@@ -289,7 +258,6 @@ export default {
     close() {
       this.form = {}
       this.formStore.reset()
-      this.colorHash = null
       this.$refs.observer.reset()
       this.$emit('close')
     },

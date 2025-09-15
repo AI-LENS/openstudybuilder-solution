@@ -3,14 +3,14 @@
 
 |            Package             |       Version        |
 |--------------------------------|----------------------|
-| certifi                        | 2025.4.26            |
-| charset-normalizer             | 3.4.1                |
+| certifi                        | 2025.8.3             |
+| charset-normalizer             | 3.4.3                |
 | idna                           | 3.10                 |
-| neo4j                          | 4.4.12               |
+| neo4j                          | 4.4.13               |
 | pip                            | 25.1.1               |
 | pytz                           | 2025.2               |
-| requests                       | 2.32.3               |
-| urllib3                        | 2.4.0                |
+| requests                       | 2.32.4               |
+| urllib3                        | 2.5.0                |
 
 
 ## Third-party package licenses

@@ -79,7 +79,7 @@ class CTTermAttributesRepository(CTTermGenericRepository[CTTermAttributesAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: CTTermAttributesRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: CTTermAttributesValue,
         **_kwargs,
@@ -112,7 +112,7 @@ class CTTermAttributesRepository(CTTermGenericRepository[CTTermAttributesAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

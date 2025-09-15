@@ -2055,7 +2055,6 @@ def test_updating_parents(api_client):
     assert res["activity_instance"]["status"] == "Final"
 
 
-# LOOK HERE
 def test_updating_instance_to_new_activity(api_client):
     group_name = "updatetest group name"
     subgroup_name = "updatetest subgroup name"
@@ -2175,7 +2174,10 @@ def test_updating_instance_to_new_activity(api_client):
     # Patch the activity instance, no changes
     response = api_client.patch(
         f"/concepts/activities/activity-instances/{activity_instance.uid}",
-        json={"change_description": "string"},
+        json={
+            "change_description": "string",
+            "name": "updatetest original instance name",
+        },
     )
     assert_response_status_code(response, 200)
 
@@ -2223,6 +2225,7 @@ def test_updating_instance_to_new_activity(api_client):
                     "activity_uid": other_activity.uid,
                 }
             ],
+            "name": "updatetest original instance name",
             "change_description": "string2",
         },
     )

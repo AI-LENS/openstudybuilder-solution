@@ -31,6 +31,7 @@
       </template>
       <template #actions="">
         <v-btn
+          v-if="editStepper && designClass === cohortConstants.MANUAL"
           class="ml-2"
           size="small"
           variant="outlined"
@@ -44,6 +45,27 @@
           icon="mdi-plus"
           @click.stop="addBranchArm"
         />
+        <v-btn
+          v-else-if="editStepper"
+          class="ml-2"
+          size="small"
+          variant="outlined"
+          color="nnBaseBlue"
+          :title="$t('StudyBranchArms.cohorts_stepper')"
+          :disabled="
+            !accessGuard.checkPermission($roles.STUDY_WRITE) ||
+            studiesGeneralStore.selectedStudyVersion !== null
+          "
+          :icon="editStepper ? 'mdi-pencil' : 'mdi-plus'"
+          @click.stop="showCohortsStepper = true"
+          @close="showCohortsStepper = false"
+        />
+      </template>
+      <template #[`item.study_cohort_name`]="{ item }">
+        <div v-html="sanitizeHTML(getCohortNames(item))" />
+      </template>
+      <template #[`item.study_cohort_code`]="{ item }">
+        <div v-html="sanitizeHTML(getCohortCodes(item))" />
       </template>
       <template #tbody>
         <tbody v-show="sortMode" ref="parent">
@@ -52,19 +74,14 @@
               <v-icon size="small"> mdi-sort </v-icon>
             </td>
             <td>{{ branch.order }}</td>
-            <td>{{ branch.arm_root.name }}</td>
             <td>{{ branch.name }}</td>
             <td>{{ branch.short_name }}</td>
+            <td>{{ branch.number_of_subjects }}</td>
+            <td>{{ branch.arm_root.name }}</td>
+            <td><div v-html="sanitizeHTML(getCohortNames(branch))" /></td>
+            <td><div v-html="sanitizeHTML(getCohortCodes(branch))" /></td>
             <td>{{ branch.randomization_group }}</td>
             <td>{{ branch.code }}</td>
-            <td>{{ branch.number_of_subjects }}</td>
-            <td>{{ branch.description }}</td>
-            <td>
-              <v-chip :color="branch.colour_code" size="small" variant="flat">
-                <span>&nbsp;</span>
-                <span>&nbsp;</span>
-              </v-chip>
-            </td>
             <td>{{ $filters.date(branch.start_date) }}</td>
             <td>{{ branch.author_username }}</td>
           </tr>
@@ -96,17 +113,6 @@
           {{ item.arm_root.name }}
         </router-link>
       </template>
-      <template #[`item.colour_code`]="{ item }">
-        <v-chip
-          :data-cy="'color=' + item.colour_code"
-          :color="item.colour_code"
-          size="small"
-          variant="flat"
-        >
-          <span>&nbsp;</span>
-          <span>&nbsp;</span>
-        </v-chip>
-      </template>
       <template #[`item.start_date`]="{ item }">
         {{ $filters.date(item.start_date) }}
       </template>
@@ -120,6 +126,18 @@
       :arms="arms"
       @close="closeForm"
     />
+    <v-dialog
+      v-model="showCohortsStepper"
+      persistent
+      fullscreen
+      content-class="fullscreen-dialog"
+    >
+      <CohortsStepper
+        :design-class="designClass"
+        :initial-step="4"
+        @close="closeCohortStepper"
+      />
+    </v-dialog>
     <v-dialog
       v-model="showBranchHistory"
       persistent
@@ -141,10 +159,12 @@
 <script setup>
 import NNTable from '@/components/tools/NNTable.vue'
 import armsApi from '@/api/arms'
+import cohortsApi from '@/api/cohorts'
 import StudyBranchesForm from '@/components/studies/StudyBranchesForm.vue'
 import ActionsMenu from '@/components/tools/ActionsMenu.vue'
 import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
 import studyEpochs from '@/api/studyEpochs'
+import CohortsStepper from './CohortsStepper.vue'
 import { useAccessGuard } from '@/composables/accessGuard'
 import HistoryTable from '@/components/tools/HistoryTable.vue'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
@@ -152,6 +172,8 @@ import filteringParameters from '@/utils/filteringParameters'
 import { computed, onMounted, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
+import { escapeHTML, sanitizeHTML } from '@/utils/sanitize'
+import cohortConstants from '@/constants/cohorts'
 
 const { t } = useI18n()
 const eventBusEmit = inject('eventBusEmit')
@@ -173,24 +195,30 @@ const [parent, branchArms] = useDragAndDrop([], {
 const headers = [
   { title: '', key: 'actions', width: '1%' },
   { title: '#', key: 'order', width: '5%' },
+  { title: t('StudyBranchArms.name'), key: 'name' },
+  { title: t('StudyBranchArms.short_name'), key: 'short_name' },
+  {
+    title: t('StudyBranchArms.number_of_participants'),
+    key: 'number_of_subjects',
+  },
   {
     title: t('StudyBranchArms.arm_name'),
     key: 'arm_root.name',
     historyHeader: 'arm_root_uid',
   },
-  { title: t('StudyBranchArms.name'), key: 'name' },
-  { title: t('StudyBranchArms.short_name'), key: 'short_name' },
+  {
+    title: t('StudyBranchArms.cohort_name'),
+    key: 'study_cohort_name',
+  },
+  {
+    title: t('StudyBranchArms.cohort_code'),
+    key: 'study_cohort_code',
+  },
   {
     title: t('StudyBranchArms.randomisation_group'),
     key: 'randomization_group',
   },
   { title: t('StudyBranchArms.code'), key: 'code' },
-  {
-    title: t('StudyBranchArms.number_of_subjects'),
-    key: 'number_of_subjects',
-  },
-  { title: t('StudyBranchArms.description'), key: 'description' },
-  { title: t('StudyBranchArms.colour'), key: 'colour_code' },
   { title: t('_global.modified'), key: 'start_date' },
   { title: t('_global.modified_by'), key: 'author_username' },
 ]
@@ -207,7 +235,9 @@ const actions = [
     label: t('_global.delete'),
     icon: 'mdi-delete-outline',
     iconColor: 'error',
-    condition: () => !studiesGeneralStore.selectedStudyVersion,
+    condition: () =>
+      !studiesGeneralStore.selectedStudyVersion &&
+      designClass.value === cohortConstants.MANUAL,
     click: deleteBranchArm,
     accessRole: roles.STUDY_WRITE,
   },
@@ -225,6 +255,9 @@ const showBranchHistory = ref(false)
 const branchHistoryItems = ref([])
 const selectedBranch = ref(null)
 const sortMode = ref(false)
+const showCohortsStepper = ref(false)
+const designClass = ref('')
+const editStepper = ref(false)
 
 const exportDataUrl = computed(() => {
   return `studies/${studiesGeneralStore.selectedStudy.uid}/study-branch-arms`
@@ -241,7 +274,34 @@ const studyBranchHistoryTitle = computed(() => {
 
 onMounted(() => {
   fetchStudyArms()
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  cohortsApi
+    .getStudyDesignClass(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      designClass.value = resp.data.value
+    })
+    .catch((error) => {
+      if (error.response.status === 404) {
+        console.error(error)
+      }
+    })
 })
+
+function getCohortNames(branch) {
+  return branch.study_cohorts
+    ?.map((cohort) => `&#9679; ${escapeHTML(cohort.study_cohort_name)}`)
+    .join('<br />')
+}
+
+function getCohortCodes(branch) {
+  return branch.study_cohorts
+    ?.map((cohort) => `&#9679; ${escapeHTML(cohort.study_cohort_code)}`)
+    .join('<br />')
+}
 
 async function fetchBranchArmsHistory() {
   const resp = await studyEpochs.getStudyBranchesVersions(
@@ -272,9 +332,19 @@ function fetchStudyBranchArms(filters, options, filtersUpdated) {
   armsApi
     .getAllBranchArms(studiesGeneralStore.selectedStudy.uid, params)
     .then((resp) => {
-      branchArms.value = resp.data
-      total.value = resp.data.length
+      branchArms.value = resp.data.items
+      total.value = resp.data.total
     })
+}
+
+function closeCohortStepper() {
+  showCohortsStepper.value = false
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  table.value.filterTable()
 }
 
 function closeForm() {
@@ -284,8 +354,12 @@ function closeForm() {
 }
 
 function editBranchArm(item) {
-  branchArmToEdit.value = item
-  showBranchArmsForm.value = true
+  if (designClass.value === cohortConstants.MANUAL) {
+    branchArmToEdit.value = item
+    showBranchArmsForm.value = true
+  } else {
+    showCohortsStepper.value = true
+  }
 }
 
 async function openBranchHistory(branch) {

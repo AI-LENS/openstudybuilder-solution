@@ -31,7 +31,7 @@ class MedicinalProductVO(ConceptVO):
         name: str,
         name_sentence_case: str | None,
         external_id: str | None,
-        compound_uid: str | None,
+        compound_uid: str,
         pharmaceutical_product_uids: list[str] | None,
         delivery_device_uid: str | None,
         dispenser_uid: str | None,
@@ -57,20 +57,23 @@ class MedicinalProductVO(ConceptVO):
 
     def validate(
         self,
-        uid: str | None,
-        medicinal_product_uid_by_property_value_callback: Callable[[str, str], str],
+        uid: str,
+        medicinal_product_uid_by_property_value_callback: Callable[
+            [str, str], str | None
+        ],
         ct_term_exists_callback: Callable[[str], bool],
         numeric_value_exists_callback: Callable[[str], bool],
         compound_exists_callback: Callable[[str], bool],
         pharmaceutical_product_exists_callback: Callable[[str], bool],
     ):
-        self.validate_uniqueness(
-            lookup_callback=medicinal_product_uid_by_property_value_callback,
-            uid=uid,
-            property_name="external_id",
-            value=self.external_id,
-            error_message=f"MedicinalProduct with external_id '{self.external_id}' already exists.",
-        )
+        if self.external_id is not None:
+            self.validate_uniqueness(
+                lookup_callback=medicinal_product_uid_by_property_value_callback,
+                uid=uid,
+                property_name="external_id",
+                value=self.external_id,
+                error_message=f"MedicinalProduct with external_id '{self.external_id}' already exists.",
+            )
         BusinessLogicException.raise_if_not(
             compound_exists_callback(self.compound_uid),
             msg=f"{type(self).__name__} tried to connect to non-existent Compound with UID '{self.compound_uid}'.",
@@ -111,6 +114,10 @@ class MedicinalProductAR(ConceptARBase):
     def concept_vo(self) -> MedicinalProductVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: MedicinalProductVO) -> None:
+        self._concept_vo = value
+
     @property
     def name(self) -> str:
         return self.concept_vo.name
@@ -121,12 +128,14 @@ class MedicinalProductAR(ConceptARBase):
         author_id: str,
         concept_vo: MedicinalProductVO,
         library: LibraryVO,
-        medicinal_product_uid_by_property_value_callback: Callable[[str, str], str],
+        medicinal_product_uid_by_property_value_callback: Callable[
+            [str, str], str | None
+        ],
         ct_term_exists_callback: Callable[[str], bool],
         numeric_value_exists_callback: Callable[[str], bool],
         compound_exists_callback: Callable[[str], bool],
         pharmaceutical_product_exists_callback: Callable[[str], bool],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str],
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -158,13 +167,15 @@ class MedicinalProductAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: MedicinalProductVO,
-        concept_exists_by_callback: Callable[[str, str], str] | None = None,
-        ct_term_exists_callback: Callable[[str], bool] | None = None,
-        numeric_value_exists_callback: Callable[[str], bool] | None = None,
-        compound_exists_callback: Callable[[str], bool] | None = None,
-        pharmaceutical_product_exists_callback: Callable[[str], bool] | None = None,
+        concept_exists_by_callback: Callable[
+            [str, str], str | None
+        ] = lambda x, y: None,
+        ct_term_exists_callback: Callable[[str], bool] = lambda _: False,
+        numeric_value_exists_callback: Callable[[str], bool] = lambda _: False,
+        compound_exists_callback: Callable[[str], bool] = lambda _: False,
+        pharmaceutical_product_exists_callback: Callable[[str], bool] = lambda _: False,
     ) -> None:
         """
         Creates a new draft version for the object.

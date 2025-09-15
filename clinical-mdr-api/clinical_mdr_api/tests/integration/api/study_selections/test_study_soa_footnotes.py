@@ -370,6 +370,22 @@ STUDY_FOOTNOTE_FIELDS_NOT_NULL = [
     "accepted_version",
 ]
 
+STUDY_FOOTNOTE_FIELDS_ALL_MINIMAL_RESPONSE = [
+    "uid",
+    "study_uid",
+    "order",
+    "referenced_items",
+    "footnote",
+    "template",
+]
+
+STUDY_FOOTNOTE_FIELDS_NOT_NULL_MINIMAL_RESPONSE = [
+    "uid",
+    "study_uid",
+    "order",
+    "referenced_items",
+]
+
 
 def test_get_study_soa_footnote(api_client):
     response = api_client.get(
@@ -397,6 +413,46 @@ def test_get_study_soa_footnote(api_client):
         == SoAItemType.STUDY_ACTIVITY_SCHEDULE.value
     )
     assert res["template"]["uid"] == footnote_templates[0].uid
+
+
+def test_get_study_soa_footnotes_minimal_response(api_client):
+    response = api_client.get(
+        f"/studies/{study.uid}/study-soa-footnotes", params={"minimal_response": True}
+    )
+    assert_response_status_code(response, 200)
+
+    study_soa_footnotes = response.json()["items"]
+    for order, study_soa_footnote in enumerate(study_soa_footnotes, start=1):
+        # Check fields included in the response
+        fields_all_set = set(STUDY_FOOTNOTE_FIELDS_ALL_MINIMAL_RESPONSE)
+        assert set(study_soa_footnote.keys()) == fields_all_set
+        for key in STUDY_FOOTNOTE_FIELDS_NOT_NULL_MINIMAL_RESPONSE:
+            assert study_soa_footnote[key] is not None
+        assert study_soa_footnote["uid"] is not None
+        assert study_soa_footnote["study_uid"] == study.uid
+        assert study_soa_footnote["order"] == order
+        for ref_item in study_soa_footnote["referenced_items"]:
+            assert ref_item["item_uid"] is not None
+            assert ref_item["item_type"] is not None
+            assert "item_name" not in ref_item
+            assert "visible_in_protocol_soa" not in ref_item
+
+        assert study_soa_footnote["template"]["uid"] is not None
+        assert study_soa_footnote["template"]["name"] is not None
+        assert study_soa_footnote["template"]["name_plain"] is not None
+        assert "library_name" not in study_soa_footnote["template"]
+        assert "version" not in study_soa_footnote["template"]
+        assert "parameters" not in study_soa_footnote["template"]
+
+        assert "version" not in study_soa_footnote["template"]
+        assert "library_name" not in study_soa_footnote["template"]
+        assert "parameters" not in study_soa_footnote["template"]
+        assert study_soa_footnote["footnote"] is None
+        assert "latest_footnote" not in study_soa_footnote
+        assert "modified" not in study_soa_footnote
+        assert "accepted_version" not in study_soa_footnote
+        assert "author_username" not in study_soa_footnote
+        assert "study_version" not in study_soa_footnote
 
 
 def test_get_soa_footnotes_pagination(api_client):
