@@ -28,7 +28,6 @@ from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import 
 from clinical_mdr_api.tests.unit.domain.study_definition_aggregate.test_study_metadata import (
     random_valid_high_level_study_design,
     random_valid_id_metadata,
-    random_valid_id_metadata_sequence,
     random_valid_study_intervention,
     random_valid_study_population,
 )
@@ -91,38 +90,38 @@ def create_random_study(
         result: StudyDefinitionAR = StudyDefinitionAR.from_initial_values(
             generate_uid_callback=generate_uid_callback,
             initial_id_metadata=initial_id_metadata,
-            project_exists_callback=(lambda _: True),
-            study_number_exists_callback=(lambda x, y: False),
+            project_exists_callback=lambda _: True,
+            study_number_exists_callback=lambda x, y: False,
             initial_high_level_study_design=(
                 initial_high_level_study_design
                 if not is_study_after_create
                 else _DEF_INITIAL_HIGH_LEVEL_STUDY_DESIGN
             ),
-            study_type_exists_callback=(lambda _: True),
-            trial_type_exists_callback=(lambda _: True),
-            trial_intent_type_exists_callback=(lambda _: True),
-            trial_phase_exists_callback=(lambda _: True),
-            null_value_exists_callback=(lambda _: True),
+            study_type_exists_callback=lambda _: True,
+            trial_type_exists_callback=lambda _: True,
+            trial_intent_type_exists_callback=lambda _: True,
+            trial_phase_exists_callback=lambda _: True,
+            null_value_exists_callback=lambda _: True,
             initial_study_population=(
                 initial_study_population
                 if not is_study_after_create
                 else _DEF_INITIAL_STUDY_POPULATION
             ),
-            therapeutic_area_exists_callback=(lambda _: True),
-            disease_condition_or_indication_exists_callback=(lambda _: True),
-            diagnosis_group_exists_callback=(lambda _: True),
-            sex_of_participants_exists_callback=(lambda _: True),
+            therapeutic_area_exists_callback=lambda _: True,
+            disease_condition_or_indication_exists_callback=lambda _: True,
+            diagnosis_group_exists_callback=lambda _: True,
+            sex_of_participants_exists_callback=lambda _: True,
             initial_study_intervention=(
                 initial_study_intervention
                 if not is_study_after_create
                 else _DEF_INITIAL_STUDY_INTERVENTION
             ),
-            intervention_type_exists_callback=(lambda _: True),
-            control_type_exists_callback=(lambda _: True),
-            intervention_model_exists_callback=(lambda _: True),
-            trial_blinding_schema_exists_callback=(lambda _: True),
-            study_title_exists_callback=(lambda _, study_number: False),
-            study_short_title_exists_callback=(lambda _, study_number: False),
+            intervention_type_exists_callback=lambda _: True,
+            control_type_exists_callback=lambda _: True,
+            intervention_model_exists_callback=lambda _: True,
+            trial_blinding_schema_exists_callback=lambda _: True,
+            study_title_exists_callback=lambda _, study_number: False,
+            study_short_title_exists_callback=lambda _, study_number: False,
             author_id=author_id,
         )
 
@@ -153,7 +152,7 @@ def make_random_study_metadata_edit(
         [StudyInterventionVO], bool
     ] = lambda _: True,
     max_tries: int = 100,
-    author_id: str | None = None,
+    author_id: str,
 ):
     if new_id_metadata_fixed_values is None:
         new_id_metadata_fixed_values = _dict()
@@ -228,23 +227,23 @@ def make_random_study_metadata_edit(
 
     study.edit_metadata(
         new_id_metadata=new_id_metadata,
-        project_exists_callback=(lambda _: True),
+        project_exists_callback=lambda _: True,
         new_high_level_study_design=new_high_level_study_design,
-        study_type_exists_callback=(lambda _: True),
-        trial_type_exists_callback=(lambda _: True),
-        trial_intent_type_exists_callback=(lambda _: True),
-        trial_phase_exists_callback=(lambda _: True),
-        null_value_exists_callback=(lambda _: True),
+        study_type_exists_callback=lambda _: True,
+        trial_type_exists_callback=lambda _: True,
+        trial_intent_type_exists_callback=lambda _: True,
+        trial_phase_exists_callback=lambda _: True,
+        null_value_exists_callback=lambda _: True,
         new_study_population=new_study_population,
-        therapeutic_area_exists_callback=(lambda _: True),
-        disease_condition_or_indication_exists_callback=(lambda _: True),
-        diagnosis_group_exists_callback=(lambda _: True),
-        sex_of_participants_exists_callback=(lambda _: True),
+        therapeutic_area_exists_callback=lambda _: True,
+        disease_condition_or_indication_exists_callback=lambda _: True,
+        diagnosis_group_exists_callback=lambda _: True,
+        sex_of_participants_exists_callback=lambda _: True,
         new_study_intervention=new_study_intervention,
-        intervention_type_exists_callback=(lambda _: True),
-        control_type_exists_callback=(lambda _: True),
-        intervention_model_exists_callback=(lambda _: True),
-        trial_blinding_schema_exists_callback=(lambda _: True),
+        intervention_type_exists_callback=lambda _: True,
+        control_type_exists_callback=lambda _: True,
+        intervention_model_exists_callback=lambda _: True,
+        trial_blinding_schema_exists_callback=lambda _: True,
         author_id=author_id,
     )
 
@@ -273,40 +272,47 @@ def prepare_random_study(
         )
         while random.random() > 0.2:
             study.edit_metadata(
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
                 new_study_description=StudyDescriptionVO.from_input_values(
                     study_title="new_study_title", study_short_title="study_short_title"
                 ),
+                author_id=random_str(),
             )
             study.lock(
                 version_description=random_str(),
                 author_id=random_str(),
             )
-            study.unlock()
+            study.unlock(random_str())
             make_random_study_metadata_edit(
                 study,
                 new_id_metadata_fixed_values={
                     "study_number": study.current_metadata.id_metadata.study_number
                 },
+                author_id=random_str(),
             )
         if random.random() < 0.667:
             if random.random() < 0.5:
-                study.release(change_description="making a release")
+                study.release(
+                    change_description="making a release",
+                    author_id=random_str(),
+                )
                 make_random_study_metadata_edit(
                     study,
                     new_id_metadata_fixed_values={
                         "study_number": study.current_metadata.id_metadata.study_number
                     },
+                    author_id=random_str(),
                 )
             else:
                 study.edit_metadata(
-                    study_title_exists_callback=(lambda _, study_number: False),
-                    study_short_title_exists_callback=(lambda _, study_number: False),
+                    study_title_exists_callback=lambda _, study_number: False,
+                    study_short_title_exists_callback=lambda _, study_number: False,
                     new_study_description=StudyDescriptionVO.from_input_values(
                         study_title="new_study_title",
                         study_short_title="study_short_title",
                     ),
+                    author_id=random_str(),
                 )
                 study.lock(
                     version_description=random_str(),
@@ -361,25 +367,6 @@ class TestStudyDefinitionAR(unittest.TestCase):
     @classmethod
     def tear_down_class(cls) -> None:
         cls.patcher.stop()
-
-    def test__study_ar_from_initial_values__no_proper_callback_for_project_num_provided__failure(
-        self,
-    ):
-        for id_metadata in random_valid_id_metadata_sequence(
-            count=10, condition=(lambda _: _.project_number is not None)
-        ):
-            with self.subTest():
-                # given
-                assert id_metadata.project_number is not None and id_metadata.is_valid()
-
-                # then
-                with self.assertRaises(exceptions.ValidationException):
-                    # when
-                    StudyDefinitionAR.from_initial_values(
-                        # project_exists_callback=(lambda _: True),
-                        generate_uid_callback=(lambda: str(random_str())),
-                        initial_id_metadata=id_metadata,
-                    )
 
     def test__study_ar_from_initial_values__success(self):
         counter = 0
@@ -437,13 +424,15 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 start_timestamp = datetime.now(timezone.utc)
 
                 # when
+                author = random_str()
                 study: StudyDefinitionAR = StudyDefinitionAR.from_initial_values(
                     generate_uid_callback=generate_uid_callback,
                     initial_id_metadata=study_id_metadata,
-                    project_exists_callback=(lambda _: True),
-                    study_title_exists_callback=(lambda _, study_number: False),
-                    study_short_title_exists_callback=(lambda _, study_number: False),
-                    study_number_exists_callback=(lambda x, y: False),
+                    project_exists_callback=lambda _: True,
+                    study_title_exists_callback=lambda _, study_number: False,
+                    study_short_title_exists_callback=lambda _, study_number: False,
+                    study_number_exists_callback=lambda x, y: False,
+                    author_id=author,
                 )
 
                 # then
@@ -584,6 +573,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                     ver_metadata=StudyVersionMetadataVO(
                         study_status=StudyStatus.DRAFT,
                         version_number=None,
+                        version_author=author,
                         version_timestamp=expected_timestamp,
                     ),
                     study_description=StudyDescriptionVO(
@@ -733,7 +723,9 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 start_timestamp = datetime.now(timezone.utc)
 
                 # when
-                study.release(change_description="making a release")
+                study.release(
+                    change_description="making a release", author_id=random_str()
+                )
                 study_title = study.current_metadata.study_description.study_title
                 study_short_title = (
                     study.current_metadata.study_description.study_short_title
@@ -771,6 +763,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                         study_status=StudyStatus.RELEASED,
                         version_timestamp=expected_released_timestamp,
                         version_description=expected_released_description,
+                        version_author=study.released_metadata.ver_metadata.version_author,
                         version_number=exp_released_ver_number + Decimal("0.1"),
                     ),
                     study_description=StudyDescriptionVO(
@@ -786,6 +779,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                     ver_metadata=StudyVersionMetadataVO(
                         study_status=StudyStatus.DRAFT,
                         version_timestamp=expected_released_timestamp,
+                        version_author=study.current_metadata.ver_metadata.version_author,
                         version_number=given_study_metadata.ver_metadata.version_number,
                     ),
                     study_description=StudyDescriptionVO(
@@ -817,7 +811,9 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 # then
                 with self.assertRaises(exceptions.BusinessLogicException):
                     # when
-                    study.release(change_description="making a release")
+                    study.release(
+                        change_description="making a release", author_id=random_str()
+                    )
 
     def test__lock__result(self):
         tested = False
@@ -842,11 +838,12 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 study_short_title = "study_short_title"
                 # when
                 study.edit_metadata(
-                    study_title_exists_callback=(lambda _, study_number: False),
-                    study_short_title_exists_callback=(lambda _, study_number: False),
+                    study_title_exists_callback=lambda _, study_number: False,
+                    study_short_title_exists_callback=lambda _, study_number: False,
                     new_study_description=StudyDescriptionVO.from_input_values(
                         study_title=study_title, study_short_title=study_short_title
                     ),
+                    author_id=random_str(),
                 )
                 study.lock(
                     author_id=version_author,
@@ -914,7 +911,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 with self.assertRaises(exceptions.BusinessLogicException):
                     # when
                     study.edit_metadata(
-                        study_title_exists_callback=(lambda _, study_number: False),
+                        study_title_exists_callback=lambda _, study_number: False,
                         study_short_title_exists_callback=(
                             lambda _, study_number: False
                         ),
@@ -922,6 +919,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                             study_title="new_study_title",
                             study_short_title="study_short_title",
                         ),
+                        author_id=random_str(),
                     )
                     study.lock(
                         version_description=random_str(),
@@ -936,6 +934,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
             == StudyStatus.LOCKED,
         ):
             with self.subTest():
+                author = random_str()
                 # given
                 given_study_metadata = study.current_metadata
                 given_study_latest_locked_metadata = (
@@ -945,7 +944,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 study_title = "new_study_title"
                 study_short_title = "study_short_title"
                 # when
-                study.unlock()
+                study.unlock(author)
 
                 # then
                 end_timestamp = datetime.now(timezone.utc)
@@ -965,6 +964,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                     ver_metadata=StudyVersionMetadataVO(
                         study_status=StudyStatus.DRAFT,
                         version_number=None,
+                        version_author=author,
                         # the last one is checked before so we assume it's the right one
                         version_timestamp=study.current_metadata.ver_metadata.version_timestamp,
                     ),
@@ -998,7 +998,7 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 # then
                 with self.assertRaises(exceptions.BusinessLogicException):
                     # when
-                    study.unlock()
+                    study.unlock(random_str())
 
     def test__edit_metadata__result(self):
         for study in prepare_random_study_sequence(
@@ -1051,7 +1051,8 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 # when
                 study.edit_metadata(
                     new_id_metadata=new_id_metadata,
-                    project_exists_callback=(lambda _: True),
+                    project_exists_callback=lambda _: True,
+                    author_id=random_str(),
                 )
 
                 # then
@@ -1205,7 +1206,8 @@ class TestStudyDefinitionAR(unittest.TestCase):
                     # when
                     study.edit_metadata(
                         new_id_metadata=new_id_metadata,
-                        project_exists_callback=(lambda _: True),
+                        project_exists_callback=lambda _: True,
+                        author_id=random_str(),
                     )
 
     def test__edit_metadata__non_existent_project_num__failure(self):
@@ -1279,7 +1281,8 @@ class TestStudyDefinitionAR(unittest.TestCase):
                     # when
                     study.edit_metadata(
                         new_id_metadata=new_id_metadata,
-                        project_exists_callback=(lambda _: False),
+                        project_exists_callback=lambda _: False,
+                        author_id=random_str(),
                     )
 
     def test__mark_deleted__deleting_once_locked__failure(self):
@@ -1368,7 +1371,8 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 # when
                 study.edit_metadata(
                     new_id_metadata=new_id_metadata,
-                    project_exists_callback=(lambda _: True),
+                    project_exists_callback=lambda _: True,
+                    author_id=random_str(),
                 )
 
                 # then
@@ -1504,7 +1508,8 @@ class TestStudyDefinitionAR(unittest.TestCase):
                 # when
                 study.edit_metadata(
                     new_id_metadata=new_id_metadata,
-                    project_exists_callback=(lambda _: True),
+                    project_exists_callback=lambda _: True,
+                    author_id=random_str(),
                 )
 
                 # then
@@ -1640,4 +1645,5 @@ class TestStudyDefinitionAR(unittest.TestCase):
                         project_exists_callback=(
                             lambda proj_num: proj_num == "existing-proj-num"
                         ),
+                        author_id=random_str(),
                     )

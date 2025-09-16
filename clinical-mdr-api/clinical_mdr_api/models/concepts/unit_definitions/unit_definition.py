@@ -67,7 +67,7 @@ class UnitDefinitionModel(ConceptModel):
                 )
             ct_units.append(controlled_terminology_unit)
         if not any(ct_unit.name is None for ct_unit in ct_units):
-            ct_units.sort(key=lambda item: item.name)
+            ct_units.sort(key=lambda item: item.name or "")
 
         unit_subsets = []
         for unit_subset in unit_definition_ar.concept_vo.unit_subsets:
@@ -81,7 +81,7 @@ class UnitDefinitionModel(ConceptModel):
                 )
             unit_subsets.append(controlled_terminology_subset)
         if not any(unit_subset.name is None for unit_subset in unit_subsets):
-            unit_subsets.sort(key=lambda item: item.name)
+            unit_subsets.sort(key=lambda item: item.name or "")
 
         if unit_definition_ar.concept_vo.ucum_name is None:
             ucum = SimpleTermModel.from_ct_code(
@@ -90,7 +90,7 @@ class UnitDefinitionModel(ConceptModel):
             )
         else:
             ucum = SimpleTermModel(
-                term_uid=unit_definition_ar.concept_vo.ucum_uid,
+                term_uid=unit_definition_ar.concept_vo.ucum_uid or "",
                 name=unit_definition_ar.concept_vo.ucum_name,
             )
 
@@ -101,7 +101,7 @@ class UnitDefinitionModel(ConceptModel):
             )
         else:
             unit_dimension = SimpleTermModel(
-                term_uid=unit_definition_ar.concept_vo.unit_dimension_uid,
+                term_uid=unit_definition_ar.concept_vo.unit_dimension_uid or "",
                 name=unit_definition_ar.concept_vo.unit_dimension_name,
             )
 
@@ -143,11 +143,11 @@ class UnitDefinitionPostInput(ConceptPostInput):
     us_conventional_unit: Annotated[bool, Field()]
     use_complex_unit_conversion: Annotated[bool, Field()] = False
     ct_units: Annotated[list[str], Field()]
-    unit_subsets: list[str] | None = Field(default_factory=list)
+    unit_subsets: list[str] = Field(default_factory=list)
     ucum: Annotated[str | None, Field()] = None
     unit_dimension: Annotated[str | None, Field()] = None
     legacy_code: Annotated[str | None, Field()] = None
-    use_molecular_weight: Annotated[bool | None, Field()] = None
+    use_molecular_weight: Annotated[bool, Field()] = False
     conversion_factor_to_master: Annotated[float | None, Field()] = None
     comment: Annotated[str | None, Field()] = None
     order: Annotated[int | None, Field()] = None
@@ -156,23 +156,23 @@ class UnitDefinitionPostInput(ConceptPostInput):
 
 
 class UnitDefinitionPatchInput(ConceptPatchInput):
-    convertible_unit: Annotated[bool | None, Field()] = None
-    display_unit: Annotated[bool | None, Field()] = None
-    master_unit: Annotated[bool | None, Field()] = None
-    si_unit: Annotated[bool | None, Field()] = None
-    us_conventional_unit: Annotated[bool | None, Field()] = None
-    use_complex_unit_conversion: Annotated[bool | None, Field()] = None
-    ct_units: list[str] | None = Field(default_factory=list)
-    unit_subsets: list[str] | None = Field(default_factory=list)
+    convertible_unit: Annotated[bool, Field()] = False
+    display_unit: Annotated[bool, Field()] = False
+    master_unit: Annotated[bool, Field()] = False
+    si_unit: Annotated[bool, Field()] = False
+    us_conventional_unit: Annotated[bool, Field()] = False
+    use_complex_unit_conversion: Annotated[bool, Field()] = False
+    ct_units: list[str] = Field(default_factory=list)
+    unit_subsets: list[str] = Field(default_factory=list)
     ucum: Annotated[str | None, Field()] = None
     unit_dimension: Annotated[str | None, Field()] = None
     legacy_code: Annotated[str | None, Field()] = None
-    use_molecular_weight: Annotated[bool | None, Field()] = None
+    use_molecular_weight: Annotated[bool, Field()] = False
     conversion_factor_to_master: Annotated[float | None, Field()] = None
     comment: Annotated[str | None, Field()] = None
     order: Annotated[int | None, Field()] = None
     definition: Annotated[str | None, Field()] = None
-    template_parameter: Annotated[bool | None, Field()] = None
+    template_parameter: Annotated[bool, Field()] = False
 
 
 class UnitDefinitionSimpleModel(BaseModel):

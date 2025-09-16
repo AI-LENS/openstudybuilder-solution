@@ -108,12 +108,12 @@ class MedicinalProductRepository(ConceptGenericRepository):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> MedicinalProductAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         ar = MedicinalProductAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=MedicinalProductVO.from_repository_values(
                 external_id=input_dict.get("external_id"),
-                name=input_dict.get("name"),
+                name=input_dict["name"],
                 name_sentence_case=input_dict.get("name_sentence_case"),
                 dose_value_uids=[
                     dose_value.get("uid")
@@ -140,20 +140,20 @@ class MedicinalProductRepository(ConceptGenericRepository):
                         "pharmaceutical_products"
                     )
                 ],
-                compound_uid=input_dict.get("compound_uid"),
+                compound_uid=input_dict["compound_uid"],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=convert_to_datetime(value=input_dict.get("end_date")),
                 major_version=int(major),
                 minor_version=int(minor),
@@ -164,7 +164,7 @@ class MedicinalProductRepository(ConceptGenericRepository):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -190,7 +190,7 @@ class MedicinalProductRepository(ConceptGenericRepository):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

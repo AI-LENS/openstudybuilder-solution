@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -45,12 +45,28 @@ class OdmFormalExpression(NoLibraryConceptModelNoName):
 
 
 class OdmFormalExpressionSimpleModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_formal_expression_uid(
         cls,
         uid: str,
         find_odm_formal_expression_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_formal_expression_uid(
+        cls,
+        uid: None,
+        find_odm_formal_expression_by_uid: Callable[[str], ConceptARBase | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_formal_expression_uid(
+        cls,
+        uid: str | None,
+        find_odm_formal_expression_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self | None:
+        simple_odm_formal_expression_model = None
+
         if uid is not None:
             odm_formal_expression = find_odm_formal_expression_by_uid(uid)
 
@@ -64,19 +80,15 @@ class OdmFormalExpressionSimpleModel(BaseModel):
             else:
                 simple_odm_formal_expression_model = cls(
                     uid=uid,
-                    context=None,
-                    expression=None,
+                    context="",
+                    expression="",
                     version=None,
                 )
-        else:
-            simple_odm_formal_expression_model = None
         return simple_odm_formal_expression_model
 
     uid: Annotated[str, Field()]
-    context: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
-    expression: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
+    context: Annotated[str, Field()]
+    expression: Annotated[str, Field()]
     version: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
 
 
@@ -88,15 +100,15 @@ class OdmFormalExpressionPostInput(PostInputModel):
 
 class OdmFormalExpressionPatchInput(PatchInputModel):
     change_description: Annotated[str, Field(min_length=1)]
-    context: Annotated[str | None, Field(min_length=1)]
-    expression: Annotated[str | None, Field(min_length=1)]
+    context: Annotated[str, Field(min_length=1)]
+    expression: Annotated[str, Field(min_length=1)]
 
 
 class OdmFormalExpressionBatchPatchInput(InputModel):
     uid: Annotated[str, Field(min_length=1)]
     change_description: Annotated[str, Field(min_length=1)]
-    context: Annotated[str | None, Field(min_length=1)]
-    expression: Annotated[str | None, Field(min_length=1)]
+    context: Annotated[str, Field(min_length=1)]
+    expression: Annotated[str, Field(min_length=1)]
 
 
 class OdmFormalExpressionVersion(OdmFormalExpression):

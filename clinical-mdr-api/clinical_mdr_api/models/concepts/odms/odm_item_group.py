@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field, field_validator
 
@@ -112,7 +112,7 @@ class OdmItemGroup(ConceptModel):
         return cls(
             uid=odm_item_group_ar._uid,
             oid=odm_item_group_ar.concept_vo.oid,
-            name=odm_item_group_ar.concept_vo.name,
+            name=odm_item_group_ar.name,
             repeating=booltostr(odm_item_group_ar.concept_vo.repeating),
             is_reference_data=booltostr(odm_item_group_ar.concept_vo.is_reference_data),
             sas_dataset_name=odm_item_group_ar.concept_vo.sas_dataset_name,
@@ -134,7 +134,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for description_uid in odm_item_group_ar.concept_vo.description_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             aliases=sorted(
                 [
@@ -144,7 +144,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for alias_uid in odm_item_group_ar.concept_vo.alias_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             sdtm_domains=sorted(
                 [
@@ -154,7 +154,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for sdtm_domain_uid in odm_item_group_ar.concept_vo.sdtm_domain_uids
                 ],
-                key=lambda item: item.code_submission_value,
+                key=lambda item: item.code_submission_value or "",
             ),
             activity_subgroups=sorted(
                 [
@@ -164,7 +164,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for activity_subgroup_uid in odm_item_group_ar.concept_vo.activity_subgroup_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             items=sorted(
                 [
@@ -176,7 +176,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for item_uid in odm_item_group_ar.concept_vo.item_uids
                 ],
-                key=lambda item: item.order_number,
+                key=lambda item: item.order_number or "",
             ),
             vendor_elements=sorted(
                 [
@@ -188,7 +188,7 @@ class OdmItemGroup(ConceptModel):
                     )
                     for vendor_element_uid in odm_item_group_ar.concept_vo.vendor_element_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_attributes=sorted(
                 [
@@ -196,12 +196,12 @@ class OdmItemGroup(ConceptModel):
                         uid=vendor_attribute_uid,
                         odm_element_uid=odm_item_group_ar._uid,
                         odm_element_type=RelationType.ITEM_GROUP,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                         vendor_element_attribute=False,
                     )
                     for vendor_attribute_uid in odm_item_group_ar.concept_vo.vendor_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_element_attributes=sorted(
                 [
@@ -209,11 +209,11 @@ class OdmItemGroup(ConceptModel):
                         uid=vendor_element_attribute_uid,
                         odm_element_uid=odm_item_group_ar._uid,
                         odm_element_type=RelationType.ITEM_GROUP,
-                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,
+                        find_by_uid_with_odm_element_relation=find_odm_vendor_attribute_by_uid_with_odm_element_relation,  # type: ignore[arg-type]
                     )
                     for vendor_element_attribute_uid in odm_item_group_ar.concept_vo.vendor_element_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_item_group_ar.get_possible_actions()]
@@ -222,6 +222,7 @@ class OdmItemGroup(ConceptModel):
 
 
 class OdmItemGroupRefModel(BaseModel):
+    @overload
     @classmethod
     def from_odm_item_group_uid(
         cls,
@@ -231,7 +232,30 @@ class OdmItemGroupRefModel(BaseModel):
             [str, str], OdmItemGroupRefVO | None
         ],
         find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_odm_item_group_uid(
+        cls,
+        uid: None,
+        form_uid: str,
+        find_odm_item_group_by_uid_with_form_relation: Callable[
+            [str, str], OdmItemGroupRefVO | None
+        ],
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_odm_item_group_uid(
+        cls,
+        uid: str | None,
+        form_uid: str,
+        find_odm_item_group_by_uid_with_form_relation: Callable[
+            [str, str], OdmItemGroupRefVO | None
+        ],
+        find_odm_vendor_attribute_by_uid: Callable[[str], OdmVendorAttributeAR | None],
     ) -> Self | None:
+        odm_item_group_ref_model = None
+
         if uid is not None:
             odm_item_group_ref_vo = find_odm_item_group_by_uid_with_form_relation(
                 uid, form_uid
@@ -271,8 +295,6 @@ class OdmItemGroupRefModel(BaseModel):
                     collection_exception_condition_oid=None,
                     vendor=OdmRefVendor(attributes=[]),
                 )
-        else:
-            odm_item_group_ref_model = None
         return odm_item_group_ref_model
 
     uid: Annotated[str, Field()]
@@ -306,6 +328,7 @@ class OdmItemGroupPostInput(ConceptPostInput):
 
 
 class OdmItemGroupPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     repeating: Annotated[str | None, Field()]
     is_reference_data: Annotated[str | None, Field()]

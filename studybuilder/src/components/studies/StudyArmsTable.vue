@@ -13,6 +13,7 @@
       :history-title="$t('StudyArmsTable.global_history_title')"
       disable-filtering
       :hide-default-body="sortMode && arms.length > 0"
+      :loading="loading"
       @filter="fetchStudyArms"
     >
       <template #afterSwitches>
@@ -37,24 +38,11 @@
             <td>{{ arm.arm_type?.sponsor_preferred_name }}</td>
             <td>{{ arm.name }}</td>
             <td>{{ arm.short_name }}</td>
+            <td>{{ arm.number_of_subjects }}</td>
             <td>{{ arm.randomization_group }}</td>
             <td>{{ arm.code }}</td>
-            <td>{{ arm.number_of_subjects }}</td>
-            <td>
-              <div
-                v-for="branch of arm.arm_connected_branch_arms"
-                :key="branch.branch_arm_uid"
-              >
-                {{ branch.name }}
-              </div>
-            </td>
+            <td>{{ arm.arm_connected_branch_arms?.length }}</td>
             <td>{{ arm.description }}</td>
-            <td>
-              <v-chip :color="arm.arm_colour" size="small" variant="flat">
-                <span>&nbsp;</span>
-                <span>&nbsp;</span>
-              </v-chip>
-            </td>
             <td>{{ $filters.date(arm.start_date) }}</td>
             <td>{{ arm.author_username }}</td>
           </tr>
@@ -77,27 +65,7 @@
         {{ $filters.date(item.start_date) }}
       </template>
       <template #[`item.arm_connected_branch_arms`]="{ item }">
-        <div v-if="item.arm_connected_branch_arms">
-          <router-link
-            v-for="branch of item.arm_connected_branch_arms"
-            :key="branch.branch_arm_uid"
-            :to="{
-              name: 'StudyBranchArmOverview',
-              params: {
-                study_id: studiesGeneralStore.selectedStudy.uid,
-                id: branch.branch_arm_uid,
-              },
-            }"
-          >
-            {{ branch.name }}
-          </router-link>
-        </div>
-      </template>
-      <template #[`item.arm_colour`]="{ item }">
-        <v-chip :color="item.arm_colour" size="small" variant="flat">
-          <span>&nbsp;</span>
-          <span>&nbsp;</span>
-        </v-chip>
+        {{ item.arm_connected_branch_arms?.length }}
       </template>
       <template #[`item.arm_type.sponsor_preferred_name`]="{ item }">
         <CTTermDisplay :term="item.arm_type" />
@@ -111,17 +79,29 @@
           size="small"
           variant="outlined"
           color="nnBaseBlue"
-          :title="$t('StudyArmsForm.add_arm')"
-          data-cy="add-study-arm"
+          :title="$t('StudyArmsTable.cohorts_stepper')"
           :disabled="
             !accessGuard.checkPermission($roles.STUDY_WRITE) ||
             studiesGeneralStore.selectedStudyVersion !== null
           "
-          icon="mdi-plus"
-          @click.stop="showArmsForm = true"
+          :icon="editStepper ? 'mdi-pencil' : 'mdi-plus'"
+          @click.stop="showCohortsStepper = true"
+          @close="showCohortsStepper = false"
         />
       </template>
     </NNTable>
+    <v-dialog
+      v-model="showCohortsStepper"
+      persistent
+      fullscreen
+      content-class="fullscreen-dialog"
+    >
+      <CohortsStepper
+        :design-class="designClass"
+        :initial-step="editStepper ? 2 : 1"
+        @close="closeCohortStepper"
+      />
+    </v-dialog>
     <StudyArmsForm
       :open="showArmsForm"
       :edited-arm="armToEdit"
@@ -148,6 +128,7 @@
 <script setup>
 import NNTable from '@/components/tools/NNTable.vue'
 import armsApi from '@/api/arms'
+import cohortsApi from '@/api/cohorts'
 import CTTermDisplay from '@/components/tools/CTTermDisplay.vue'
 import StudyArmsForm from '@/components/studies/StudyArmsForm.vue'
 import ActionsMenu from '@/components/tools/ActionsMenu.vue'
@@ -155,11 +136,13 @@ import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
 import filteringParameters from '@/utils/filteringParameters'
 import studyEpochs from '@/api/studyEpochs'
 import HistoryTable from '@/components/tools/HistoryTable.vue'
+import CohortsStepper from './CohortsStepper.vue'
 import { useAccessGuard } from '@/composables/accessGuard'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
+import cohortConstants from '@/constants/cohorts'
 
 const { t } = useI18n()
 const eventBusEmit = inject('eventBusEmit')
@@ -178,6 +161,24 @@ const [parent, arms] = useDragAndDrop([], {
   },
 })
 
+onMounted(() => {
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  cohortsApi
+    .getStudyDesignClass(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      designClass.value = resp.data.value
+    })
+    .catch((error) => {
+      if (error.response.status === 404) {
+        console.error(error)
+      }
+    })
+})
+
 const headers = [
   { title: '', key: 'actions', width: '1%' },
   { title: '#', key: 'order', width: '5%' },
@@ -189,21 +190,19 @@ const headers = [
   { title: t('StudyArmsTable.name'), key: 'name' },
   { title: t('StudyArmsTable.short_name'), key: 'short_name' },
   {
+    title: t('StudyArmsTable.number_of_participants'),
+    key: 'number_of_subjects',
+  },
+  {
     title: t('StudyArmsTable.randomisation_group'),
     key: 'randomization_group',
   },
   { title: t('StudyArmsTable.code'), key: 'code' },
   {
-    title: t('StudyArmsTable.number_of_subjects'),
-    key: 'number_of_subjects',
-    width: '1%',
-  },
-  {
     title: t('StudyArmsTable.connected_branches'),
     key: 'arm_connected_branch_arms',
   },
   { title: t('StudyArmsTable.description'), key: 'description' },
-  { title: t('StudyBranchArms.colour'), key: 'arm_colour' },
   { title: t('_global.modified'), key: 'start_date' },
   { title: t('_global.modified_by'), key: 'author_username' },
 ]
@@ -237,6 +236,10 @@ const showArmHistory = ref(false)
 const armHistoryItems = ref([])
 const selectedArm = ref(null)
 const sortMode = ref(false)
+const showCohortsStepper = ref(false)
+const loading = ref(false)
+const designClass = ref('')
+const editStepper = ref(false)
 
 const exportDataUrl = computed(() => {
   return `studies/${studiesGeneralStore.selectedStudy.uid}/study-arms`
@@ -273,6 +276,26 @@ function fetchStudyArms(filters, options, filtersUpdated) {
     })
 }
 
+function closeCohortStepper() {
+  showCohortsStepper.value = false
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  cohortsApi
+    .getStudyDesignClass(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      designClass.value = resp.data.value
+    })
+    .catch((error) => {
+      if (error.response.status === 404) {
+        console.error(error)
+      }
+    })
+  table.value.filterTable()
+}
+
 function closeForm() {
   armToEdit.value = {}
   showArmsForm.value = false
@@ -280,8 +303,12 @@ function closeForm() {
 }
 
 function editArm(item) {
-  armToEdit.value = item
-  showArmsForm.value = true
+  if (designClass.value === cohortConstants.MANUAL) {
+    armToEdit.value = item
+    showArmsForm.value = true
+  } else {
+    showCohortsStepper.value = true
+  }
 }
 
 async function openArmHistory(arm) {
@@ -300,6 +327,7 @@ function closeArmHistory() {
 }
 
 async function deleteArm(item) {
+  loading.value = true
   let relatedItems = 0
   await armsApi
     .getAllBranchesForArm(studiesGeneralStore.selectedStudy.uid, item.arm_uid)
@@ -345,6 +373,7 @@ async function deleteArm(item) {
         table.value.filterTable()
       })
   }
+  loading.value = false
 }
 
 function changeOrder(armUid, newOrder) {

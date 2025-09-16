@@ -110,8 +110,8 @@ class ActivityInstanceService(ConceptGenericService[ActivityInstanceAR]):
             concept_vo=ActivityInstanceVO.from_repository_values(
                 nci_concept_id=concept_input.nci_concept_id,
                 nci_concept_name=concept_input.nci_concept_name,
-                name=concept_input.name,
-                name_sentence_case=concept_input.name_sentence_case,
+                name=concept_input.name or "",
+                name_sentence_case=concept_input.name_sentence_case or "",
                 definition=concept_input.definition,
                 abbreviation=concept_input.abbreviation,
                 is_research_lab=concept_input.is_research_lab,
@@ -247,7 +247,7 @@ class ActivityInstanceService(ConceptGenericService[ActivityInstanceAR]):
                 ),
                 name=concept_edit_input.name or item.name,
                 name_sentence_case=concept_edit_input.name_sentence_case
-                or item.concept_vo.name_sentence_case,
+                or item.name_sentence_case,
                 definition=concept_edit_input.definition or item.concept_vo.definition,
                 abbreviation=concept_edit_input.abbreviation
                 or item.concept_vo.abbreviation,

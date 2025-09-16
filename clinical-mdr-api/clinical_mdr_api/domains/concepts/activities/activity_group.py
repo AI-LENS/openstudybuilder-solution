@@ -42,13 +42,16 @@ class ActivityGroupVO(ConceptVO):
         library_name: str | None = None,
     ) -> None:
         self.validate_name_sentence_case()
-        existing_name = activity_group_exists_by_name_callback(library_name, self.name)
-        AlreadyExistsException.raise_if(
-            existing_name and previous_name != self.name,
-            "Activity Group",
-            self.name,
-            "Name",
-        )
+        if self.name and library_name is not None:
+            existing_name = activity_group_exists_by_name_callback(
+                library_name, self.name
+            )
+            AlreadyExistsException.raise_if(
+                existing_name and previous_name != self.name,
+                "Activity Group",
+                self.name,
+                "Name",
+            )
 
 
 @dataclass
@@ -58,6 +61,10 @@ class ActivityGroupAR(ConceptARBase):
     @property
     def concept_vo(self) -> ActivityGroupVO:
         return self._concept_vo
+
+    @concept_vo.setter
+    def concept_vo(self, value: ActivityGroupVO) -> None:
+        self._concept_vo = value
 
     @property
     def name(self) -> str:
@@ -69,7 +76,7 @@ class ActivityGroupAR(ConceptARBase):
         author_id: str,
         concept_vo: ActivityGroupVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool
         ] = lambda x, y, z: True,
@@ -102,7 +109,7 @@ class ActivityGroupAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: ActivityGroupVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

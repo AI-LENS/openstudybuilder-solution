@@ -480,7 +480,7 @@ MERGE (oir)-[:HAS_ALIAS]->(oa)
 WITH *
 MATCH (ItemRoot:OdmItemRoot {uid: "odm_item1"})
 MATCH (UnitRoot:UnitDefinitionRoot {uid: "unit_definition_root1"})
-MERGE (ItemRoot)-[:HAS_UNIT_DEFINITION]->(UnitRoot)
+MERGE (ItemRoot)-[:HAS_UNIT_DEFINITION {mandatory: false}]->(UnitRoot)
 
 MERGE (CodelistRoot:CTCodelistRoot {uid: "codelist_root1"})
 MERGE (Library)-[:CONTAINS_CODELIST]->(CodelistRoot)
@@ -3485,7 +3485,7 @@ def _create_paths(app: FastAPI, path_prefix="") -> list[dict[str, Any]]:
             path = create_stub(path_prefix + route.path, route.methods)
             paths.append(path)
         elif isinstance(route, Mount):
-            paths += _create_paths(route.app, route.path)
+            paths += _create_paths(route.app, route.path)  # type: ignore[arg-type]
     return paths
 
 
@@ -3627,7 +3627,7 @@ def fix_study_preferred_time_unit(study_uid):
         if codelists:
             unit_subset_codelist = codelists[0]
         else:
-            unit_subset_codelist = TestUtils.create_ct_codelist(
+            unit_subset_codelist = TestUtils.create_ct_codelist(  # type: ignore[assignment]
                 name="Unit Subset",
                 sponsor_preferred_name="unit subset",
                 extensible=True,
@@ -3647,7 +3647,7 @@ def fix_study_preferred_time_unit(study_uid):
         ):
             unit_subset_term = terms[0]
         else:
-            unit_subset_term = TestUtils.create_ct_term(
+            unit_subset_term = TestUtils.create_ct_term(  # type: ignore[assignment]
                 codelist_uid=unit_subset_codelist.codelist_uid,
                 sponsor_preferred_name_sentence_case="study time",
                 sponsor_preferred_name="Study Time",

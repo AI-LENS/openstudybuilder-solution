@@ -75,10 +75,10 @@ class ObjectiveTemplateAR(TemplateAggregateRootBase):
         author_id: str,
         template: TemplateVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
         next_available_sequence_id_callback: Callable[
-            [str, LibraryVO | None], str | None
-        ] = lambda uid, library: None,
+            ..., str
+        ] = lambda uid, library: "",
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         is_confirmatory_testing: bool = False,
         indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,

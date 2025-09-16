@@ -140,7 +140,7 @@ class CommentsRepository:
         self,
         item_latest: CommentThreadAR,
         item_previous: CommentThreadAR,
-        author_id: str | None = None,
+        author_id: str,
     ) -> None:
         now = datetime.now()
 

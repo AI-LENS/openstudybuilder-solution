@@ -7,6 +7,13 @@ from clinical_mdr_api.utils import normalize_string
 from common import exceptions
 
 
+@dataclass
+class CompactStudyCohortVO:
+    study_cohort_uid: str
+    study_cohort_name: str | None = field(compare=False)
+    study_cohort_code: str | None = field(compare=False)
+
+
 @dataclass(frozen=True)
 class StudySelectionBranchArmVO:
     """
@@ -19,38 +26,38 @@ class StudySelectionBranchArmVO:
     short_name: str | None
     code: str | None
     description: str | None
-    colour_code: str | None
     randomization_group: str | None
     number_of_subjects: int | None
-    arm_root_uid: str | None
-    start_date: datetime.datetime
+    arm_root_uid: str
+    study_cohorts: list[CompactStudyCohortVO] | None
+    start_date: datetime.datetime = field(compare=False)
     author_id: str
     end_date: datetime.datetime | None
     status: str | None
     change_type: str | None
-    accepted_version: bool = False
     author_username: str | None = None
+    accepted_version: bool = False
 
     @classmethod
     def from_input_values(
         cls,
         author_id: str,
+        arm_root_uid: str,
+        name: str | None,
+        short_name: str | None,
         study_selection_uid: str | None = None,
         study_uid: str | None = None,
-        name: str | None = None,
-        short_name: str | None = None,
         code: str | None = None,
         description: str | None = None,
-        colour_code: str | None = None,
         randomization_group: str | None = None,
         number_of_subjects: int | None = 0,
-        arm_root_uid: str | None = None,
+        study_cohorts: list[CompactStudyCohortVO] | None = None,
         start_date: datetime.datetime | None = None,
         end_date: datetime.datetime | None = None,
         status: str | None = None,
         change_type: str | None = None,
-        accepted_version: bool | None = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        accepted_version: bool = False,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         """
         Factory method
@@ -60,9 +67,10 @@ class StudySelectionBranchArmVO:
         :param short_name
         :param code
         :param description
-        :param colour_code
         :param randomization_group
         :param number_of_subjects
+        :param arm_root_uid
+        :param study_cohorts
         :param start_date
         :param author_id
         :param end_date
@@ -86,10 +94,10 @@ class StudySelectionBranchArmVO:
             short_name=short_name,
             code=code,
             description=description,
-            colour_code=colour_code,
             randomization_group=randomization_group,
             number_of_subjects=number_of_subjects,
             arm_root_uid=arm_root_uid,
+            study_cohorts=study_cohorts,
             start_date=start_date,
             author_id=author_id,
             author_username=UserInfoService.get_author_username_from_id(author_id),
@@ -101,11 +109,13 @@ class StudySelectionBranchArmVO:
 
     def validate(
         self,
-        study_branch_arm_study_arm_update_conflict_callback: Callable[[str], bool] = (
-            lambda _: True
-        ),
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        branch_arm_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_branch_arm_study_arm_update_conflict_callback: Callable[
+            ["StudySelectionBranchArmVO"], bool
+        ] = lambda _: True,
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        branch_arm_exists_callback_by: Callable[
+            [str, str, "StudySelectionBranchArmVO"], bool
+        ] = lambda x, y, z: True,
     ) -> None:
         """
         Validating business logic for a VO
@@ -116,54 +126,33 @@ class StudySelectionBranchArmVO:
         # Checks whether a BranchArm that has connected StudyDesignCells is not trying to change StudyArm
         exceptions.ValidationException.raise_if(
             self.arm_root_uid
-            and study_branch_arm_study_arm_update_conflict_callback(branch_arm_vo=self),
+            and study_branch_arm_study_arm_update_conflict_callback(self),
             msg=f"Cannot change StudyArm when the BranchArm with UID '{self.study_selection_uid}' has connected StudyDesignCells.",
         )
         # Check if there exist a StudyArm with the selected uid
         exceptions.ValidationException.raise_if_not(
-            study_arm_exists_callback(self.arm_root_uid),
+            self.arm_root_uid and study_arm_exists_callback(self.arm_root_uid),
             msg=f"There is no approved Arm Level with UID '{self.arm_root_uid}'.",
         )
 
         # check if the specified name is already used with the callback
         exceptions.ValidationException.raise_if(
-            self.name
-            and branch_arm_exists_callback_by("name", "name", branch_arm_vo=self),
+            self.name and branch_arm_exists_callback_by("name", "name", self),
             msg=f"Value '{self.name}' in field Branch Arm Name is not unique for the study.",
         )
 
         # check if the specified Short name is already used with the callback
         exceptions.ValidationException.raise_if(
             self.short_name
-            and branch_arm_exists_callback_by(
-                "short_name", "short_name", branch_arm_vo=self
-            ),
+            and branch_arm_exists_callback_by("short_name", "short_name", self),
             msg=f"Value '{self.short_name}' in field Branch Arm Short Name is not unique for the study.",
-        )
-
-        # check if the specified code is already used with the callback
-        exceptions.ValidationException.raise_if(
-            self.code
-            and branch_arm_exists_callback_by(
-                "branch_arm_code", "code", branch_arm_vo=self
-            ),
-            msg=f"Value '{self.code}' in field Branch Arm Code is not unique for the study.",
-        )
-
-        # check if the specified randomization group is already used with the callback
-        exceptions.ValidationException.raise_if(
-            self.randomization_group
-            and branch_arm_exists_callback_by(
-                "randomization_group", "randomization_group", branch_arm_vo=self
-            ),
-            msg=f"Value '{self.randomization_group}' in field Branch Arm Randomization code is not unique for the study.",
         )
 
 
 @dataclass
 class StudySelectionBranchArmAR:
     _study_uid: str
-    _study_branch_arms_selection: tuple[StudySelectionBranchArmVO]
+    _study_branch_arms_selection: tuple[StudySelectionBranchArmVO, ...]
     # a dataclass feature that has Any value with a type field NOT included on the
     # generated init method, NOT included con copare generated methods, included on
     # the string returned by the generated method, and its default is None
@@ -186,12 +175,12 @@ class StudySelectionBranchArmAR:
         return self._study_uid
 
     @property
-    def study_branch_arms_selection(self) -> tuple[StudySelectionBranchArmVO]:
+    def study_branch_arms_selection(self) -> tuple[StudySelectionBranchArmVO, ...]:
         return self._study_branch_arms_selection
 
     def get_specific_branch_arm_selection(
         self, study_branch_arm_uid: str, arm_root_uid: str | None = None
-    ) -> tuple[StudySelectionBranchArmVO, int] | None:
+    ) -> tuple[StudySelectionBranchArmVO, int]:
         # the study branch arm must be in any parent arm
         exceptions.NotFoundException.raise_if(
             study_branch_arm_uid
@@ -238,11 +227,14 @@ class StudySelectionBranchArmAR:
     def add_branch_arm_selection(
         self,
         study_branch_arm_selection: StudySelectionBranchArmVO,
-        study_branch_arm_study_arm_update_conflict_callback: Callable[[str], bool] = (
-            lambda _: True
-        ),
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        branch_arm_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_branch_arm_study_arm_update_conflict_callback: Callable[
+            [StudySelectionBranchArmVO], bool
+        ] = lambda _: True,
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        branch_arm_exists_callback_by: Callable[
+            [str, str, StudySelectionBranchArmVO], bool
+        ] = lambda x, y, z: True,
+        validate: bool = True,
     ) -> None:
         """
         Adding a new study branch arm to the _study_branch_arm_selection
@@ -251,11 +243,12 @@ class StudySelectionBranchArmAR:
         :param branch_arm_exists_callback_by:
         :return:
         """
-        study_branch_arm_selection.validate(
-            study_branch_arm_study_arm_update_conflict_callback=study_branch_arm_study_arm_update_conflict_callback,
-            study_arm_exists_callback=study_arm_exists_callback,
-            branch_arm_exists_callback_by=branch_arm_exists_callback_by,
-        )
+        if validate:
+            study_branch_arm_selection.validate(
+                study_branch_arm_study_arm_update_conflict_callback=study_branch_arm_study_arm_update_conflict_callback,
+                study_arm_exists_callback=study_arm_exists_callback,
+                branch_arm_exists_callback_by=branch_arm_exists_callback_by,
+            )
         self._add_selection(study_branch_arm_selection)
 
     @classmethod
@@ -333,11 +326,14 @@ class StudySelectionBranchArmAR:
     def update_selection(
         self,
         updated_study_branch_arm_selection: StudySelectionBranchArmVO,
-        study_branch_arm_study_arm_update_conflict_callback: Callable[[str], bool] = (
-            lambda _: True
-        ),
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        branch_arm_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_branch_arm_study_arm_update_conflict_callback: Callable[
+            [StudySelectionBranchArmVO], bool
+        ] = lambda _: True,
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        branch_arm_exists_callback_by: Callable[
+            [str, str, "StudySelectionBranchArmVO"], bool
+        ] = lambda x, y, z: True,
+        validate: bool = True,
     ) -> None:
         """
         Used when a study branch arm is patched
@@ -345,11 +341,12 @@ class StudySelectionBranchArmAR:
         :param branch_arm_exists_callback_by:
         :return:
         """
-        updated_study_branch_arm_selection.validate(
-            study_branch_arm_study_arm_update_conflict_callback=study_branch_arm_study_arm_update_conflict_callback,
-            study_arm_exists_callback=study_arm_exists_callback,
-            branch_arm_exists_callback_by=branch_arm_exists_callback_by,
-        )
+        if validate:
+            updated_study_branch_arm_selection.validate(
+                study_branch_arm_study_arm_update_conflict_callback=study_branch_arm_study_arm_update_conflict_callback,
+                study_arm_exists_callback=study_arm_exists_callback,
+                branch_arm_exists_callback_by=branch_arm_exists_callback_by,
+            )
         # Check if study objective or level have changed
         updated_selection = []
         for selection in self.study_branch_arms_selection:

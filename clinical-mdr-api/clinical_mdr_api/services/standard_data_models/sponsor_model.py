@@ -8,7 +8,8 @@ from clinical_mdr_api.domains.standard_data_models.sponsor_model import (
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryVO
 from clinical_mdr_api.models.standard_data_models.sponsor_model import (
     SponsorModel,
-    SponsorModelInput,
+    SponsorModelCreateInput,
+    SponsorModelEditInput,
 )
 from clinical_mdr_api.services.neomodel_ext_generic import NeomodelExtGenericService
 
@@ -25,7 +26,7 @@ class SponsorModelService(NeomodelExtGenericService[SponsorModelAR]):
         )
 
     def _create_aggregate_root(
-        self, item_input: SponsorModelInput, library: LibraryVO
+        self, item_input: SponsorModelCreateInput, library: LibraryVO
     ) -> SponsorModelAR:
         return SponsorModelAR.from_input_values(
             author_id=self.author_id,
@@ -43,7 +44,7 @@ class SponsorModelService(NeomodelExtGenericService[SponsorModelAR]):
         )
 
     def _edit_aggregate(
-        self, item: SponsorModelAR, item_edit_input: SponsorModelInput
+        self, item: SponsorModelAR, item_edit_input: SponsorModelEditInput
     ) -> SponsorModelAR:
         item.edit_draft(
             author_id=self.author_id,

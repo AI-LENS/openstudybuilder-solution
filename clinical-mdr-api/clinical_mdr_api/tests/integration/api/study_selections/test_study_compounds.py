@@ -223,10 +223,6 @@ def test_data():
             compound_alias_uid=compound_alias.uid,
             medicinal_product_uid=medicinal_products_all[idx].uid,
             type_of_treatment_uid="CTTerm_000001",
-            dispenser_uid=ct_term_dispenser.term_uid,
-            dose_value_uid=dose_value.uid,
-            dose_frequency_uid=ct_term_dose_frequency.term_uid,
-            delivery_device_uid=ct_term_delivery_device.term_uid,
             other_info=f"other_info_{rand}_{idx}",
         )
         study_compounds_all.append(study_compound)

@@ -1,29 +1,39 @@
 from datetime import datetime
+from typing import Any
 
+from fastapi import status
 from neomodel import db
 
 from clinical_mdr_api.domain_repositories.study_selections.study_branch_arm_repository import (
     SelectionHistoryBranchArm,
 )
 from clinical_mdr_api.domains.study_selections.study_selection_branch_arm import (
+    CompactStudyCohortVO,
     StudySelectionBranchArmAR,
     StudySelectionBranchArmVO,
 )
+from clinical_mdr_api.models.error import BatchErrorResponse
 from clinical_mdr_api.models.study_selections.study_selection import (
     StudyDesignCellBatchInput,
     StudyDesignCellBatchOutput,
     StudyDesignCellEditInput,
     StudySelectionArm,
     StudySelectionBranchArm,
+    StudySelectionBranchArmBatchInput,
+    StudySelectionBranchArmBatchOutput,
     StudySelectionBranchArmCreateInput,
     StudySelectionBranchArmEditInput,
     StudySelectionBranchArmHistory,
     StudySelectionBranchArmVersion,
 )
+from clinical_mdr_api.models.utils import GenericFilteringReturn
+from clinical_mdr_api.repositories._utils import FilterOperator
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services._utils import (
     calculate_diffs,
+    ensure_transaction,
     fill_missing_values_in_base_model_from_reference_base_model,
+    service_level_generic_filtering,
 )
 from clinical_mdr_api.services.studies.study_design_cell import StudyDesignCellService
 from clinical_mdr_api.services.studies.study_selection_base import StudySelectionMixin
@@ -40,9 +50,12 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionBranchArmAR,
+        study_selection: StudySelectionBranchArmAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionBranchArm]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -79,24 +92,41 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
 
-    @db.transaction
     def get_all_selection(
         self,
         study_uid: str,
         study_value_version: str | None = None,
-    ) -> list[StudySelectionBranchArm]:
+        sort_by: dict[str, bool] | None = None,
+        page_number: int = 1,
+        page_size: int = 0,
+        filter_by: dict[str, dict[str, Any]] | None = None,
+        filter_operator: FilterOperator = FilterOperator.AND,
+        total_count: bool = False,
+    ) -> GenericFilteringReturn[StudySelectionBranchArm]:
         repos = MetaRepository()
         try:
             branch_arm_selection_ar = repos.study_branch_arm_repository.find_by_study(
                 study_uid, study_value_version=study_value_version
             )
-            return self._transform_all_to_response_model(
+
+            selections = self._transform_all_to_response_model(
                 branch_arm_selection_ar, study_value_version=study_value_version
             )
+            # Do filtering, sorting, pagination and count
+            filtered_items = service_level_generic_filtering(
+                items=selections,
+                filter_by=filter_by,
+                filter_operator=filter_operator,
+                sort_by=sort_by,
+                total_count=total_count,
+                page_number=page_number,
+                page_size=page_size,
+            )
+            return filtered_items
+
         finally:
             repos.close()
 
-    @db.transaction
     def get_all_selection_within_arm(
         self,
         study_uid: str,
@@ -116,7 +146,7 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def delete_selection(self, study_uid: str, study_selection_uid: str):
         repos = self._repos
         try:
@@ -188,7 +218,7 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def set_new_order(
         self, study_uid: str, study_selection_uid: str, new_order: int
     ) -> StudySelectionBranchArm:
@@ -230,7 +260,6 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
             study_uid=study_uid,
         )
 
-    @db.transaction
     def get_all_selection_audit_trail(
         self, study_uid: str
     ) -> list[StudySelectionBranchArmVersion]:
@@ -270,7 +299,6 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
     def get_specific_selection_audit_trail(
         self, study_uid: str, study_selection_uid: str
     ) -> list[StudySelectionBranchArmVersion]:
@@ -345,67 +373,79 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
         assert len(design_cells_updated) > 0
         return design_cells_updated
 
+    @ensure_transaction(db)
     def make_selection(
         self,
         study_uid: str,
         selection_create_input: StudySelectionBranchArmCreateInput,
+        validate: bool = True,
     ) -> StudySelectionBranchArm:
         repos = self._repos
 
         try:
+            # create new VO to add
+            new_selection = StudySelectionBranchArmVO.from_input_values(
+                study_uid=study_uid,
+                author_id=self.author,
+                name=selection_create_input.name,
+                short_name=selection_create_input.short_name,
+                code=selection_create_input.code,
+                description=selection_create_input.description,
+                randomization_group=selection_create_input.randomization_group,
+                number_of_subjects=selection_create_input.number_of_subjects,
+                arm_root_uid=selection_create_input.arm_uid,
+                study_cohorts=(
+                    [
+                        CompactStudyCohortVO(
+                            study_cohort_uid=selection_create_input.study_cohort_uid,
+                            study_cohort_code=None,
+                            study_cohort_name=None,
+                        )
+                    ]
+                    if selection_create_input.study_cohort_uid
+                    else []
+                ),
+                generate_uid_callback=repos.study_branch_arm_repository.generate_uid,
+            )
             # Load aggregate
-            with db.transaction:
-                # create new VO to add
-                new_selection = StudySelectionBranchArmVO.from_input_values(
-                    study_uid=study_uid,
-                    author_id=self.author,
-                    name=selection_create_input.name,
-                    short_name=selection_create_input.short_name,
-                    code=selection_create_input.code,
-                    description=selection_create_input.description,
-                    colour_code=selection_create_input.colour_code,
-                    randomization_group=selection_create_input.randomization_group,
-                    number_of_subjects=selection_create_input.number_of_subjects,
-                    arm_root_uid=selection_create_input.arm_uid,
-                    generate_uid_callback=repos.study_branch_arm_repository.generate_uid,
+            selection_aggregate: StudySelectionBranchArmAR = (
+                repos.study_branch_arm_repository.find_by_study(
+                    study_uid=study_uid, for_update=True
                 )
-                # add VO to aggregate
-                selection_aggregate: StudySelectionBranchArmAR = (
-                    repos.study_branch_arm_repository.find_by_study(
-                        study_uid=study_uid, for_update=True
-                    )
-                )
-                assert selection_aggregate is not None
-                selection_aggregate.add_branch_arm_selection(
-                    study_branch_arm_selection=new_selection,
-                    study_branch_arm_study_arm_update_conflict_callback=(
-                        repos.study_branch_arm_repository.branch_arm_arm_update_conflict
-                    ),
-                    study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
-                    branch_arm_exists_callback_by=repos.study_branch_arm_repository.branch_arm_exists_by,
-                )
+            )
+            assert selection_aggregate is not None
+            # add VO to aggregate
+            selection_aggregate.add_branch_arm_selection(
+                study_branch_arm_selection=new_selection,
+                study_branch_arm_study_arm_update_conflict_callback=(
+                    repos.study_branch_arm_repository.branch_arm_arm_update_conflict
+                ),
+                study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                branch_arm_exists_callback_by=repos.study_branch_arm_repository.branch_arm_exists_by,
+                validate=validate,
+            )
 
-                # sync with DB and save the update
-                repos.study_branch_arm_repository.save(selection_aggregate, self.author)
+            # sync with DB and save the update
+            repos.study_branch_arm_repository.save(selection_aggregate, self.author)
 
-                # Fetch the new selection which was just added
-                (
-                    new_selection,
-                    order,
-                ) = selection_aggregate.get_specific_branch_arm_selection(
-                    new_selection.study_selection_uid
-                )
-                terms_at_specific_datetime = (
-                    self._extract_study_standards_effective_date(study_uid=study_uid)
-                )
-                # add the Brancharm and return
-                return StudySelectionBranchArm.from_study_selection_branch_arm_ar_and_order(
-                    study_uid=study_uid,
-                    selection=new_selection,
-                    order=order,
-                    find_simple_term_branch_arm_root_by_term_uid=self._get_specific_arm_selection,
-                    terms_at_specific_datetime=terms_at_specific_datetime,
-                )
+            # Fetch the new selection which was just added
+            (
+                new_selection,
+                order,
+            ) = selection_aggregate.get_specific_branch_arm_selection(
+                new_selection.study_selection_uid
+            )
+            terms_at_specific_datetime = self._extract_study_standards_effective_date(
+                study_uid=study_uid
+            )
+            # add the Brancharm and return
+            return StudySelectionBranchArm.from_study_selection_branch_arm_ar_and_order(
+                study_uid=study_uid,
+                selection=new_selection,
+                order=order,
+                find_simple_term_branch_arm_root_by_term_uid=self._get_specific_arm_selection,
+                terms_at_specific_datetime=terms_at_specific_datetime,
+            )
         finally:
             repos.close()
             # if the studyarm has studydesigncells connected?
@@ -432,10 +472,14 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
             short_name=current_study_branch_arm.short_name,
             code=current_study_branch_arm.code,
             description=current_study_branch_arm.description,
-            colour_code=current_study_branch_arm.colour_code,
             randomization_group=current_study_branch_arm.randomization_group,
             number_of_subjects=current_study_branch_arm.number_of_subjects,
             arm_uid=current_study_branch_arm.arm_root_uid,
+            study_cohort_uid=(
+                current_study_branch_arm.study_cohorts[0].study_cohort_uid
+                if current_study_branch_arm.study_cohorts
+                else None
+            ),
         )
 
         # fill the missing from the inputs
@@ -444,28 +488,46 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
             reference_base_model=transformed_current,
         )
 
+        if request_study_branch_arm.arm_uid is None:
+            raise ValueError("arm_uid must not be None")
+
         return StudySelectionBranchArmVO.from_input_values(
             study_uid=current_study_branch_arm.study_uid,
             name=request_study_branch_arm.name,
             short_name=request_study_branch_arm.short_name,
             code=request_study_branch_arm.code,
             description=request_study_branch_arm.description,
-            colour_code=request_study_branch_arm.colour_code,
             randomization_group=request_study_branch_arm.randomization_group,
             number_of_subjects=request_study_branch_arm.number_of_subjects,
             arm_root_uid=request_study_branch_arm.arm_uid,
+            study_cohorts=(
+                [
+                    CompactStudyCohortVO(
+                        study_cohort_uid=request_study_branch_arm.study_cohort_uid,
+                        study_cohort_code=None,
+                        study_cohort_name=None,
+                    )
+                ]
+                if request_study_branch_arm.study_cohort_uid
+                else []
+            ),
             study_selection_uid=current_study_branch_arm.study_selection_uid,
             author_id=self.author,
         )
 
-    @db.transaction
+    @ensure_transaction(db)
     def patch_selection(
         self,
         study_uid: str,
+        study_selection_uid: str,
         selection_update_input: StudySelectionBranchArmEditInput,
+        validate: bool = True,
     ) -> StudySelectionBranchArm:
         repos = self._repos
-        study_selection_uid = selection_update_input.branch_arm_uid  # to delete
+
+        if selection_update_input.branch_arm_uid is None:
+            raise exceptions.BusinessLogicException("branch_arm_uid must not be None")
+
         try:
             # Load aggregate
             selection_aggregate: StudySelectionBranchArmAR = (
@@ -486,28 +548,36 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
                 request_study_branch_arm=selection_update_input,
                 current_study_branch_arm=current_vo,
             )
+            selection_vo: StudySelectionBranchArmVO
 
-            # let the aggregate update the value object
-            selection_aggregate.update_selection(
-                updated_study_branch_arm_selection=updated_selection,
-                study_branch_arm_study_arm_update_conflict_callback=repos.study_branch_arm_repository.branch_arm_arm_update_conflict,
-                study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
-                branch_arm_exists_callback_by=repos.study_branch_arm_repository.branch_arm_exists_by,
-            )
-            # sync with DB and save the update
-            repos.study_branch_arm_repository.save(selection_aggregate, self.author)
+            if updated_selection != current_vo:
+                # let the aggregate update the value object
+                selection_aggregate.update_selection(
+                    updated_study_branch_arm_selection=updated_selection,
+                    study_branch_arm_study_arm_update_conflict_callback=repos.study_branch_arm_repository.branch_arm_arm_update_conflict,
+                    study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                    branch_arm_exists_callback_by=repos.study_branch_arm_repository.branch_arm_exists_by,
+                    validate=validate,
+                )
+                # sync with DB and save the update
+                repos.study_branch_arm_repository.save(selection_aggregate, self.author)
 
-            # Fetch the new selection which was just updated
-            new_selection, order = selection_aggregate.get_specific_object_selection(
-                study_selection_uid
-            )
+                # Fetch the new selection which was just updated
+                new_selection, order = (
+                    selection_aggregate.get_specific_object_selection(
+                        study_selection_uid
+                    )
+                )
+                selection_vo = new_selection
+            else:
+                selection_vo = current_vo
             terms_at_specific_datetime = self._extract_study_standards_effective_date(
                 study_uid=study_uid
             )
             # add the branch arm and return
             return StudySelectionBranchArm.from_study_selection_branch_arm_ar_and_order(
                 study_uid=study_uid,
-                selection=new_selection,
+                selection=selection_vo,
                 order=order,
                 find_simple_term_branch_arm_root_by_term_uid=self._get_specific_arm_selection,
                 terms_at_specific_datetime=terms_at_specific_datetime,
@@ -515,7 +585,6 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
     def get_specific_selection(
         self,
         study_uid: str,
@@ -541,3 +610,86 @@ class StudyBranchArmSelectionService(StudySelectionMixin):
             study_value_version=study_value_version,
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
+
+    @ensure_transaction(db)
+    def handle_batch_operations(
+        self,
+        study_uid: str,
+        operations: list[StudySelectionBranchArmBatchInput],
+    ) -> list[StudySelectionBranchArmBatchOutput]:
+        results = []
+        try:
+            for operation in operations:
+                item = None
+                if operation.method == "PATCH":
+                    if isinstance(operation.content, StudySelectionBranchArmEditInput):
+                        item = self.patch_selection(
+                            study_uid=study_uid,
+                            study_selection_uid=operation.content.branch_arm_uid,
+                            selection_update_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_200_OK
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudySelectionBranchArmEditInput as request payload."
+                        )
+                elif operation.method == "POST":
+                    if isinstance(
+                        operation.content, StudySelectionBranchArmCreateInput
+                    ):
+                        item = self.make_selection(
+                            study_uid=study_uid,
+                            selection_create_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_201_CREATED
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudySelectionBranchArmCreateInput as request payload."
+                        )
+                elif operation.method == "DELETE":
+                    self.delete_selection(
+                        study_uid=study_uid,
+                        study_selection_uid=operation.content.branch_arm_uid,
+                    )
+                    response_code = status.HTTP_204_NO_CONTENT
+                else:
+                    raise exceptions.MethodNotAllowedException(method=operation.method)
+                results.append(
+                    StudySelectionBranchArmBatchOutput(
+                        response_code=response_code,
+                        content=item,
+                    )
+                )
+
+            # For batch operations we need to perform validation/uniqueness checks after all requests are handled
+            study_branch_arm_ar: StudySelectionBranchArmAR = (
+                self._repos.study_branch_arm_repository.find_by_study(
+                    study_uid=study_uid
+                )
+            )
+            modified_study_branch_arms = {
+                study_branch_arm.content.branch_arm_uid
+                for study_branch_arm in results
+                if study_branch_arm.content
+            }
+            for study_branch_arm_vo in study_branch_arm_ar.study_branch_arms_selection:
+                if (
+                    study_branch_arm_vo.study_selection_uid
+                    in modified_study_branch_arms
+                ):
+                    study_branch_arm_vo.validate(
+                        study_branch_arm_study_arm_update_conflict_callback=self._repos.study_branch_arm_repository.branch_arm_arm_update_conflict,
+                        study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                        branch_arm_exists_callback_by=self._repos.study_branch_arm_repository.branch_arm_exists_by,
+                    )
+        except exceptions.MDRApiBaseException as error:
+            results.append(
+                StudySelectionBranchArmBatchOutput.model_construct(
+                    response_code=error.status_code,
+                    content=BatchErrorResponse(message=str(error)),
+                )
+            )
+            raise error
+        return results

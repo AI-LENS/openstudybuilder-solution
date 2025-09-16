@@ -22,7 +22,6 @@
           <v-text-field
             v-model="form.nci_preferred_name"
             :label="$t('CodelistTermCreationForm.nci_pref_name')"
-            :rules="[formRules.required]"
             clearable
           />
           <v-textarea

@@ -63,7 +63,7 @@ from common.auth.user import user
 from common.config import settings
 from common.exceptions import ValidationException
 from common.telemetry import trace_calls
-from common.utils import TimeUnit, VisitClass, VisitSubclass
+from common.utils import TimeUnit, VisitClass, VisitSubclass, convert_to_datetime
 
 
 def get_valid_time_references_for_study(
@@ -136,7 +136,7 @@ class StudyVisitRepository:
         return StudyVisit.get_next_free_uid_and_increment_counter()
 
     def fetch_ctlist(
-        self, codelist_names: str, effective_date=None
+        self, codelist_names: list[str], effective_date=None
     ) -> dict[str, list[str]]:
         return get_ctlist_terms_by_name(codelist_names, effective_date=effective_date)
 
@@ -223,7 +223,7 @@ class StudyVisitRepository:
             visit_subclass=study_visit_vo.visit_subclass,
             is_global_anchor_visit=study_visit_vo.is_global_anchor_visit,
             is_soa_milestone=study_visit_vo.is_soa_milestone,
-            visit_order=study_visit_vo.visit_number,
+            visit_order=int(study_visit_vo.visit_number),
             vis_unique_number=study_visit_vo.vis_unique_number,
             vis_short_name=study_visit_vo.vis_short_name,
             # History VO params
@@ -238,7 +238,7 @@ class StudyVisitRepository:
         epoch = input_dict.get("epoch")  # merged from study_epoch and epoch_ct_name
         simple_study_epoch = SimpleStudyEpoch(
             uid=epoch.get("study_epoch_uid"),
-            study_uid=input_dict.get("study_uid"),
+            study_uid=input_dict["study_uid"],
             order=epoch.get("order"),
             epoch=(
                 SimpleCTTermNameWithConflictFlag(**epoch["term"])
@@ -287,6 +287,8 @@ class StudyVisitRepository:
         study_visit = input_dict["study_visit"]
         study_visit_vo = StudyVisitVO(
             uid=study_visit.get("uid"),
+            study_id_prefix=input_dict["study_id_prefix"],
+            study_number=input_dict["study_number"],
             visit_number=study_visit.get("visit_number"),
             visit_sublabel_reference=study_visit.get("visit_sublabel_reference"),
             study_visit_group=(
@@ -370,9 +372,9 @@ class StudyVisitRepository:
                 else None
             ),
             status=StudyStatus(study_visit.get("status")),
-            start_date=input_dict.get("study_action").get("date"),
+            start_date=convert_to_datetime(input_dict.get("study_action").get("date")),
             author_id=input_dict.get("study_action").get("author_id"),
-            author_username=input_dict.get("author_username"),
+            author_username=input_dict["author_username"],
             day_unit_object=day_unit_object,
             week_unit_object=week_unit_object,
             epoch_connector=simple_study_epoch,
@@ -436,13 +438,15 @@ class StudyVisitRepository:
         if audit_trail:
             if study_visit_uid:
                 query.append(
-                    "MATCH (study_visit:StudyVisit {uid: $study_visit_uid})<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})"
+                    "MATCH (study_visit:StudyVisit {uid: $study_visit_uid})<-[:AFTER]-(study_action:StudyAction)"
+                    "<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})-[:LATEST]->(study_value:StudyValue)"
                 )
                 params["study_visit_uid"] = study_visit_uid
 
             else:
                 query.append(
-                    "MATCH (study_visit:StudyVisit)<-[:AFTER]-(study_action:StudyAction)<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})"
+                    "MATCH (study_visit:StudyVisit)<-[:AFTER]-(study_action:StudyAction)"
+                    "<-[:AUDIT_TRAIL]-(study_root:StudyRoot {uid: $study_uid})-[:LATEST]->(study_value:StudyValue)"
                 )
 
         else:
@@ -554,6 +558,8 @@ class StudyVisitRepository:
                 """
             WITH 
                 study_root.uid AS study_uid,
+                study_value.study_id_prefix AS study_id_prefix,
+                study_value.study_number AS study_number,
                 study_action,
                 study_visit,
                 study_epoch {.*, study_epoch_uid: study_epoch.uid, term: CASE WHEN epoch_term IS NULL THEN null ELSE epoch_term END} AS epoch,
@@ -633,8 +639,7 @@ class StudyVisitRepository:
             query.append(return_statement)
             query.append("ORDER BY study_visit.unique_visit_number")
 
-        query = "\n".join(query)
-        return query, params
+        return "\n".join(query), params
 
     @classmethod
     @trace_calls

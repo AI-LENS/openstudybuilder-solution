@@ -19,13 +19,13 @@ class StudySelectionActivityGroupVO(study_selection_base.StudySelectionBaseVO):
     activity_group_uid: str
     activity_group_name: str | None
     activity_group_version: str | None
-    show_activity_group_in_protocol_flowchart: bool
+    show_activity_group_in_protocol_flowchart: bool | None
     order: int | None
     study_soa_group_uid: str | None
     study_activity_subgroup_uids: list[str] | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     author_username: str | None = None
     accepted_version: bool = False
 
@@ -34,17 +34,17 @@ class StudySelectionActivityGroupVO(study_selection_base.StudySelectionBaseVO):
         cls,
         study_uid: str,
         activity_group_uid: str,
-        activity_group_version: str,
+        activity_group_version: str | None,
         author_id: str,
         activity_group_name: str | None = None,
         order: int | None = None,
         study_soa_group_uid: str | None = None,
         study_activity_subgroup_uids: list[str] | None = None,
-        show_activity_group_in_protocol_flowchart: bool = True,
+        show_activity_group_in_protocol_flowchart: bool | None = True,
         study_selection_uid: str | None = None,
         start_date: datetime.datetime | None = None,
         accepted_version: bool = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         if study_selection_uid is None:
             study_selection_uid = generate_uid_callback()
@@ -70,8 +70,8 @@ class StudySelectionActivityGroupVO(study_selection_base.StudySelectionBaseVO):
 
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         # Checks if there exists an activity group which is approved with activity_group_uid
         if not object_exist_callback(normalize_string(self.activity_group_uid)):

@@ -34,7 +34,7 @@ class OdmVendorNamespace(ConceptModel):
     ) -> Self:
         return cls(
             uid=odm_vendor_namespace_ar._uid,
-            name=odm_vendor_namespace_ar.concept_vo.name,
+            name=odm_vendor_namespace_ar.name,
             prefix=odm_vendor_namespace_ar.concept_vo.prefix,
             url=odm_vendor_namespace_ar.concept_vo.url,
             library_name=odm_vendor_namespace_ar.library.name,
@@ -52,7 +52,7 @@ class OdmVendorNamespace(ConceptModel):
                     )
                     for vendor_element_uid in odm_vendor_namespace_ar.concept_vo.vendor_element_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             vendor_attributes=sorted(
                 [
@@ -62,7 +62,7 @@ class OdmVendorNamespace(ConceptModel):
                     )
                     for vendor_attribute_uid in odm_vendor_namespace_ar.concept_vo.vendor_attribute_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_vendor_namespace_ar.get_possible_actions()]
@@ -83,6 +83,7 @@ class OdmVendorNamespacePostInput(ConceptPostInput):
 
 
 class OdmVendorNamespacePatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     prefix: Annotated[str, Field(min_length=1)]
     url: Annotated[str, Field(min_length=1)]
 

@@ -387,8 +387,12 @@ class OdmXmlImporterService:
                     self.odm_vendor_attribute_service,
                     new_vendor_attributes,
                     OdmVendorAttributePostInput(
-                        name=elm_attribute.localName,
-                        compatible_types=[elm_attribute.ownerElement.localName],
+                        name=elm_attribute.localName or "TBD",
+                        compatible_types=[
+                            VendorAttributeCompatibleType(
+                                elm_attribute.ownerElement.localName
+                            )
+                        ],
                         vendor_namespace_uid=next(
                             db_vendor_namespace.uid
                             for db_vendor_namespace in self.db_vendor_namespaces
@@ -418,8 +422,10 @@ class OdmXmlImporterService:
                     self.odm_vendor_element_service,
                     new_vendor_elements,
                     OdmVendorElementPostInput(
-                        name=element.localName,
-                        compatible_types=[element.parentNode.localName],
+                        name=element.localName or "TBD",
+                        compatible_types=[
+                            VendorElementCompatibleType(element.parentNode.localName)
+                        ],
                         vendor_namespace_uid=next(
                             db_vendor_namespace.uid
                             for db_vendor_namespace in self.db_vendor_namespaces
@@ -457,7 +463,7 @@ class OdmXmlImporterService:
                         self.odm_vendor_attribute_service,
                         new_vendor_element_attributes,
                         OdmVendorAttributePostInput(
-                            name=element_attribute.localName,
+                            name=element_attribute.localName or "TBD",
                             vendor_element_uid=next(
                                 db_vendor_element.uid
                                 for db_vendor_element in self.db_vendor_elements
@@ -921,16 +927,23 @@ class OdmXmlImporterService:
             for item_ref in item_group_def.getElementsByTagName("ItemRef"):
                 self._create_missing_vendor_attributes(item_ref.attributes.values())
 
+                item_uid = next(
+                    (
+                        db_item.uid
+                        for db_item in self.db_items
+                        if db_item.oid == item_ref.getAttribute("ItemOID")
+                    ),
+                    None,
+                )
+
+                if not item_uid:
+                    raise exceptions.BusinessLogicException(
+                        f"Item with OID '{item_ref.getAttribute('ItemOID')}' not found."
+                    )
+
                 odm_item_group_items.append(
                     OdmItemGroupItemPostInput(
-                        uid=next(
-                            (
-                                db_item.uid
-                                for db_item in self.db_items
-                                if db_item.oid == item_ref.getAttribute("ItemOID")
-                            ),
-                            None,
-                        ),
+                        uid=item_uid,
                         order_number=item_ref.getAttribute("OrderNumber"),
                         mandatory=item_ref.getAttribute("Mandatory"),
                         key_sequence="None",
@@ -981,17 +994,24 @@ class OdmXmlImporterService:
                     item_group_ref.attributes.values()
                 )
 
+                item_group_uid = next(
+                    (
+                        db_item_group.uid
+                        for db_item_group in self.db_item_groups
+                        if db_item_group.oid
+                        == item_group_ref.getAttribute("ItemGroupOID")
+                    ),
+                    None,
+                )
+
+                if not item_group_uid:
+                    raise exceptions.BusinessLogicException(
+                        f"ItemGroup with OID '{item_group_ref.getAttribute('ItemGroupOID')}' not found."
+                    )
+
                 odm_form_item_groups.append(
                     OdmFormItemGroupPostInput(
-                        uid=next(
-                            (
-                                db_item_group.uid
-                                for db_item_group in self.db_item_groups
-                                if db_item_group.oid
-                                == item_group_ref.getAttribute("ItemGroupOID")
-                            ),
-                            None,
-                        ),
+                        uid=item_group_uid,
                         order_number=item_group_ref.getAttribute("OrderNumber"),
                         mandatory=item_group_ref.getAttribute("Mandatory"),
                         collection_exception_condition_oid=item_group_ref.getAttribute(
@@ -1012,10 +1032,14 @@ class OdmXmlImporterService:
             self._approve(self._repos.odm_form_repository, self.odm_form_service, rs)
 
     def _create_study_event_with_relations(self):
+        study_name: str
         if self.xml_document.getElementsByTagName("StudyName"):
-            study_name = self.xml_document.getElementsByTagName("StudyName")[
-                0
-            ].firstChild.nodeValue
+            study_name = (
+                self.xml_document.getElementsByTagName("StudyName")[
+                    0
+                ].firstChild.nodeValue
+                or ""
+            )
         else:
             study_name = f"@{int(time() * 1_000)}"
 
@@ -1101,7 +1125,7 @@ class OdmXmlImporterService:
             sponsor_instruction = "Please update this sponsor instruction"
 
         concept_input = OdmDescriptionPostInput(
-            name=name,
+            name=str(name) or "TBD",
             language=lang,
             description=description,
             instruction=instruction if lang == ENG_LANGUAGE else None,
@@ -1368,7 +1392,7 @@ class OdmXmlImporterService:
                     }
                 }
             )
-        ).items
+        )[0]
 
         rs.sort(key=lambda elm: elm[0].uid)
 
@@ -1389,7 +1413,7 @@ class OdmXmlImporterService:
                     }
                 }
             )
-        ).items
+        )[0]
 
         rs.sort(key=lambda elm: elm[0].uid)
 

@@ -70,10 +70,10 @@ class DictionaryCodelistGenericRepository(
         major, minor = codelist_dict.get("version").split(".")
 
         return DictionaryCodelistAR.from_repository_values(
-            uid=codelist_dict.get("codelist_uid"),
+            uid=codelist_dict["codelist_uid"],
             dictionary_codelist_vo=DictionaryCodelistVO.from_repository_values(
-                name=codelist_dict.get("name"),
-                is_template_parameter=codelist_dict.get("template_parameter"),
+                name=codelist_dict["name"],
+                is_template_parameter=codelist_dict["template_parameter"],
                 current_terms=[
                     (term["term_uid"], term["author"])
                     for term in codelist_dict.get("current_terms")
@@ -84,19 +84,19 @@ class DictionaryCodelistGenericRepository(
                 ],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=codelist_dict.get("library_name"),
+                library_name=codelist_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: codelist_dict.get("is_library_editable")
+                    lambda _: codelist_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=codelist_dict.get("change_description"),
+                change_description=codelist_dict["change_description"],
                 status=LibraryItemStatus(codelist_dict.get("status")),
-                author_id=codelist_dict.get("author_id"),
+                author_id=codelist_dict["author_id"],
                 author_username=UserInfoService.get_author_username_from_id(
-                    codelist_dict.get("author_id")
+                    codelist_dict["author_id"]
                 ),
-                start_date=convert_to_datetime(value=codelist_dict.get("start_date")),
+                start_date=convert_to_datetime(value=codelist_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),
@@ -106,7 +106,7 @@ class DictionaryCodelistGenericRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -136,7 +136,7 @@ class DictionaryCodelistGenericRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -203,10 +203,10 @@ class DictionaryCodelistGenericRepository(
 
     def find_all(
         self,
-        library_name: DictionaryType | None = None,
+        library_name: DictionaryType,
         sort_by: dict[str, bool] | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_number: int = 1,
         page_size: int = 0,
         total_count: bool = False,
@@ -237,7 +237,7 @@ class DictionaryCodelistGenericRepository(
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=DictionaryCodelist,
@@ -282,9 +282,9 @@ class DictionaryCodelistGenericRepository(
         self,
         library: DictionaryType,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[str]:
         # Match clause
@@ -300,7 +300,7 @@ class DictionaryCodelistGenericRepository(
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -318,7 +318,7 @@ class DictionaryCodelistGenericRepository(
         )
 
     @sb_clear_cache(caches=["cache_store_item_by_uid"])
-    def save(self, item: _AggregateRootType) -> None:
+    def save(self, item: DictionaryCodelistAR) -> None:
         if item.uid is not None and item.repository_closure_data is None:
             self._create(item)
         elif item.uid is not None and not item.is_deleted:

@@ -36,6 +36,13 @@
             </template>
           </AnalysisMetadataTable>
         </v-window-item>
+        <v-window-item :key="`mdflow-${tabKeys.mdflow}`" value="mdflow">
+          <AnalysisMetadataTable
+            key="mdflow"
+            type="mdflow"
+            :headers="mdFlowHeaders"
+          />
+        </v-window-item>
       </template>
     </NavigationTabs>
   </div>
@@ -50,7 +57,7 @@ import { sanitizeHTML } from '@/utils/sanitize'
 
 const { t } = useI18n()
 const mdEndpntHeaders = [
-  { title: t('AnalysisMetadataTable.study_id'), key: 'STUDYID' },
+  { title: t('AnalysisMetadataTable.study_id'), key: 'STUDYID_OBJ' },
   { title: t('AnalysisMetadataTable.objective_level'), key: 'OBJTVLVL' },
   { title: t('AnalysisMetadataTable.objective'), key: 'OBJTV' },
   { title: t('AnalysisMetadataTable.objective_plain_text'), key: 'OBJTVPT' },
@@ -85,9 +92,24 @@ const mdVisitHeaders = [
   { title: t('AnalysisMetadataTable.week_name'), key: 'AVISIT2' },
   { title: t('AnalysisMetadataTable.week_value'), key: 'AVISIT2N' },
 ]
+const mdFlowHeaders = [
+  { title: t('AnalysisMetadataTable.study_id'), key: 'STUDYID_FLOWCHART' },
+  { title: t('AnalysisMetadataTable.visit_num'), key: 'AVISITN' },
+  { title: t('AnalysisMetadataTable.param_code'), key: 'PARAMCD' },
+  { title: t('AnalysisMetadataTable.visit_name'), key: 'AVISIT' },
+  { title: t('AnalysisMetadataTable.param'), key: 'PARAM' },
+  { title: t('AnalysisMetadataTable.paramn'), key: 'PARAMN' },
+  { title: t('AnalysisMetadataTable.analysis_tpn'), key: 'ATPTN' },
+  { title: t('AnalysisMetadataTable.analysis_tp'), key: 'ATPT' },
+  { title: t('AnalysisMetadataTable.topic_code'), key: 'TOPICCD' },
+  { title: t('AnalysisMetadataTable.baseline_type'), key: 'BASETYPE' },
+  { title: t('AnalysisMetadataTable.baseline_record_flag'), key: 'ABLFL' },
+  { title: t('AnalysisMetadataTable.assessment_type'), key: 'ASSMTYPE' },
+]
 
 const tabs = [
   { tab: 'mdvisit', name: t('AnalysisStudyMetadata.mdvisit') },
   { tab: 'mdendpnt', name: t('AnalysisStudyMetadata.mdendpnt') },
+  { tab: 'mdflow', name: t('AnalysisStudyMetadata.mdflow') },
 ]
 </script>

@@ -29,7 +29,6 @@ STUDY_ARMS = OrderedDict(
                 short_name="NPH insulin",
                 description=None,
                 code="A",
-                arm_colour="#FFFDE7FF",
                 randomization_group="A",
                 number_of_subjects=50,
                 arm_type=CTTermName(
@@ -54,7 +53,6 @@ STUDY_ARMS = OrderedDict(
                 short_name="Metformin is longer",
                 description=None,
                 code="B",
-                arm_colour="#FFEBEEFF",
                 randomization_group="B",
                 number_of_subjects=50,
                 arm_type=CTTermName(
@@ -79,7 +77,6 @@ STUDY_ARMS = OrderedDict(
                 short_name="Another arm",
                 description=None,
                 code=None,
-                arm_colour="#F3E5F5FF",
                 randomization_group=None,
                 number_of_subjects=None,
                 arm_type=None,
@@ -97,7 +94,6 @@ STUDY_ARMS = OrderedDict(
                 short_name="More arms",
                 description=None,
                 code=None,
-                arm_colour="#E8EAF6FF",
                 randomization_group=None,
                 number_of_subjects=None,
                 arm_type=None,
@@ -1612,7 +1608,7 @@ MATRIX = [
             "klass": "arm",
             "id": "StudyArm_000009",
             "text": "NPH insulin",
-            "colors": ("#fffde7", "#665d00", "#000"),
+            "colors": ("#fef8e4", "#624c04", "#000"),
             "margin": 5,
             "paddings": (5, 5),
         },
@@ -1663,7 +1659,7 @@ MATRIX = [
             "klass": "arm",
             "id": "StudyArm_000011",
             "text": "Metformin is longer",
-            "colors": ("#ffebee", "#66000f", "#000"),
+            "colors": ("#fef8e4", "#624c04", "#000"),
             "margin": 5,
             "paddings": (5, 5),
         },
@@ -1714,7 +1710,7 @@ MATRIX = [
             "klass": "arm",
             "id": "StudyArm_000045",
             "text": "Another arm",
-            "colors": ("#f3e5f5", "#441c4a", "#000"),
+            "colors": ("#fef8e4", "#624c04", "#000"),
             "margin": 5,
             "paddings": (5, 5),
         },
@@ -1751,7 +1747,7 @@ MATRIX = [
             "klass": "arm",
             "id": "StudyArm_000048",
             "text": "More arms",
-            "colors": ("#e8eaf6", "#1d2349", "#000"),
+            "colors": ("#fef8e4", "#624c04", "#000"),
             "margin": 5,
             "paddings": (5, 5),
         },
@@ -2258,29 +2254,29 @@ SVG_DOCUMENT = """
       marker-end: url(#arrowhead2);
     }
     #StudyArm_000009 rect {
-      fill: #fffde7;
-      stroke: #665d00;
+      fill: #fef8e4;
+      stroke: #624c04;
     }
     #StudyArm_000009 text {
       fill: #000;
     }
     #StudyArm_000011 rect {
-      fill: #ffebee;
-      stroke: #66000f;
+      fill: #fef8e4;
+      stroke: #624c04;
     }
     #StudyArm_000011 text {
       fill: #000;
     }
     #StudyArm_000045 rect {
-      fill: #f3e5f5;
-      stroke: #441c4a;
+      fill: #fef8e4;
+      stroke: #624c04;
     }
     #StudyArm_000045 text {
       fill: #000;
     }
     #StudyArm_000048 rect {
-      fill: #e8eaf6;
-      stroke: #1d2349;
+      fill: #fef8e4;
+      stroke: #624c04;
     }
     #StudyArm_000048 text {
       fill: #000;

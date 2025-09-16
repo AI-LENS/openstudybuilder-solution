@@ -56,17 +56,17 @@ class CTCodelistNameRepository(CTCodelistGenericRepository[CTCodelistNameAR]):
         major, minor = rel_data.get("version").split(".")
 
         return CTCodelistNameAR.from_repository_values(
-            uid=codelist_dict.get("codelist_uid"),
+            uid=codelist_dict["codelist_uid"],
             ct_codelist_name_vo=CTCodelistNameVO.from_repository_values(
                 name=codelist_dict.get("value_node").get("name"),
-                catalogue_name=codelist_dict.get("catalogue_name"),
+                catalogue_name=codelist_dict["catalogue_name"],
                 is_template_parameter="TemplateParameter"
                 in codelist_dict.get("value_node").labels,
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=codelist_dict.get("library_name"),
+                library_name=codelist_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: codelist_dict.get("is_library_editable")
+                    lambda _: codelist_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
@@ -86,7 +86,7 @@ class CTCodelistNameRepository(CTCodelistGenericRepository[CTCodelistNameAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: CTCodelistNameRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: CTCodelistNameValue,
         **_kwargs,
@@ -101,7 +101,7 @@ class CTCodelistNameRepository(CTCodelistGenericRepository[CTCodelistNameAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

@@ -22,12 +22,13 @@ from clinical_mdr_api.domain_repositories.models.study_audit_trail import (
     StudyAction,
 )
 from clinical_mdr_api.domain_repositories.models.study_selections import StudyArm
+from clinical_mdr_api.domains.enums import StudyDesignClassEnum
 from clinical_mdr_api.domains.study_selections.study_selection_arm import (
     StudySelectionArmAR,
     StudySelectionArmVO,
 )
 from common.exceptions import BusinessLogicException
-from common.utils import convert_to_datetime
+from common.utils import convert_to_datetime, get_db_result_as_dict
 
 
 @dataclass
@@ -40,18 +41,18 @@ class SelectionHistoryArm:
     arm_short_name: str
     arm_code: str | None
     arm_description: str | None
-    arm_colour: str | None
     arm_randomization_group: str | None
     arm_number_of_subjects: int | None
     arm_type: str | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     change_type: str
     end_date: datetime.datetime | None
     order: int
     status: str | None
     accepted_version: bool | None
+    merge_branch_for_this_arm_for_sdtm_adam: bool
 
 
 class StudySelectionArmRepository:
@@ -73,20 +74,94 @@ class StudySelectionArmRepository:
         )
         return len(sdc_node) > 0
 
-    def arm_specific_has_connected_branch_arms(
-        self, study_uid: str, arm_uid: str
-    ) -> bool:
-        """
-        Returns True if StudyArm with specified uid has connected at least one StudyBranchArm.
-        :return:
+    def get_arms_branches_and_cohorts(
+        self,
+        study_uid: str | None = None,
+        study_value_version: str | None = None,
+    ) -> list[dict[str, Any]]:
+        query = ""
+        query_parameters = {}
+        if study_value_version:
+            if study_uid:
+                query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
+                query_parameters["study_value_version"] = study_value_version
+                query_parameters["uid"] = study_uid
+            else:
+                query = "MATCH (sr:StudyRoot)-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
+                query_parameters["study_value_version"] = study_value_version
+        else:
+            if study_uid:
+                query = "MATCH (sr:StudyRoot { uid: $uid})-[l:LATEST]->(sv:StudyValue)"
+                query_parameters["uid"] = study_uid
+            else:
+                query = "MATCH (sr:StudyRoot)-[l:LATEST]->(sv:StudyValue)"
+
+        query += """
+            WITH sr, sv
+            MATCH (sv)-[:HAS_STUDY_ARM]->(sar:StudyArm)
+            WITH DISTINCT sr, sv, sar
+
+            // Get StudyCohorts
+            OPTIONAL MATCH (sv)-[:HAS_STUDY_COHORT]->(study_cohorts:StudyCohort)
+            WITH DISTINCT  sr, sv, sar, study_cohorts.uid as cohort_uid
+
+            // Get latest version of StudyCohorts
+            CALL {
+                WITH cohort_uid
+                MATCH (study_cohort:StudyCohort {uid:cohort_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_cohort, action
+                ORDER BY action.date ASC
+                WITH last(collect(study_cohort)) as study_cohort
+                RETURN CASE WHEN exists((study_cohort)--(:Delete)) THEN NULL ELSE study_cohort END AS study_cohort
+            }
+
+            // Get StudyBranchArms
+            OPTIONAL MATCH (study_cohort)<-[:STUDY_BRANCH_ARM_HAS_COHORT]-(study_branch_arms:StudyBranchArm)-[:STUDY_ARM_HAS_BRANCH_ARM]-(sar)
+            OPTIONAL MATCH (sv)-[:HAS_STUDY_BRANCH_ARM]->(study_branch_arms)
+            WITH DISTINCT study_branch_arms, sr, sar, study_cohort
+            ORDER BY study_branch_arms.order
+            WITH DISTINCT study_branch_arms.uid as branch_arm_uid, sr, sar, study_cohort
+
+            // Get latest version of StudyBranchArms
+            CALL {
+                WITH branch_arm_uid
+                MATCH (study_branch_arm:StudyBranchArm {uid:branch_arm_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_branch_arm, action
+                ORDER BY action.date ASC
+                WITH last(collect(study_branch_arm)) as branch_arm
+                RETURN CASE WHEN exists((branch_arm)--(:Delete)) THEN NULL ELSE branch_arm END AS branch_arm
+            }
+
+            // Collect StudyBranchArms for given StudyCohort
+            WITH sr, sar, study_cohort, 
+                collect(branch_arm {
+                    .uid,
+                    .name,
+                    .short_name,
+                    .randomization_group,
+                    .branch_arm_code,
+                    .number_of_subjects
+                }) as branch_arms
+            ORDER BY study_cohort.order, sar.order
+            WITH sr, sar, 
+                collect(study_cohort {
+                    .uid,
+                    .name,
+                    .short_name,
+                    number_of_subjects: apoc.coll.sum([branch_arm in branch_arms WHERE branch_arm.number_of_subjects is not null | branch_arm.number_of_subjects]),
+                    study_branch_arms:branch_arms
+                }) AS study_cohorts
+            RETURN DISTINCT 
+                sr.uid AS study_uid,
+                sar.uid AS uid,
+                sar.name AS name,
+                sar.short_name AS short_name,
+                apoc.coll.sum([cohort in study_cohorts WHERE cohort.number_of_subjects is not null | cohort.number_of_subjects])AS number_of_subjects,
+                study_cohorts
         """
 
-        sdc_node = (
-            StudyArm.nodes.fetch_relations("has_branch_arm", "has_after")
-            .filter(study_value__latest_value__uid=study_uid, uid=arm_uid)
-            .resolve_subgraph()
-        )
-        return len(sdc_node) > 0
+        rows, columns = db.cypher_query(query, query_parameters)
+        return [get_db_result_as_dict(row, columns) for row in rows]
 
     def _retrieves_all_data(
         self,
@@ -96,7 +171,7 @@ class StudySelectionArmRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionArmVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_value_version:
             if study_uid:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
@@ -125,16 +200,29 @@ class StudySelectionArmRepository:
                 query_parameters["project_number"] = project_number
             query += " WHERE "
             query += " AND ".join(filter_list)
-
+        query_parameters["is_cohort_stepper_defined"] = (
+            StudyDesignClassEnum.STUDY_WITH_COHORTS_BRANCHES_AND_SUBPOPULATIONS.value
+        )
         query += """
             WITH sr, sv
             MATCH (sv)-[:HAS_STUDY_ARM]->(sar:StudyArm)
-            WITH DISTINCT sr, sar 
+            WITH DISTINCT sr, sar, sv
             
             OPTIONAL MATCH (sar)-[:HAS_ARM_TYPE]->(elr:CTTermRoot)
-            
+            OPTIONAL MATCH (sv)-[:HAS_STUDY_BRANCH_ARM]-(bars:StudyBranchArm)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(sar)
+            WITH DISTINCT 
+                bars.uid as branch_arm_uid, elr, sr, sar,
+                exists((sv)-[:HAS_STUDY_DESIGN_CLASS]->(:StudyDesignClass {value:$is_cohort_stepper_defined})) AS is_cohort_stepper_defined
+            CALL {
+                WITH branch_arm_uid
+                MATCH (study_branch_arm:StudyBranchArm {uid:branch_arm_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_branch_arm, action
+                ORDER BY action.date ASC
+                WITH last(collect(study_branch_arm)) as study_branch_arm
+                RETURN CASE WHEN exists((study_branch_arm)--(:Delete)) THEN NULL ELSE study_branch_arm END AS study_branch_arm
+            }
             MATCH (sar)<-[:AFTER]-(sa:StudyAction)
-
+            WITH DISTINCT elr, sr, sar, sa, sum(study_branch_arm.number_of_subjects) as branch_sum, is_cohort_stepper_defined
             RETURN DISTINCT 
                 sr.uid AS study_uid,
                 sar.uid AS study_selection_uid,
@@ -142,11 +230,14 @@ class StudySelectionArmRepository:
                 sar.short_name AS arm_short_name,
                 sar.arm_code AS arm_code,
                 sar.description AS arm_description,
-                sar.arm_colour AS arm_colour,
                 sar.order AS order,
                 sar.accepted_version AS accepted_version,
-                sar.number_of_subjects AS number_of_subjects,
+                CASE is_cohort_stepper_defined
+                    WHEN true THEN branch_sum
+                    ELSE sar.number_of_subjects
+                END AS number_of_subjects,
                 sar.randomization_group AS randomization_group,
+                coalesce(sar.merge_branch_for_this_arm_for_sdtm_adam, false) AS merge_branch_for_this_arm_for_sdtm_adam,
                 elr.uid AS arm_type_uid,
                 sar.text AS text,
                 sa.date AS start_date,
@@ -168,11 +259,13 @@ class StudySelectionArmRepository:
                 short_name=selection["arm_short_name"],
                 code=selection["arm_code"],
                 description=selection["arm_description"],
-                arm_colour=selection["arm_colour"],
                 study_selection_uid=selection["study_selection_uid"],
                 arm_type_uid=selection["arm_type_uid"],
                 number_of_subjects=selection["number_of_subjects"],
                 randomization_group=selection["randomization_group"],
+                merge_branch_for_this_arm_for_sdtm_adam=selection[
+                    "merge_branch_for_this_arm_for_sdtm_adam"
+                ],
                 start_date=convert_to_datetime(value=selection["start_date"]),
                 accepted_version=selection["accepted_version"],
             )
@@ -214,7 +307,7 @@ class StudySelectionArmRepository:
         study_uid: str,
         for_update: bool = False,
         study_value_version: str | None = None,
-    ) -> StudySelectionArmAR | None:
+    ) -> StudySelectionArmAR:
         """
         Finds all the selected study arms for a given study
         :param study_uid:
@@ -373,7 +466,7 @@ class StudySelectionArmRepository:
     @staticmethod
     def arm_exists_by(
         db_property: str, value: str, arm_vo: StudySelectionArmVO
-    ) -> StudyArm:
+    ) -> StudyArm | None:
         kwarg_value = getattr(arm_vo, value)
         arm_node = (
             StudyArm.nodes.has(study_value=True)
@@ -395,17 +488,18 @@ class StudySelectionArmRepository:
         before_node: StudyArm | None = None,
     ):
         # Create new arm selection
-        study_arm_selection_node: StudyArm = StudyArm(order=order).save()
-        study_arm_selection_node.uid = selection.study_selection_uid
-        study_arm_selection_node.accepted_version = selection.accepted_version
-        study_arm_selection_node.name = selection.name
-        study_arm_selection_node.short_name = selection.short_name
-        study_arm_selection_node.arm_code = selection.code
-        study_arm_selection_node.description = selection.description
-        study_arm_selection_node.arm_colour = selection.arm_colour
-        study_arm_selection_node.randomization_group = selection.randomization_group
-        study_arm_selection_node.number_of_subjects = selection.number_of_subjects
-        study_arm_selection_node.save()
+        study_arm_selection_node: StudyArm = StudyArm(
+            uid=selection.study_selection_uid,
+            order=order,
+            name=selection.name,
+            short_name=selection.short_name,
+            arm_code=selection.code,
+            description=selection.description,
+            randomization_group=selection.randomization_group,
+            number_of_subjects=selection.number_of_subjects,
+            merge_branch_for_this_arm_for_sdtm_adam=selection.merge_branch_for_this_arm_for_sdtm_adam,
+            accepted_version=selection.accepted_version,
+        ).save()
 
         # Connect new node with study value
         if not for_deletion:
@@ -468,11 +562,21 @@ class StudySelectionArmRepository:
             + """
             WITH DISTINCT all_sa
             OPTIONAL MATCH (all_sa)-[:HAS_ARM_TYPE]->(at:CTTermRoot)
-            WITH DISTINCT all_sa, at
+            OPTIONAL MATCH (bars:StudyBranchArm)<-[:STUDY_ARM_HAS_BRANCH_ARM]-(all_sa)
+            WITH DISTINCT bars.uid as branch_arm_uid, at, all_sa 
+            CALL {
+                WITH branch_arm_uid
+                MATCH (study_branch_arm:StudyBranchArm {uid:branch_arm_uid})-[:AFTER]-(action:StudyAction)
+                WITH study_branch_arm, action
+                ORDER BY action.date ASC
+                WITH collect(study_branch_arm) as branch_arms
+                RETURN last(branch_arms) AS study_branch_arm
+            }
+            WITH DISTINCT all_sa, at, sum(study_branch_arm.number_of_subjects) as branch_sum
             ORDER BY all_sa.order ASC
             MATCH (all_sa)<-[:AFTER]-(asa:StudyAction)
             OPTIONAL MATCH (all_sa)<-[:BEFORE]-(bsa:StudyAction)
-            WITH all_sa, asa, bsa, at
+            WITH all_sa, asa, bsa, at, branch_sum
             ORDER BY all_sa.uid, asa.date DESC
             RETURN
                 all_sa.uid AS study_selection_uid,
@@ -480,11 +584,14 @@ class StudySelectionArmRepository:
                 all_sa.short_name AS arm_short_name,
                 all_sa.arm_code AS arm_code,
                 all_sa.description AS arm_description,
-                all_sa.arm_colour AS arm_colour,
                 all_sa.order AS order,
                 all_sa.accepted_version AS accepted_version,
-                all_sa.number_of_subjects AS number_of_subjects,
+                CASE branch_sum
+                    WHEN 0 THEN all_sa.number_of_subjects 
+                    ELSE branch_sum
+                END AS number_of_subjects,
                 all_sa.randomization_group AS randomization_group,
+                coalesce(all_sa.merge_branch_for_this_arm_for_sdtm_adam, false) AS merge_branch_for_this_arm_for_sdtm_adam,
                 at.uid AS arm_type_uid,
                 all_sa.text AS text,
                 asa.date AS start_date,
@@ -511,10 +618,12 @@ class StudySelectionArmRepository:
                     arm_short_name=res["arm_short_name"],
                     arm_code=res["arm_code"],
                     arm_description=res["arm_description"],
-                    arm_colour=res["arm_colour"],
                     arm_randomization_group=res["randomization_group"],
                     arm_number_of_subjects=res["number_of_subjects"],
                     arm_type=res["arm_type_uid"],
+                    merge_branch_for_this_arm_for_sdtm_adam=res[
+                        "merge_branch_for_this_arm_for_sdtm_adam"
+                    ],
                     start_date=convert_to_datetime(value=res["start_date"]),
                     author_id=res["author_id"],
                     change_type=change_type,

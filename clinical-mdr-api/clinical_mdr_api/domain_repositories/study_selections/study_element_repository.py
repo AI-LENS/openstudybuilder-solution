@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Any
 
 from neomodel import db
 
@@ -47,7 +48,7 @@ class SelectionHistoryElement:
     element_subtype: str | None
     # Study selection Versioning
     start_date: datetime.datetime
-    author_id: str | None
+    author_id: str
     change_type: str
     end_date: datetime.datetime | None
     order: int
@@ -91,7 +92,7 @@ class StudySelectionElementRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudySelectionElementVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_uid:
             if study_value_version:
                 query = "MATCH (sr:StudyRoot { uid: $uid})-[l:HAS_VERSION{status:'RELEASED', version:$study_value_version}]->(sv:StudyValue)"
@@ -184,7 +185,7 @@ class StudySelectionElementRepository:
         study_uid: str,
         for_update: bool = False,
         study_value_version: str | None = None,
-    ) -> StudySelectionElementAR | None:
+    ) -> StudySelectionElementAR:
         """
         Finds all the selected study endpoints for a given study, and creates the aggregate
         :param study_uid:

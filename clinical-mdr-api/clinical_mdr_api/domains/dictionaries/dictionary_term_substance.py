@@ -76,7 +76,7 @@ class DictionaryTermSubstanceAR(DictionaryTermAR):
         cls,
         uid: str,
         dictionary_term_vo: DictionaryTermSubstanceVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         dictionary_codelist_ar = cls(

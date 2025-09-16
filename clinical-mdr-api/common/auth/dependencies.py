@@ -107,11 +107,11 @@ if settings.oauth_rbac_enabled:
         Dependency checks that required roles are all present in the access token claims.
 
         Args:
-            roles: A list of roles required for the request.
+            roles: A swt of roles required for the request.
         """
 
-        def __init__(self, roles: list[str]):
-            self.required_roles = set(roles)
+        def __init__(self, roles: set[str]):
+            self.required_roles = roles
 
         def __call__(self):
             user().authorize(*self.required_roles)

@@ -24,9 +24,9 @@ class CommentReplyAR:
     text: str
     author_id: str
     author_display_name: str
-    created_at: str
-    modified_at: str | None = None
-    deleted_at: str | None = None
+    created_at: datetime
+    modified_at: datetime | None = None
+    deleted_at: datetime | None = None
 
     @property
     def uid(self) -> str:
@@ -89,11 +89,11 @@ class CommentThreadAR:
     status: CommentThreadStatus
     author_id: str
     author_display_name: str
-    created_at: str
-    modified_at: str | None = None
-    status_modified_at: str | None = None
+    created_at: datetime
+    modified_at: datetime | None = None
+    status_modified_at: datetime | None = None
     status_modified_by: str | None = None
-    deleted_at: str | None = None
+    deleted_at: datetime | None = None
     replies: list[CommentReplyAR] = field(default_factory=list)
 
     @property

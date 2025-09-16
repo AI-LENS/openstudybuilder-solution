@@ -35,8 +35,8 @@ class ParametrizedTemplateVO:
     template_sequence_id: str | None
     guidance_text: str | None
     parameter_terms: list[ParameterTermEntryVO]
+    library_name: str
     template_type: SimpleCTTermNameAndAttributes | None = None
-    library_name: str | None = None
 
     @classmethod
     def from_repository_values(
@@ -56,7 +56,7 @@ class ParametrizedTemplateVO:
             template_uid=template_uid,
             template_sequence_id=template_sequence_id,
             template_name=template_name,
-            parameter_terms=tuple(parameter_terms),
+            parameter_terms=parameter_terms,
             library_name=library_name,
             guidance_text=guidance_text,
         )
@@ -88,7 +88,7 @@ class ParametrizedTemplateVO:
             template_name=template.name,
             template_uid=template_uid,
             template_sequence_id=template_sequence_id,
-            parameter_terms=tuple(parameter_terms),
+            parameter_terms=parameter_terms,
             guidance_text=guidance_text,
             library_name=library_name,
         )
@@ -322,8 +322,8 @@ class ParametrizedTemplateARBase(LibraryItemAggregateRootBase):
         author_id: str,
         library: LibraryVO,
         template: ParametrizedTemplateVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        next_available_sequence_id_callback: Callable[[str], str | None] = (
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        next_available_sequence_id_callback: Callable[..., str | None] = (
             lambda _: None
         ),
     ) -> Self:

@@ -68,12 +68,16 @@ class OdmVendorNamespaceAR(OdmARBase):
     def concept_vo(self) -> OdmVendorNamespaceVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmVendorNamespaceVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmVendorNamespaceVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -89,7 +93,7 @@ class OdmVendorNamespaceAR(OdmARBase):
         author_id: str,
         concept_vo: OdmVendorNamespaceVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         concept_exists_by_callback: Callable[
             [str, str, bool], bool
         ] = lambda x, y, z: True,
@@ -112,7 +116,7 @@ class OdmVendorNamespaceAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmVendorNamespaceVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

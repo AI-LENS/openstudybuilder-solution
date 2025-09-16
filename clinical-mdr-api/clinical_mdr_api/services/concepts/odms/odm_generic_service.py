@@ -259,7 +259,7 @@ class OdmGenericService(ConceptGenericService[_AggregateRootType], ABC):
             for odm_vendor_attribute in odm_vendor_attributes
         ):
             odm_vendor_attributes = self._get_odm_vendor_attributes(
-                odm_vendor_attributes
+                odm_vendor_attributes  # type: ignore[arg-type]
             )
 
         for odm_vendor_attribute in odm_vendor_attributes:

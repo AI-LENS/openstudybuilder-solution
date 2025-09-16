@@ -4,9 +4,6 @@ from typing import Any, Generic, TypeVar
 from neomodel import db
 from pydantic import BaseModel
 
-from clinical_mdr_api.domains.biomedical_concepts.activity_instance_class import (
-    ActivityInstanceClassAR,
-)
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryVO
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import FilterOperator
@@ -27,10 +24,10 @@ _AggregateRootType = TypeVar("_AggregateRootType")
 class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
     object_name: str
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
     repository_interface: type
-    api_model_class: BaseModel
-    version_class: BaseModel
+    api_model_class: type[BaseModel] | None
+    version_class: type[BaseModel] | None
 
     def __init__(self):
         self.author_id = user().id()
@@ -46,9 +43,7 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _edit_aggregate(
-        self, item: _AggregateRootType, item_edit_input: BaseModel
-    ) -> _AggregateRootType:
+    def _edit_aggregate(self, item, item_edit_input: BaseModel) -> _AggregateRootType:
         raise NotImplementedError
 
     @abstractmethod
@@ -69,7 +64,7 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         **kwargs,
     ) -> GenericFilteringReturn[BaseModel]:
@@ -83,16 +78,16 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
             **kwargs,
         )
 
-        all_items = GenericFilteringReturn.create(items, total)
+        all_items = GenericFilteringReturn(items=items, total=total)
 
         return all_items
 
     def get_distinct_values_for_header(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:
@@ -114,7 +109,9 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
     ):
         item = self.repository.find_by_uid(uid=uid)
 
-        NotFoundException.raise_if(len(item) == 0, self.api_model_class.__class__, uid)
+        NotFoundException.raise_if(
+            len(item) == 0, str(self.api_model_class.__class__), uid
+        )
 
         BusinessLogicException.raise_if(
             len(item) > 1,
@@ -125,7 +122,7 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
 
     def _find_by_uid_or_raise_not_found(
         self, uid: str, for_update: bool
-    ) -> ActivityInstanceClassAR:
+    ) -> _AggregateRootType:
         item = self.repository.find_by_uid_2(uid=uid, for_update=for_update)
 
         NotFoundException.raise_if(
@@ -174,7 +171,7 @@ class NeomodelExtGenericService(ABC, Generic[_AggregateRootType]):
     def create(self, item_input: BaseModel) -> BaseModel:
         BusinessLogicException.raise_if_not(
             self._repos.library_repository.library_exists(
-                normalize_string(item_input.library_name)
+                normalize_string(item_input.library_name)  # type: ignore[arg-type]
             ),
             msg=f"Library with Name '{item_input.library_name}' doesn't exist.",
         )

@@ -246,8 +246,7 @@ class StudyDesignFigureService:
             sort_by={"order": True},
             study_value_version=study_value_version,
         )
-        study_arms = OrderedDict((arm.arm_uid, arm) for arm in study_arms.items)
-        return study_arms
+        return OrderedDict((arm.arm_uid, arm) for arm in study_arms.items)
 
     @trace_calls
     def _get_study_epochs(
@@ -338,7 +337,7 @@ class StudyDesignFigureService:
                 klass="arm",
                 id=id_,
                 text=arm.short_name or arm.name,
-                colors=self._calculate_colors(arm.arm_colour or ARM_COLOR_DEFAULT),
+                colors=self._calculate_colors(ARM_COLOR_DEFAULT),
                 margin=ARM_MARGIN,
                 paddings=ARM_PADDINGS,
             )
@@ -632,7 +631,7 @@ class StudyDesignFigureService:
             )
         return total_width, total_height
 
-    def _flow_cell(self, cell, paddings: tuple[int, int], center: bool | None = False):
+    def _flow_cell(self, cell, paddings: tuple[int, int], center: bool = False):
         """Flows text into a given width, and adjusts cell height accordingly"""
         x = 0
 
@@ -658,7 +657,7 @@ class StudyDesignFigureService:
         text: str,
         cell_width: int,
         paddings: tuple[int, int],
-        center: bool | None = False,
+        center: bool = False,
     ) -> tuple[int, int, list[tuple[int, int, str]]]:
         """Calculates text flow for a given width, wrapping text if necessary, optional centering
 

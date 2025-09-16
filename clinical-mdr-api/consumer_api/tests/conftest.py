@@ -59,14 +59,14 @@ def openapi_schema(main_app) -> dict[str, Any]:
 
 
 @pytest.fixture(scope="session")
-def main_app_all_route_paths(main_app) -> tuple[tuple[str, tuple[str]], ...]:
+def main_app_all_route_paths(main_app) -> tuple[tuple[str, tuple[str, ...]], ...]:
     log.debug("Compiling a list of all route paths")
 
     paths = []
     for route in main_app.routes:
         if isinstance(route, starlette.routing.Route):
             path = route.path.format_map(PARAMETER_DEFAULTS)
-            paths.append((path, tuple(route.methods)))
+            paths.append((path, tuple(route.methods or [])))
 
     return tuple(paths)
 

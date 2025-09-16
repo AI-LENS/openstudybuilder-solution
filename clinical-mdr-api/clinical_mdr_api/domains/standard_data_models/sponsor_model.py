@@ -25,11 +25,7 @@ class SponsorModelVO:
 
     @classmethod
     def from_repository_values(
-        cls,
-        ig_uid: str,
-        ig_version_number: str,
-        name: str,
-        version_number: str | None,
+        cls, ig_uid: str, ig_version_number: str, name: str, version_number: str
     ) -> Self:
         sponsor_model_vo = cls(
             ig_uid=ig_uid,
@@ -44,7 +40,7 @@ class SponsorModelVO:
 class SponsorModelMetadataVO(LibraryItemMetadataVO):
     @property
     def version(self) -> str:
-        return self._major_version
+        return str(self._major_version)
 
     # pylint: disable=arguments-renamed
     @classmethod
@@ -55,7 +51,7 @@ class SponsorModelMetadataVO(LibraryItemMetadataVO):
             _author_id=author_id,
             _start_date=datetime.datetime.now(datetime.timezone.utc),
             _end_date=None,
-            _major_version=version,
+            _major_version=int(version),
             _minor_version=0,
         )
 
@@ -99,7 +95,7 @@ class SponsorModelAR(LibraryItemAggregateRootBase):
         cls,
         ig_uid: str,
         sponsor_model_vo: SponsorModelVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: SponsorModelMetadataVO,
     ) -> Self:
         sponsor_model_ar = cls(
@@ -131,10 +127,7 @@ class SponsorModelAR(LibraryItemAggregateRootBase):
         return sponsor_model_ar
 
     def edit_draft(
-        self,
-        author_id: str,
-        change_description: str | None,
-        sponsor_model_vo: SponsorModelVO,
+        self, author_id: str, change_description: str, sponsor_model_vo: SponsorModelVO
     ) -> None:
         """
         Creates a new draft version for the object.

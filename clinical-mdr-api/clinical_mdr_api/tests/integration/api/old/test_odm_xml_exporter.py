@@ -77,8 +77,8 @@ def test_get_odm_xml_study_event(api_client):
     expected_xml = ET.fromstring(export_study_event)
     actual_xml = ET.fromstring(response.content)
 
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert '<?xml-stylesheet type="text/xsl" href="file.xsl"?>' in response.text
     assert_response_status_code(response, 200)
@@ -95,8 +95,8 @@ def test_get_odm_xml_form(api_client):
     expected_xml = ET.fromstring(export_form)
     actual_xml = ET.fromstring(response.content)
 
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert '<?xml-stylesheet type="text/xsl" href="file.xsl"?>' in response.text
     assert_response_status_code(response, 200)
@@ -113,8 +113,8 @@ def test_get_odm_xml_item_group(api_client):
     expected_xml = ET.fromstring(export_item_group)
     actual_xml = ET.fromstring(response.content)
 
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert '<?xml-stylesheet type="text/xsl" href="file.xsl"?>' in response.text
     assert_response_status_code(response, 200)
@@ -131,8 +131,8 @@ def test_get_odm_xml_item(api_client):
     expected_xml = ET.fromstring(export_item)
     actual_xml = ET.fromstring(response.content)
 
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert '<?xml-stylesheet type="text/xsl" href="file.xsl"?>' in response.text
     assert_response_status_code(response, 200)
@@ -148,8 +148,8 @@ def test_get_odm_xml_with_allowed_namespaces(api_client):
 
     expected_xml = ET.fromstring(export_with_namespace)
     actual_xml = ET.fromstring(response.content)
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert_response_status_code(response, 200)
     assert response.headers.get("content-type") == CONTENT_TYPE
@@ -181,8 +181,8 @@ def test_get_odm_xml_with_mapper_csv(api_client):
     expected_xml = ET.fromstring(export_with_csv)
     actual_xml = ET.fromstring(response.content)
 
-    expected_xml.set("FileOID", actual_xml.get("FileOID"))
-    expected_xml.set("CreationDateTime", actual_xml.get("CreationDateTime"))
+    expected_xml.set("FileOID", actual_xml.attrib["FileOID"])
+    expected_xml.set("CreationDateTime", actual_xml.attrib["CreationDateTime"])
 
     assert_response_status_code(response, 200)
     assert response.headers.get("content-type") == CONTENT_TYPE

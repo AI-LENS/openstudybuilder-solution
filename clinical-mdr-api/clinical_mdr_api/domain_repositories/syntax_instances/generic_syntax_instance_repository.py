@@ -18,7 +18,10 @@ from clinical_mdr_api.domain_repositories.models.generic import (
 )
 from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
 from clinical_mdr_api.domains.libraries.parameter_term import SimpleParameterTermVO
-from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
+from clinical_mdr_api.domains.versioned_object_aggregate import (
+    LibraryItemAggregateRootBase,
+    LibraryItemStatus,
+)
 from clinical_mdr_api.models.controlled_terminologies.ct_term import (
     SimpleCTTermNameAndAttributes,
     SimpleTermAttributes,
@@ -26,11 +29,11 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term import (
 )
 from common.exceptions import BusinessLogicException, NotFoundException
 
-_AggregateRootType = TypeVar("_AggregateRootType")
+_AggregateRootType = TypeVar("_AggregateRootType", bound=LibraryItemAggregateRootBase)
 
 
 class GenericSyntaxInstanceRepository(
-    GenericSyntaxRepository, Generic[_AggregateRootType], abc.ABC
+    GenericSyntaxRepository[_AggregateRootType], Generic[_AggregateRootType], abc.ABC
 ):
     template_class: type
 
@@ -138,7 +141,7 @@ class GenericSyntaxInstanceRepository(
         )
 
     def find_by(self, name: str) -> _AggregateRootType:
-        values: Iterable[VersionValue] = self.value_class.nodes.filter(name=name)
+        values = self.value_class.nodes.filter(name=name)
 
         NotFoundException.raise_if(
             len(values) < 1, self.root_class.__name__, name, "Name"

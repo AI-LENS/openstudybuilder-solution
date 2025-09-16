@@ -60,7 +60,7 @@
               :rules="[formRules.required]"
               density="compact"
               clearable
-              @blur="setSentenceCase"
+              @update:model-value="setSentenceCase"
             />
           </v-col>
         </v-row>
@@ -70,7 +70,10 @@
               v-model="form.sponsor_preferred_name_sentence_case"
               data-cy="term-sentence-case-name"
               :label="$t('CodelistTermCreationForm.sponsor_sentence_case_name')"
-              :rules="[formRules.required]"
+              :rules="[
+                formRules.required,
+                (value) => formRules.sameAs(value, form.sponsor_preferred_name),
+              ]"
               density="compact"
               clearable
             />
@@ -122,7 +125,6 @@
               v-model="form.nci_preferred_name"
               data-cy="term-nci-preffered-name"
               :label="$t('CodelistTermCreationForm.nci_pref_name')"
-              :rules="[formRules.required]"
               density="compact"
               clearable
             />
@@ -325,10 +327,9 @@ async function submit() {
     close()
   }
 }
-function setSentenceCase() {
-  if (form.value.sponsor_preferred_name) {
-    form.value.valuesponsor_preferred_name_sentence_case =
-      form.value.sponsor_preferred_name.toLowerCase()
+function setSentenceCase(value) {
+  if (value) {
+    form.value.sponsor_preferred_name_sentence_case = value.toLowerCase()
   }
 }
 function filterTerms(filters, options, filtersUpdated) {

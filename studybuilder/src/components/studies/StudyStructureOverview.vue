@@ -7,14 +7,76 @@
       type="table-heading, table-thead, table-tbody"
     />
     <template v-else>
+      <v-sheet
+        :elevation="4"
+        :height="200"
+        class="pa-5 text-nn-blue"
+        border
+        rounded="lg"
+      >
+        <v-row>
+          <v-col>
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.arms_number') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ arms.length }}
+            </div>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.number_branches') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ branches.length }}
+            </div>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.number_cohorts') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ cohorts.length }}
+            </div>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.planned_subjects') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ plannedNumberOfSubjects }}
+            </div>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.number_elements') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ cells.length }}
+            </div>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="3">
+            <div class="text-subtitle-1 line-height-125">
+              {{ $t('StudyStructureOverview.study_design_class') }}
+            </div>
+            <div class="text-h6 font-weight-bold mt-1">
+              {{ designClass }}
+            </div>
+          </v-col>
+        </v-row>
+      </v-sheet>
       <table
         class="mt-4"
         :aria-label="$t('StudyStructureOverview.table_caption')"
       >
         <thead>
           <tr>
-            <th colspan="3" scope="col" />
-            <th :colspan="studyEpochs.length" scope="col">
+            <th colspan="3" scope="col" style="color: white">
+              {{ $t('StudyStructureOverview.study_structure') }}
+            </th>
+            <th :colspan="studyEpochs.length" scope="col" style="color: white">
               {{ $t('StudyStructureOverview.epochs') }}
             </th>
           </tr>
@@ -25,9 +87,7 @@
             <th scope="col">
               {{ $t('StudyStructureOverview.branch_arms') }}
             </th>
-            <th scope="col">
-              {{ $t('StudyStructureOverview.number_of_subjects') }}
-            </th>
+            <th scope="col">{{ $t('StudyStructureOverview.cohorts') }}</th>
             <td v-for="studyEpoch in visibleStudyEpochs" :key="studyEpoch.uid">
               {{ studyEpoch.epoch_name }}
             </td>
@@ -44,12 +104,31 @@
                   v-if="index === 0"
                   :rowspan="arm.arm_connected_branch_arms.length"
                 >
-                  {{ arm.name }}
+                  <div class="text-subtitle-1 line-height-125">
+                    {{ arm.name }}
+                  </div>
+                  <div class="text-body-2 text-gray">
+                    {{ arm.number_of_subjects }}
+                    {{ $t('StudyStructureOverview.subjects') }}
+                  </div>
                 </td>
                 <td>
-                  {{ branchArm.name }}
+                  <div class="text-subtitle-1 line-height-125">
+                    {{ branchArm.name }}
+                  </div>
+                  <div class="text-body-2 text-gray">
+                    {{ branchArm.number_of_subjects }}
+                    {{ $t('StudyStructureOverview.subjects') }}
+                  </div>
                 </td>
-                <td>{{ branchArm.number_of_subjects }}</td>
+                <td>
+                  <div class="text-subtitle-1 line-height-125">
+                    {{ getCohortByBranch(branchArm.branch_arm_uid).name }}
+                  </div>
+                  <div class="text-body-2 text-gray">
+                    {{ getCohortByBranch(branchArm.branch_arm_uid).subjects }}
+                  </div>
+                </td>
                 <td
                   v-for="studyEpoch in visibleStudyEpochs"
                   :key="`${studyEpoch.uid}-${branchArm.branch_arm_uid}`"
@@ -79,127 +158,158 @@
           </template>
         </tbody>
       </table>
-      <v-row class="mt-6">
-        <v-col cols="2">
-          {{ $t('StudyStructureOverview.arms_number') }}
-        </v-col>
-        <v-col cols="10">
-          {{ arms.length }}
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="2">
-          {{ $t('StudyStructureOverview.planned_subjects') }}
-        </v-col>
-        <v-col cols="10">
-          {{ plannedNumberOfSubjects }}
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="2">
-          {{ $t('StudyStructureOverview.study_design_class') }}
-        </v-col>
-        <v-col cols="10">
-          <span v-if="metadata.trial_blinding_schema_code">{{
-            metadata.trial_blinding_schema_code.name
-          }}</span>
-          &nbsp;<span v-if="metadata.intervention_model_code">{{
-            metadata.intervention_model_code.name
-          }}</span>
-        </v-col>
-      </v-row>
     </template>
   </div>
 </template>
 
-<script>
-import arms from '@/api/arms'
+<script setup>
+import armsApi from '@/api/arms'
 import study from '@/api/study'
+import cohortsApi from '@/api/cohorts'
 import visitConstants from '@/constants/visits'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
 import { useEpochsStore } from '@/stores/studies-epochs'
-import { computed } from 'vue'
+import { onMounted, ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  setup() {
-    const studiesGeneralStore = useStudiesGeneralStore()
-    const epochsStore = useEpochsStore()
+const { t } = useI18n()
+const studiesGeneralStore = useStudiesGeneralStore()
+const epochsStore = useEpochsStore()
 
-    return {
-      selectedStudy: studiesGeneralStore.selectedStudy,
-      studyEpochs: computed(() => epochsStore.studyEpochs),
-      fetchStudyEpochs: epochsStore.fetchStudyEpochs,
-    }
-  },
-  data() {
-    return {
-      arms: [],
-      cells: [],
-      armsLoading: false,
-      cellsLoading: false,
-      metadataLoading: false,
-      metadata: [],
-    }
-  },
-  computed: {
-    plannedNumberOfSubjects() {
-      let result = 0
-      for (const arm of this.arms) {
-        result += arm.number_of_subjects
-      }
-      return result
-    },
-    visibleStudyEpochs() {
-      return this.studyEpochs.filter(
-        (studyEpoch) => studyEpoch.epoch_name !== visitConstants.EPOCH_BASIC
-      )
-    },
-  },
-  mounted() {
-    this.fetchStudyEpochs({ studyUid: this.selectedStudy.uid })
-    this.cellsLoading = true
-    arms.getAllStudyCells(this.selectedStudy.uid).then((resp) => {
-      this.cells = resp.data
-      this.cellsLoading = false
+const arms = ref([])
+const branches = ref([])
+const cells = ref([])
+const armsLoading = ref(false)
+const cellsLoading = ref(false)
+const metadataLoading = ref(false)
+const metadata = ref([])
+const cohorts = ref([])
+const designClass = ref('')
+
+const studyEpochs = computed(() => {
+  return epochsStore.studyEpochs
+})
+const plannedNumberOfSubjects = computed(() => {
+  let result = 0
+  for (const arm of arms.value) {
+    result += arm.number_of_subjects
+  }
+  return result
+})
+const visibleStudyEpochs = computed(() => {
+  return studyEpochs.value.filter(
+    (studyEpoch) => studyEpoch.epoch_name !== visitConstants.EPOCH_BASIC
+  )
+})
+
+onMounted(() => {
+  try {
+    epochsStore.fetchStudyEpochs({
+      studyUid: studiesGeneralStore.selectedStudy.uid,
     })
-    this.armsLoading = true
+    cellsLoading.value = true
+    armsApi
+      .getAllStudyCells(studiesGeneralStore.selectedStudy.uid)
+      .then((resp) => {
+        cells.value = resp.data
+        cellsLoading.value = false
+      })
+    armsLoading.value = true
     const params = {
       page_size: 0,
     }
-    arms.getAllForStudy(this.selectedStudy.uid, { params }).then((resp) => {
-      this.arms = resp.data.items
-      this.armsLoading = false
-    })
-    this.metadataLoading = true
-    study.getStudyInterventionMetadata(this.selectedStudy.uid).then((resp) => {
-      this.metadata = resp.data.current_metadata.study_intervention
-      this.metadataLoading = false
-    })
-  },
-  methods: {
-    getDesignCellByBranch(studyEpochUid, branchArmUid) {
-      const result = this.cells.find(
-        (cell) =>
-          cell.study_epoch_uid === studyEpochUid &&
-          cell.study_branch_arm_uid === branchArmUid
-      )
-      if (result) {
-        return result.study_element_name
+    armsApi
+      .getAllForStudy(studiesGeneralStore.selectedStudy.uid, { params })
+      .then((resp) => {
+        arms.value = resp.data.items
+        arms.value.forEach((arm) => {
+          if (arm.arm_connected_branch_arms) {
+            branches.value = [
+              ...branches.value,
+              ...arm.arm_connected_branch_arms,
+            ]
+          }
+        })
+        armsLoading.value = false
+      })
+    metadataLoading.value = true
+    study
+      .getStudyInterventionMetadata(studiesGeneralStore.selectedStudy.uid)
+      .then((resp) => {
+        metadata.value = resp.data.current_metadata.study_intervention
+        metadataLoading.value = false
+      })
+    armsApi
+      .getAllCohorts(studiesGeneralStore.selectedStudy.uid, params)
+      .then((resp) => {
+        cohorts.value = resp.data.items
+      })
+    cohortsApi
+      .getStudyDesignClass(studiesGeneralStore.selectedStudy.uid)
+      .then((resp) => {
+        designClass.value = resp.data.value
+      })
+      .catch((error) => {
+        if (error.response.status === 404) {
+          console.error(error)
+        }
+      })
+  } catch (error) {
+    console.error(error)
+  }
+})
+
+function getDesignCellByBranch(studyEpochUid, branchArmUid) {
+  try {
+    const result = cells.value.find(
+      (cell) =>
+        cell.study_epoch_uid === studyEpochUid &&
+        cell.study_branch_arm_uid === branchArmUid
+    )
+    if (result) {
+      return result.study_element_name
+    }
+    return ''
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+function getDesignCellByArm(studyEpochUid, armUid) {
+  try {
+    const result = cells.value.find(
+      (cell) =>
+        cell.study_epoch_uid === studyEpochUid && cell.study_arm_uid === armUid
+    )
+    if (result) {
+      return result.study_element_name
+    }
+    return ''
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+function getCohortByBranch(branchUid) {
+  try {
+    for (const cohort of cohorts.value) {
+      if (
+        cohort.branch_arm_roots?.some(
+          (branch) => branch.branch_arm_uid === branchUid
+        )
+      ) {
+        return {
+          name: cohort.name,
+          subjects:
+            cohort.number_of_subjects +
+            t('StudyStructureOverview.total_subjects'),
+        }
       }
-      return ''
-    },
-    getDesignCellByArm(studyEpochUid, armUid) {
-      const result = this.cells.find(
-        (cell) =>
-          cell.study_epoch_uid === studyEpochUid &&
-          cell.study_arm_uid === armUid
-      )
-      if (result) {
-        return result.study_element_name
-      }
-      return ''
-    },
-  },
+    }
+    return ''
+  } catch (error) {
+    console.error(error)
+  }
 }
 </script>
 
@@ -207,16 +317,44 @@ export default {
 table {
   width: 100%;
   text-align: left;
-
   border-spacing: 0px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  overflow: hidden;
 }
 tr {
   padding: 4px;
 }
 td,
 th {
-  border: 1px solid black;
-  padding: 4px;
+  border: 1px solid gray;
+  border-top: none;
+  padding-inline: 20px;
+  padding-block: 6px;
+  color: rgb(var(--v-theme-nnTrueBlue));
+}
+table {
+  border-collapse: separate;
+  border: solid gray 1px;
+  border-radius: 10px;
+}
+
+td:first-child,
+th:first-child {
+  border-left: none;
+}
+td:last-child,
+th:last-child {
+  border-right: none;
+}
+thead > tr {
+  background-color: rgb(var(--v-theme-nnBaseLight));
+  color: rgb(var(--v-theme-nnTrueBlue));
+  font-weight: 700;
+}
+thead > tr:first-of-type {
+  background-color: rgb(var(--v-theme-nnTrueBlue));
+}
+.line-height-125 {
+  line-height: 1.25;
 }
 </style>

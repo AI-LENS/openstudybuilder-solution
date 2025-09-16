@@ -47,7 +47,7 @@ class OdmCondition(ConceptModel):
         return cls(
             uid=odm_condition_ar._uid,
             oid=odm_condition_ar.concept_vo.oid,
-            name=odm_condition_ar.concept_vo.name,
+            name=odm_condition_ar.name,
             library_name=odm_condition_ar.library.name,
             start_date=odm_condition_ar.item_metadata.start_date,
             end_date=odm_condition_ar.item_metadata.end_date,
@@ -63,7 +63,7 @@ class OdmCondition(ConceptModel):
                     )
                     for formal_expression_uid in odm_condition_ar.concept_vo.formal_expression_uids
                 ],
-                key=lambda item: item.expression,
+                key=lambda item: item.expression or "",
             ),
             descriptions=sorted(
                 [
@@ -73,7 +73,7 @@ class OdmCondition(ConceptModel):
                     )
                     for description_uid in odm_condition_ar.concept_vo.description_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             aliases=sorted(
                 [
@@ -83,7 +83,7 @@ class OdmCondition(ConceptModel):
                     )
                     for alias_uid in odm_condition_ar.concept_vo.alias_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_condition_ar.get_possible_actions()]
@@ -99,6 +99,7 @@ class OdmConditionPostInput(ConceptPostInput):
 
 
 class OdmConditionPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     formal_expressions: Annotated[
         list[OdmFormalExpressionBatchPatchInput | OdmFormalExpressionPostInput | str],

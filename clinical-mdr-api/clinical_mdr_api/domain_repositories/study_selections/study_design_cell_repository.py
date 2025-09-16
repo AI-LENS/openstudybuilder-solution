@@ -292,11 +292,10 @@ class StudyDesignCellRepository:
 
         # check if the study_arm has StudyBranchArms assigned to it
         # get StudyArm only if it's necessary
+        study_arm_node: StudyArm | None
         if design_cell_vo.study_arm_uid:
-            study_arm_node: StudyArm = (
-                latest_study_value_node.has_study_arm.get_or_none(
-                    uid=design_cell_vo.study_arm_uid
-                )
+            study_arm_node = latest_study_value_node.has_study_arm.get_or_none(
+                uid=design_cell_vo.study_arm_uid
             )
             # if any StudyBranchArms connectect to StudyArm has a study_value
             exceptions.BusinessLogicException.raise_if(
@@ -570,8 +569,8 @@ class StudyDesignCellRepository:
 
         return sdc_node
 
+    @staticmethod
     def get_design_cells_connected_to_element(
-        self,
         study_uid: str,
         study_element_uid: str,
         study_value_version: str | None = None,
@@ -757,7 +756,7 @@ class StudyDesignCellRepository:
 
     def find_selection_history(
         self, study_uid: str, design_cell_uid: str | None = None
-    ) -> list[dict | None]:
+    ) -> list[StudyDesignCellHistory]:
         if design_cell_uid:
             return self._get_selection_with_history(
                 study_uid=study_uid, design_cell_uid=design_cell_uid

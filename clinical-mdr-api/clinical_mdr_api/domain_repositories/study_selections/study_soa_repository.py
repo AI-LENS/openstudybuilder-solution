@@ -134,8 +134,7 @@ class StudySoARepository:
         )
         query.append("RETURN cell, ss, sfns")
 
-        query = "\n".join(query)
-        results, _ = db.cypher_query(query, params)
+        results, _ = db.cypher_query("\n".join(query), params)
 
         cell_references = [self._to_soa_cell_reference(*result) for result in results]
 
@@ -146,8 +145,7 @@ class StudySoARepository:
         query.append("RETURN fn, sfn")
         query.append("ORDER BY fn.order")
 
-        query = "\n".join(query)
-        results, _ = db.cypher_query(query, params)
+        results, _ = db.cypher_query("\n".join(query), params)
 
         footnote_references = [
             self._to_soa_footnote_reference(*result) for result in results
@@ -427,7 +425,7 @@ class StudySoARepository:
             )
         )
         if get_instances:
-            query.append(", study_activity_instance.uid")
+            query.append(", study_activity_instance.order")
 
         query.append(
             dedent(
@@ -442,15 +440,10 @@ class StudySoARepository:
                     is_request_rejected: COALESCE(activity_value.is_request_rejected, false),
                     is_request_final: COALESCE(activity_value.is_request_final, false),
                     is_multiple_selection_allowed: COALESCE(activity_value.is_multiple_selection_allowed, true),
-                    activity_groupings: null,
-                    synonyms: COALESCE(activity_value.synonyms, []),
-                    possible_actions: null,
                     library_name: act_library.name
                 },
-                latest_activity: null,
                 accepted_version: study_activity.accepted_version,
                 keep_old_version: COALESCE(study_activity.keep_old_version, false),
-                order: study_activity.order,
             """
             )
         )
@@ -473,20 +466,12 @@ class StudySoARepository:
                     is_required_for_activity: COALESCE(activity_instance_value.is_required_for_activity, false),
                     is_research_lab: COALESCE(activity_instance_value.is_research_lab, false),
                     is_legacy_usage: COALESCE(activity_instance_value.is_legacy_usage, false),
-                    start_date: null,
-                    status: null,
-                    version: null,
-                    change_description: null,
-                    possible_actions: null,
                     library_name: act_inst_library.name,
-                    activity_groupings: null,
-                    activity_items: null,
                     activity_instance_class: {
                         uid: activity_instance_class_root.uid,
                         name: activity_instance_class_latest_value.name
                     }
                 } ELSE null END,
-                latest_activity_instance: null,
                 state: CASE
                     WHEN activity_value.is_data_collected THEN
                         CASE
@@ -501,15 +486,18 @@ class StudySoARepository:
                     ELSE 'Not required'
                 END,
                 show_activity_instance_in_protocol_flowchart: COALESCE(study_activity_instance.show_activity_instance_in_protocol_flowchart, false),
+                order: study_activity_instance.order,
             """
                 )
             )
+        else:
+            query.append("    order: study_activity.order,")
         query.append(
             dedent(
                 """
                 show_activity_in_protocol_flowchart: study_activity.show_activity_in_protocol_flowchart,
-                show_activity_group_in_protocol_flowchart: study_activity_group.show_activity_group_in_protocol_flowchart,
-                show_activity_subgroup_in_protocol_flowchart: study_activity_subgroup.show_activity_subgroup_in_protocol_flowchart,
+                show_activity_group_in_protocol_flowchart: COALESCE(study_activity_group.show_activity_group_in_protocol_flowchart, false),
+                show_activity_subgroup_in_protocol_flowchart: COALESCE(study_activity_subgroup.show_activity_subgroup_in_protocol_flowchart, false),
                 show_soa_group_in_protocol_flowchart: study_soa_group.show_soa_group_in_protocol_flowchart,
                 study_activity_subgroup: {
                     study_activity_subgroup_uid: study_activity_subgroup.uid,
@@ -529,8 +517,6 @@ class StudySoARepository:
                     soa_group_term_name: soa_group_term_name.name,
                     order: study_soa_group.order
                 },
-                author_username: null,
-                start_date: null,
                 study_uid: study_root.uid,
                 study_version: study_version.version
             } AS selection
@@ -538,6 +524,5 @@ class StudySoARepository:
             )
         )
 
-        query = "\n".join(query)
-        results, headers = db.cypher_query(query, params=params)
+        results, headers = db.cypher_query("\n".join(query), params=params)
         return results, headers

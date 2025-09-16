@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import asdict
-from typing import Annotated, Any, Callable, Iterable, Self
+from typing import Annotated, Any, Callable, Iterable, Self, overload
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
@@ -33,21 +33,37 @@ class ActivityHierarchySimpleModel(BaseModel):
     uid: Annotated[str, Field()]
     name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
 
+    @overload
     @classmethod
     def from_activity_uid(
         cls,
         uid: str,
         find_activity_by_uid: Callable[[str], ConceptARBase | None],
         version: str | None = None,
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_activity_uid(
+        cls,
+        uid: None,
+        find_activity_by_uid: Callable[[str], ConceptARBase | None],
+        version: str | None = None,
+    ) -> None: ...
+    @classmethod
+    def from_activity_uid(
+        cls,
+        uid: str | None,
+        find_activity_by_uid: Callable[..., ConceptARBase | None],
+        version: str | None = None,
     ) -> Self | None:
+        simple_activity_model = None
+
         if uid is not None:
             activity = find_activity_by_uid(uid, version=version)
             if activity is not None:
                 simple_activity_model = cls(uid=uid, name=activity.concept_vo.name)
             else:
                 simple_activity_model = cls(uid=uid, name=None)
-        else:
-            simple_activity_model = None
         return simple_activity_model
 
     @classmethod
@@ -105,7 +121,7 @@ class ActivityBase(Concept):
                 "Actions are: 'approve', 'edit', 'new_version'."
             ),
         ),
-    ]
+    ] = None
 
     @field_validator("possible_actions", mode="before")
     @classmethod
@@ -178,6 +194,88 @@ class Activity(ActivityBase):
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
 
+    activity_groupings: Annotated[
+        list[ActivityGroupingHierarchySimpleModel] | None,
+        Field(json_schema_extra={"remove_from_wildcard": True}),
+    ] = None
+    activity_instances: list[ActivityHierarchySimpleModel] = Field(default_factory=list)
+    synonyms: Annotated[
+        list[str] | None, Field(json_schema_extra={"remove_from_wildcard": True})
+    ] = None
+    request_rationale: Annotated[
+        str | None,
+        Field(
+            description="The rationale of the activity request",
+            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
+        ),
+    ] = None
+    is_request_final: Annotated[
+        bool,
+        Field(
+            description="The flag indicating if activity request is finalized",
+            json_schema_extra={"remove_from_wildcard": True},
+        ),
+    ] = False
+    is_request_rejected: Annotated[
+        bool,
+        Field(
+            description="The flag indicating if activity request is rejected",
+            json_schema_extra={"remove_from_wildcard": True},
+        ),
+    ] = False
+    contact_person: Annotated[
+        str | None,
+        Field(
+            description="The person to contact with about rejection",
+            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
+        ),
+    ] = None
+    reason_for_rejecting: Annotated[
+        str | None,
+        Field(
+            description="The reason why request was rejected",
+            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
+        ),
+    ] = None
+    requester_study_id: Annotated[
+        str | None,
+        Field(
+            description="The study_id of the Study which requested an Activity request",
+            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
+        ),
+    ] = None
+    replaced_by_activity: Annotated[
+        str | None,
+        Field(
+            description="The uid of the replacing Activity",
+            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
+        ),
+    ] = None
+    is_data_collected: Annotated[
+        bool,
+        Field(
+            description="Boolean flag indicating whether data is collected for this activity",
+        ),
+    ] = False
+    is_multiple_selection_allowed: Annotated[
+        bool,
+        Field(
+            description="Boolean flag indicating whether multiple selections are allowed for this activity",
+        ),
+    ] = True
+    is_finalized: Annotated[
+        bool,
+        Field(
+            description="Evaluates to false, if is_request_rejected is false and replaced_by_activity is null else true",
+        ),
+    ] = False
+    is_used_by_legacy_instances: Annotated[
+        bool,
+        Field(
+            description="True if all instances linked to given Activity are legacy_used.",
+        ),
+    ] = False
+
     @classmethod
     def from_activity_ar(cls, activity_ar: ActivityAR) -> Self:
         activity_groupings = []
@@ -185,9 +283,10 @@ class Activity(ActivityBase):
             activity_groupings.append(
                 ActivityGroupingHierarchySimpleModel(
                     activity_group_uid=activity_grouping.activity_group_uid,
-                    activity_group_name=activity_grouping.activity_group_name,
+                    activity_group_name=activity_grouping.activity_group_name or "",
                     activity_subgroup_uid=activity_grouping.activity_subgroup_uid,
-                    activity_subgroup_name=activity_grouping.activity_subgroup_name,
+                    activity_subgroup_name=activity_grouping.activity_subgroup_name
+                    or "",
                 )
             )
         activity_groupings.sort(
@@ -314,93 +413,12 @@ class Activity(ActivityBase):
             is_used_by_legacy_instances=activity_ar.concept_vo.is_used_by_legacy_instances,
         )
 
-    activity_groupings: list[ActivityGroupingHierarchySimpleModel] | None = Field(
-        default_factory=list
-    )
-    activity_instances: list[ActivityHierarchySimpleModel] = Field(default_factory=list)
-    synonyms: Annotated[
-        list[str], Field(json_schema_extra={"remove_from_wildcard": True})
-    ]
-    request_rationale: Annotated[
-        str | None,
-        Field(
-            description="The rationale of the activity request",
-            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
-        ),
-    ] = None
-    is_request_final: Annotated[
-        bool,
-        Field(
-            description="The flag indicating if activity request is finalized",
-            json_schema_extra={"remove_from_wildcard": True},
-        ),
-    ] = False
-    is_request_rejected: Annotated[
-        bool,
-        Field(
-            description="The flag indicating if activity request is rejected",
-            json_schema_extra={"remove_from_wildcard": True},
-        ),
-    ] = False
-    contact_person: Annotated[
-        str | None,
-        Field(
-            description="The person to contact with about rejection",
-            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
-        ),
-    ] = None
-    reason_for_rejecting: Annotated[
-        str | None,
-        Field(
-            description="The reason why request was rejected",
-            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
-        ),
-    ] = None
-    requester_study_id: Annotated[
-        str | None,
-        Field(
-            description="The study_id of the Study which requested an Activity request",
-            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
-        ),
-    ] = None
-    replaced_by_activity: Annotated[
-        str | None,
-        Field(
-            description="The uid of the replacing Activity",
-            json_schema_extra={"nullable": True, "remove_from_wildcard": True},
-        ),
-    ] = None
-    is_data_collected: Annotated[
-        bool,
-        Field(
-            description="Boolean flag indicating whether data is collected for this activity",
-        ),
-    ] = False
-    is_multiple_selection_allowed: Annotated[
-        bool,
-        Field(
-            description="Boolean flag indicating whether multiple selections are allowed for this activity",
-        ),
-    ] = True
-    is_finalized: Annotated[
-        bool,
-        Field(
-            description="Evaluates to false, if is_request_rejected is false and replaced_by_activity is null else true",
-        ),
-    ] = False
-    is_used_by_legacy_instances: Annotated[
-        bool,
-        Field(
-            description="True if all instances linked to given Activity are legacy_used.",
-        ),
-    ] = False
-
 
 class ActivityForStudyActivity(Activity):
     activity_groupings: Annotated[
         list[ActivityGroupingHierarchySimpleModel] | None,
         Field(json_schema_extra={"remove_from_wildcard": True}),
-    ]
+    ] = None
 
 
 class ActivityGrouping(InputModel):
@@ -726,5 +744,5 @@ class ActivityOverview(BaseModel):
                 )
                 for activity_instance in overview.get("activity_instances")
             ],
-            all_versions=overview.get("all_versions"),
+            all_versions=overview["all_versions"],
         )

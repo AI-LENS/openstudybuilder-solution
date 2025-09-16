@@ -28,6 +28,7 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         Then The Activity Instance Wizard Stepper 'Data specification' page is displayed
         And Form save button is clicked
         Then The current URL is '/overview'
+        And The page is reloaded
         And Correct instance overview page is displayed
         Then The '/library/activities/activity-instances' page is opened
         And User sets status filter to 'all'
@@ -226,15 +227,15 @@ Feature: Library - Concepts - Activities - Activity instances - new wizard stepp
         When An Activity is selected from the activity list
         And Form continue button is clicked
         And The 'CategoricFindings' is selected from the Activity instance class field
-        And First value is selected from the Data domain field
+        And The 'LB' is selected from the Activity instance domain field
         And Form continue button is clicked
         And Field 'ADaM parameter' is filled with value 'ADAM'
         And Automatically assigned activity instance name is saved
         And Topic code is changed to the unique one
         And Add activity item class button is clicked
-        Then Value 'specimen' is selected for 0 Activity item class field
+        Then Value 'analysis_method' is selected for 0 Activity item class field
         And Add activity item class button is clicked
-        Then Value 'position' is selected for 1 Activity item class field
+        Then Value 'laterality' is selected for 1 Activity item class field
         And Form continue button is clicked
         And Form save button is clicked
         Then The current URL is '/overview'

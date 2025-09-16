@@ -151,12 +151,16 @@ class OdmMethodAR(OdmARBase):
     def concept_vo(self) -> OdmMethodVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmMethodVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmMethodVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -172,7 +176,7 @@ class OdmMethodAR(OdmARBase):
         author_id: str,
         concept_vo: OdmMethodVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         odm_object_exists_callback: Callable = lambda _: True,
         find_odm_formal_expression_callback: Callable[
             [str], OdmFormalExpressionAR | None
@@ -209,7 +213,7 @@ class OdmMethodAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmMethodVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

@@ -22,12 +22,17 @@ from clinical_mdr_api.models.utils import BaseModel
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services.studies.study_activity_selection_base import (
     StudyActivitySelectionBaseService,
-    _VOType,
 )
 from common.exceptions import BusinessLogicException, ValidationException
 
 
-class StudyActivityGroupService(StudyActivitySelectionBaseService):
+class StudyActivityGroupService(
+    StudyActivitySelectionBaseService[
+        StudySelectionActivityGroupAR,
+        StudySelectionActivityGroupVO,
+        StudyActivityGroup,
+    ]
+):
     _repos: MetaRepository
     repository_interface = StudySelectionActivityGroupRepository
     selected_object_repository_interface = ActivityGroupRepository
@@ -42,9 +47,12 @@ class StudyActivityGroupService(StudyActivitySelectionBaseService):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionActivityGroupAR,
+        study_selection: StudySelectionActivityGroupAR | None,
         study_value_version: str | None = None,
     ) -> list[StudyActivityGroup]:
+        if study_selection is None:
+            return []
+
         result = []
         for selection in study_selection.study_objects_selection:
             result.append(
@@ -58,10 +66,10 @@ class StudyActivityGroupService(StudyActivitySelectionBaseService):
     def _transform_from_vo_to_response_model(
         self,
         study_uid: str,
-        specific_selection: _VOType,
+        specific_selection: StudySelectionActivityGroupVO,
         terms_at_specific_datetime: datetime | None = None,
         accepted_version: bool | None = None,
-    ) -> BaseModel:
+    ) -> StudyActivityGroup:
         return StudyActivityGroup.from_study_selection_activity_vo(
             study_uid=study_uid, specific_selection=specific_selection
         )
@@ -110,7 +118,7 @@ class StudyActivityGroupService(StudyActivitySelectionBaseService):
             study_selection_uid=study_activity_group_to_reorder.study_soa_group_uid,
         )
 
-        soa_group_size = len(study_soa_group.study_activity_group_uids)
+        soa_group_size = len(study_soa_group.study_activity_group_uids or [])
         soa_group_name = study_soa_group.soa_group_term_name
         BusinessLogicException.raise_if(
             new_order > soa_group_size,

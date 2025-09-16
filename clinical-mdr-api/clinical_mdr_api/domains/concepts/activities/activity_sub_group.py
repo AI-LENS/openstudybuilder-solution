@@ -50,19 +50,20 @@ class ActivitySubGroupVO(ConceptVO):
         activity_subgroup_exists_by_name_callback: Callable[
             [str, str], bool
         ] = lambda x, y: True,
-        previous_name: str | None = None,
         library_name: str | None = None,
+        previous_name: str | None = None,
     ):
         self.validate_name_sentence_case()
-        existing_name = activity_subgroup_exists_by_name_callback(
-            library_name, self.name
-        )
-        AlreadyExistsException.raise_if(
-            existing_name and previous_name != self.name,
-            "Activity Subgroup",
-            self.name,
-            "Name",
-        )
+        if self.name and library_name is not None:
+            existing_name = activity_subgroup_exists_by_name_callback(
+                library_name, self.name
+            )
+            AlreadyExistsException.raise_if(
+                existing_name and previous_name != self.name,
+                "Activity Subgroup",
+                self.name,
+                "Name",
+            )
         for activity_group in self.activity_groups:
             BusinessLogicException.raise_if_not(
                 activity_group_exists(activity_group.activity_group_uid),
@@ -79,6 +80,10 @@ class ActivitySubGroupAR(ConceptARBase):
     def concept_vo(self) -> ActivitySubGroupVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: ActivitySubGroupVO) -> None:
+        self._concept_vo = value
+
     @property
     def name(self) -> str:
         return self._concept_vo.name
@@ -89,7 +94,7 @@ class ActivitySubGroupAR(ConceptARBase):
         author_id: str,
         concept_vo: ActivitySubGroupVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool
         ] = lambda x, y, z: True,
@@ -124,13 +129,15 @@ class ActivitySubGroupAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: ActivitySubGroupVO,
-        concept_exists_by_callback: Callable[[str, str, bool], bool] | None = None,
+        concept_exists_by_callback: Callable[
+            [str, str, bool], bool
+        ] = lambda x, y, z: True,
         concept_exists_by_library_and_name_callback: Callable[
             [str, str], bool
         ] = lambda x, y: True,
-        activity_group_exists: Callable[[str], bool] | None = None,
+        activity_group_exists: Callable[[str], bool] = lambda _: True,
     ) -> None:
         """
         Creates a new draft version for the object.

@@ -31,11 +31,11 @@ class DatasetClass(BaseModel):
     @classmethod
     def from_repository_output(cls, input_dict: dict[str, Any]):
         return cls(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             label=input_dict.get("standard_value").get("label"),
             title=input_dict.get("standard_value").get("title"),
             description=input_dict.get("standard_value").get("description"),
-            catalogue_name=input_dict.get("catalogue_name"),
+            catalogue_name=input_dict["catalogue_name"],
             parent_class=input_dict.get("parent_class_name"),
             data_models=[
                 SimpleDataModel(

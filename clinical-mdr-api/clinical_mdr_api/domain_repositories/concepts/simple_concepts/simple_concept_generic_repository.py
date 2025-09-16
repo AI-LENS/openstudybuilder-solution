@@ -16,7 +16,7 @@ class SimpleConceptGenericRepository(ConceptGenericRepository[_AggregateRootType
 
         # try to find an existing simple concept root node with given uid
         if root is None:
-            root = self.root_class(uid=item.uid)
+            root = self.root_class(uid=item.uid)  # type: ignore[call-overload]
             self._db_save_node(root)
 
             value = self._create_new_value_node(ar=item)

@@ -162,7 +162,7 @@ Feature: Studies - Study Activities - Study Visits groups
         And [API] The dynamic visit data is fetched: contact mode 'On Site Visit', time reference 'Global anchor visit', type 'Randomisation', epoch 'Screening'
         And [API] The visit with following attributes is created: isGlobalAnchor 1, visitWeek 0
         And [API] The visit with following attributes is created: isGlobalAnchor 0, visitWeek 1
-        And [API] The visit with following attributes is created: isGlobalAnchor 0, visitWeek 2, maxVisitWindow 5
+        And [API] The visit with following attributes is created: isGlobalAnchor 0, visitWeek 2, minVisitWindow 0, maxVisitWindow 5
         And The '/studies/Study_000003/activities/soa' page is opened
         When User selects visits 'V2, V3'
         And User waits for 1 seconds

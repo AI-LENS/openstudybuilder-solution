@@ -41,7 +41,7 @@ class DataModel(BaseModel):
     @classmethod
     def from_repository_output(cls, input_dict: dict[str, Any]):
         return cls(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             name=input_dict.get("standard_value").get("name"),
             description=input_dict.get("standard_value").get("description"),
             implementation_guides=[
@@ -51,7 +51,7 @@ class DataModel(BaseModel):
                 )
                 for ig in input_dict.get("implementation_guides")
             ],
-            version_number=input_dict.get("version_number"),
-            start_date=convert_to_datetime(input_dict.get("start_date")),
+            version_number=input_dict["version_number"],
+            start_date=convert_to_datetime(input_dict["start_date"]),
             status=input_dict.get("status"),
         )

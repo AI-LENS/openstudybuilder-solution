@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from clinical_mdr_api.domain_repositories.study_selections.study_soa_repository import (
     SoALayout,
@@ -607,7 +607,7 @@ class SoATestData:
         for item in ActivityInstanceService().get_all_concepts().items:
             self.activity_instances.setdefault(item.activity_name, {})[item.name] = item
 
-        self.create_activity_instances()
+        self.create_activity_instances(self.ACTIVITIES.items())
 
         self.get_study_activity_instances()
         self.assign_study_activity_instances()
@@ -951,61 +951,75 @@ class SoATestData:
 
         return activity
 
-    def create_activity_instances(self) -> list[ActivityInstance]:
+    def create_activity_instances(
+        self, activities: Sequence[dict]
+    ) -> list[ActivityInstance]:
         log.debug("creating ActivityInstances")
-
         activity_instances_created = []
 
-        for name, act in self.ACTIVITIES.items():
-            activity = self.activities[name]
-            existing_instances = self.activity_instances.get(name, {})
-
-            for inst in act.get("instances", []):
-                if inst["name"] in existing_instances:
-                    continue
-
-                if not (
-                    instance_class := self._activity_instance_classes.get(inst["class"])
-                ):
-                    self._activity_instance_classes[inst["class"]] = (
-                        instance_class := TestUtils.create_activity_instance_class(
-                            name=inst["class"]
-                        )
-                    )
-
-                activity_instance = TestUtils.create_activity_instance(
-                    name=inst["name"],
-                    activity_instance_class_uid=instance_class.uid,
-                    name_sentence_case=inst["name"].lower(),
-                    topic_code=inst.get("topic_code", None),
-                    adam_param_code=inst.get("adam_param_code", None),
-                    is_required_for_activity=True,
-                    activities=[activity.uid],
-                    activity_groups=(
-                        [activity.activity_groupings[0].activity_group_uid]
-                        if activity.activity_groupings
-                        else []
-                    ),
-                    activity_subgroups=(
-                        [activity.activity_groupings[0].activity_subgroup_uid]
-                        if activity.activity_groupings
-                        else []
-                    ),
-                    activity_items=[],
+        for name, act in activities:
+            if act.get("instances"):
+                activity_instances_created.extend(
+                    self.create_instances_of_activity(name, act["instances"])
                 )
 
-                activity_instances_created.append(activity_instance)
-                self.activity_instances.setdefault(name, {})[
-                    inst["name"]
-                ] = activity_instance
+        if activity_instances_created:
+            log.info(
+                "created ActivityInstances: %s",
+                {
+                    activity_instance.uid: activity_instance.name
+                    for activity_instance in activity_instances_created
+                },
+            )
 
-        log.info(
-            "created ActivityInstances: %s",
-            {
-                activity_instance.uid: activity_instance.name
-                for activity_instance in activity_instances_created
-            },
-        )
+        return activity_instances_created
+
+    def create_instances_of_activity(
+        self, name: str, instances_properties: list[dict[str, Any]]
+    ) -> list[ActivityInstance]:
+        activity = self.activities[name]
+        existing_instances = self.activity_instances.get(name, {})
+        activity_instances_created = []
+
+        for inst in instances_properties:
+            if inst["name"] in existing_instances:
+                continue
+
+            if not (
+                instance_class := self._activity_instance_classes.get(inst["class"])
+            ):
+                self._activity_instance_classes[inst["class"]] = (
+                    instance_class := TestUtils.create_activity_instance_class(
+                        name=inst["class"]
+                    )
+                )
+
+            activity_instance = TestUtils.create_activity_instance(
+                name=inst["name"],
+                activity_instance_class_uid=instance_class.uid,
+                name_sentence_case=inst["name"].lower(),
+                topic_code=inst.get("topic_code", None),
+                adam_param_code=inst.get("adam_param_code", None),
+                is_required_for_activity=True,
+                activities=[activity.uid],
+                activity_groups=(
+                    [activity.activity_groupings[0].activity_group_uid]
+                    if activity.activity_groupings
+                    else []
+                ),
+                activity_subgroups=(
+                    [activity.activity_groupings[0].activity_subgroup_uid]
+                    if activity.activity_groupings
+                    else []
+                ),
+                activity_items=[],
+            )
+
+            self.activity_instances.setdefault(name, {})[
+                inst["name"]
+            ] = activity_instance
+
+            activity_instances_created.append(activity_instance)
 
         return activity_instances_created
 
@@ -1048,9 +1062,6 @@ class SoATestData:
             study_uid=self.study.uid,
             study_selection_uid=study_activity.study_activity_uid,
             show_activity_in_protocol_flowchart=kwargs.get("show_activity"),
-            show_activity_subgroup_in_protocol_flowchart=kwargs.get("show_subgroup"),
-            show_activity_group_in_protocol_flowchart=kwargs.get("show_group"),
-            show_soa_group_in_protocol_flowchart=kwargs.get("show_soa_group", False),
             soa_group_term_uid=(
                 self._soa_group_terms[kwargs["soa_group"]].term_uid
                 if kwargs.get("soa_group")
@@ -1110,19 +1121,20 @@ class SoATestData:
         for name in self.ACTIVITIES:
             if name not in self.activity_instances:
                 continue
-
-            study_activity_uid = self.study_activities[name].study_activity_uid
-
-            TestUtils.batch_select_study_activity_instances(
-                study_uid=self.study.uid,
-                study_activity_uid=study_activity_uid,
-                activity_instance_uids=[
-                    activity_instance.uid
-                    for activity_instance in self.activity_instances[name].values()
-                ],
-            )
-
+            self.assign_instances_of_activity(name)
         self.get_study_activity_instances()
+
+    def assign_instances_of_activity(self, name: str):
+        study_activity_uid = self.study_activities[name].study_activity_uid
+
+        TestUtils.batch_select_study_activity_instances(
+            study_uid=self.study.uid,
+            study_activity_uid=study_activity_uid,
+            activity_instance_uids=[
+                activity_instance.uid
+                for activity_instance in self.activity_instances[name].values()
+            ],
+        )
 
     def create_footnote_types(
         self,

@@ -43,8 +43,8 @@ class StudyVersionSimple(BaseModel):
     @classmethod
     def from_input(
         cls,
-        version_status: str,
-        version_number: str,
+        version_status: str | None,
+        version_number: str | None,
         version_started_at: datetime,
         version_ended_at: datetime | None = None,
     ) -> Self:
@@ -145,9 +145,7 @@ class PaginatedResponseWithStudyVersion(PaginatedResponse, Generic[T]):
         it.study_version = StudyVersionSimple.from_input(
             version_status=study_version.get("version_status", None),
             version_number=study_version.get("version_number", None),
-            version_started_at=convert_to_datetime(
-                study_version.get("version_started_at", None)
-            ),
+            version_started_at=convert_to_datetime(study_version["version_started_at"]),
             version_ended_at=convert_to_datetime(
                 study_version.get("version_ended_at", None)
             ),

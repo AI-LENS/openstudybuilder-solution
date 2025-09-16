@@ -18,7 +18,7 @@ class Brand(BaseModel):
         find_by_uid: Callable[[str], BrandAR | None],
     ) -> Self | None:
         brand = None
-        brand_ar: BrandAR = find_by_uid(uid)
+        brand_ar: BrandAR | None = find_by_uid(uid)
         if brand_ar is not None:
             brand = Brand.from_brand_ar(brand_ar)
         return brand

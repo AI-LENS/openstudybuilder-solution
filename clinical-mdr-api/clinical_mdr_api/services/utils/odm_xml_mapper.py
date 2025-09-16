@@ -44,7 +44,7 @@ def map_xml(xml_document: Document, mapper: UploadFile | None):
     dict_reader = DictReader(iterdecode(mapper.file, "utf-8"))
 
     BusinessLogicException.raise_if_not(
-        MANDATORY_MAPPER_FIELDS.issubset(dict_reader.fieldnames),
+        MANDATORY_MAPPER_FIELDS.issubset(dict_reader.fieldnames or {}),
         msg=f"These headers must be present: {sorted(MANDATORY_MAPPER_FIELDS)}",
     )
 

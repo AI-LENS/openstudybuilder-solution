@@ -169,7 +169,7 @@ class StudyDesignCellService(StudySelectionMixin):
             study_epoch_name=None,
             study_element_uid=design_cell_input.study_element_uid,
             study_element_name=None,
-            order=design_cell_input.order,
+            order=design_cell_input.order,  # type: ignore[arg-type]
             transition_rule=design_cell_input.transition_rule,
             author_id=self.author,
             start_date=datetime.now(timezone.utc),
@@ -223,8 +223,8 @@ class StudyDesignCellService(StudySelectionMixin):
             study_element_uid=study_design_cell_edit_input.study_element_uid,
             study_arm_uid=study_design_cell_edit_input.study_arm_uid,
             study_branch_arm_uid=study_design_cell_edit_input.study_branch_arm_uid,
-            transition_rule=study_design_cell_edit_input.transition_rule,
-            order=study_design_cell_edit_input.order,
+            transition_rule=study_design_cell_edit_input.transition_rule or "",
+            order=study_design_cell_edit_input.order,  # type: ignore[arg-type]
         )
 
     @ensure_transaction(db)
@@ -362,24 +362,34 @@ class StudyDesignCellService(StudySelectionMixin):
     ) -> list[StudyDesignCellBatchOutput]:
         results = []
         for operation in operations:
-            result = {}
             item = None
             try:
                 if operation.method == "POST":
-                    item = self.create(study_uid, operation.content)
-                    response_code = status.HTTP_201_CREATED
+                    if isinstance(operation.content, StudyDesignCellCreateInput):
+                        item = self.create(study_uid, operation.content)
+                        response_code = status.HTTP_201_CREATED
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudyDesignCellCreateInput as request payload."
+                        )
                 elif operation.method == "PATCH":
-                    item = self.patch(study_uid, operation.content)
-                    response_code = status.HTTP_200_OK
+                    if isinstance(operation.content, StudyDesignCellEditInput):
+                        item = self.patch(study_uid, operation.content)
+                        response_code = status.HTTP_200_OK
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="PATCH operation requires StudyDesignCellEditInput as request payload."
+                        )
                 elif operation.method == "DELETE":
                     self.delete(study_uid, operation.content.uid)
                     response_code = status.HTTP_204_NO_CONTENT
                 else:
                     raise exceptions.MethodNotAllowedException(method=operation.method)
-                result["response_code"] = response_code
-                if item:
-                    result["content"] = item.model_dump()
-                results.append(StudyDesignCellBatchOutput(**result))
+                results.append(
+                    StudyDesignCellBatchOutput(
+                        response_code=response_code, content=item
+                    )
+                )
             except exceptions.MDRApiBaseException as error:
                 results.append(
                     StudyDesignCellBatchOutput.model_construct(

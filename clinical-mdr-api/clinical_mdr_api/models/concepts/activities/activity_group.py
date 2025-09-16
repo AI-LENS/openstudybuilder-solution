@@ -70,7 +70,7 @@ class ActivityGroupDetail(BaseModel):
     status: Annotated[str, Field()]
     version: Annotated[str, Field()]
     possible_actions: Annotated[list[str], Field()]
-    change_description: Annotated[str | None, Field()] = None
+    change_description: Annotated[str, Field()]
     author_username: Annotated[str, Field()]
     definition: Annotated[str | None, Field()] = None
     abbreviation: Annotated[str | None, Field()] = None

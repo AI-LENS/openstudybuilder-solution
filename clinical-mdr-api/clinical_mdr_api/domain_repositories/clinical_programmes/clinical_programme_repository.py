@@ -121,7 +121,7 @@ class ClinicalProgrammeRepository:
         # projecting results to ClinicalProgrammeAR instances
         clinical_programme_ars: list[ClinicalProgrammeAR] = [
             ClinicalProgrammeAR.from_input_values(
-                name=c.name, generate_uid_callback=lambda c=c: c.uid
+                name=c.name, generate_uid_callback=lambda x=c: x.uid  # type: ignore[misc]
             )
             for c in clinical_programmes
         ]

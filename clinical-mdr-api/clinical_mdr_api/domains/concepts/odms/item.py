@@ -3,8 +3,8 @@ from typing import Any, Callable, Self
 
 from clinical_mdr_api.domains.concepts.concept_base import ConceptVO
 from clinical_mdr_api.domains.concepts.odms.odm_ar_base import OdmARBase
-from clinical_mdr_api.domains.controlled_terminologies.ct_term_attributes import (
-    CTTermAttributesAR,
+from clinical_mdr_api.domains.controlled_terminologies.ct_codelist_attributes import (
+    CTCodelistAttributesAR,
 )
 from clinical_mdr_api.domains.controlled_terminologies.ct_term_name import CTTermNameAR
 from clinical_mdr_api.domains.versioned_object_aggregate import (
@@ -93,7 +93,9 @@ class OdmItemVO(ConceptVO):
         get_odm_description_parent_uids_callback: Callable[[list[str]], dict],
         odm_alias_exists_by_callback: Callable[[str, str, bool], bool],
         unit_definition_exists_by_callback: Callable[[str, str, bool], bool],
-        find_codelist_attribute_callback: Callable[[str], CTTermAttributesAR | None],
+        find_codelist_attribute_callback: Callable[
+            [str], CTCodelistAttributesAR | None
+        ],
         find_all_terms_callback: Callable[
             [str], GenericFilteringReturn[CTTermNameAR] | None
         ],
@@ -156,12 +158,11 @@ class OdmItemVO(ConceptVO):
                 msg="To add terms you need to specify a codelist.",
             )
 
-            codelist_term_uids = [
-                term.uid
-                for term in find_all_terms_callback(
-                    codelist_uid=self.codelist_uid
-                ).items
-            ]
+            codelist_term_uids = (
+                [term.uid for term in find_all_terms_callback(self.codelist_uid).items]
+                if self.codelist_uid is not None
+                else []
+            )
             for term_uid in self.term_uids:
                 BusinessLogicException.raise_if(
                     term_uid not in codelist_term_uids,
@@ -187,12 +188,16 @@ class OdmItemAR(OdmARBase):
     def concept_vo(self) -> OdmItemVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmItemVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmItemVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -208,7 +213,7 @@ class OdmItemAR(OdmARBase):
         author_id: str,
         concept_vo: OdmItemVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         odm_object_exists_callback: Callable = lambda _: True,
         odm_description_exists_by_callback: Callable[
             [str, str, bool], bool
@@ -223,7 +228,7 @@ class OdmItemAR(OdmARBase):
             [str, str, bool], bool
         ] = lambda x, y, z: True,
         find_codelist_attribute_callback: Callable[
-            [str], CTTermAttributesAR | None
+            [str], CTCodelistAttributesAR | None
         ] = lambda _: None,
         find_all_terms_callback: Callable[
             [str], GenericFilteringReturn[CTTermNameAR] | None
@@ -254,7 +259,7 @@ class OdmItemAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmItemVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool
@@ -273,7 +278,7 @@ class OdmItemAR(OdmARBase):
             [str, str, bool], bool
         ] = lambda x, y, z: True,
         find_codelist_attribute_callback: Callable[
-            [str], CTTermAttributesAR | None
+            ..., CTCodelistAttributesAR | None
         ] = lambda _: None,
         find_all_terms_callback: Callable[
             [str], GenericFilteringReturn[CTTermNameAR] | None

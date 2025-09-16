@@ -19,4 +19,4 @@ def generate_study_root():
 
 
 def create_library_data():
-    library_service.create(**library_data)
+    library_service.create(**library_data)  # type: ignore[arg-type]

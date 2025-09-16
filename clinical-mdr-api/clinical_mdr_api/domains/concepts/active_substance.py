@@ -50,41 +50,47 @@ class ActiveSubstanceVO(ConceptVO):
 
     def validate(
         self,
-        uid: str | None,
-        active_substance_uid_by_property_value_callback: Callable[[str, str], str],
+        uid: str,
+        active_substance_uid_by_property_value_callback: Callable[
+            [str, str], str | None
+        ],
         dictionary_term_exists_callback: Callable[[str], bool],
     ):
-        self.validate_uniqueness(
-            lookup_callback=active_substance_uid_by_property_value_callback,
-            uid=uid,
-            property_name="analyte_number",
-            value=self.analyte_number,
-            error_message=f"Active Substance with Analyte Number '{self.analyte_number}' already exists.",
-        )
+        if self.analyte_number is not None:
+            self.validate_uniqueness(
+                lookup_callback=active_substance_uid_by_property_value_callback,
+                uid=uid,
+                property_name="analyte_number",
+                value=self.analyte_number,
+                error_message=f"Active Substance with Analyte Number '{self.analyte_number}' already exists.",
+            )
 
-        self.validate_uniqueness(
-            lookup_callback=active_substance_uid_by_property_value_callback,
-            uid=uid,
-            property_name="short_number",
-            value=self.short_number,
-            error_message=f"Active Substance with Short Number '{self.short_number}' already exists.",
-        )
+        if self.short_number is not None:
+            self.validate_uniqueness(
+                lookup_callback=active_substance_uid_by_property_value_callback,
+                uid=uid,
+                property_name="short_number",
+                value=self.short_number,
+                error_message=f"Active Substance with Short Number '{self.short_number}' already exists.",
+            )
 
-        self.validate_uniqueness(
-            lookup_callback=active_substance_uid_by_property_value_callback,
-            uid=uid,
-            property_name="long_number",
-            value=self.long_number,
-            error_message=f"Active Substance with Long Number '{self.long_number}' already exists.",
-        )
+        if self.long_number is not None:
+            self.validate_uniqueness(
+                lookup_callback=active_substance_uid_by_property_value_callback,
+                uid=uid,
+                property_name="long_number",
+                value=self.long_number,
+                error_message=f"Active Substance with Long Number '{self.long_number}' already exists.",
+            )
 
-        self.validate_uniqueness(
-            lookup_callback=active_substance_uid_by_property_value_callback,
-            uid=uid,
-            property_name="external_id",
-            value=self.external_id,
-            error_message=f"Active Substance with external_id '{self.external_id}' already exists.",
-        )
+        if self.external_id is not None:
+            self.validate_uniqueness(
+                lookup_callback=active_substance_uid_by_property_value_callback,
+                uid=uid,
+                property_name="external_id",
+                value=self.external_id,
+                error_message=f"Active Substance with external_id '{self.external_id}' already exists.",
+            )
 
         BusinessLogicException.raise_if(
             self.unii_term_uid
@@ -101,6 +107,10 @@ class ActiveSubstanceAR(ConceptARBase):
     def concept_vo(self) -> ActiveSubstanceVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: ActiveSubstanceVO) -> None:
+        self._concept_vo = value
+
     @property
     def name(self) -> str:
         return self.concept_vo.name
@@ -111,9 +121,11 @@ class ActiveSubstanceAR(ConceptARBase):
         author_id: str,
         concept_vo: ActiveSubstanceVO,
         library: LibraryVO,
-        active_substance_uid_by_property_value_callback: Callable[[str, str], str],
+        active_substance_uid_by_property_value_callback: Callable[
+            [str, str], str | None
+        ],
         dictionary_term_exists_callback: Callable[[str], bool],
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str],
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -142,10 +154,12 @@ class ActiveSubstanceAR(ConceptARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: ActiveSubstanceVO,
-        concept_exists_by_callback: Callable[[str, str], str] | None = None,
-        dictionary_term_exists_callback: Callable[[str], bool] | None = None,
+        concept_exists_by_callback: Callable[
+            [str, str], str | None
+        ] = lambda x, y: None,
+        dictionary_term_exists_callback: Callable[[str], bool] = lambda x: False,
     ) -> None:
         """
         Creates a new draft version for the object.

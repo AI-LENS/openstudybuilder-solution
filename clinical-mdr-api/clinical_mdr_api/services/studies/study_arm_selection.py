@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from fastapi import status
 from neomodel import db
 
 from clinical_mdr_api.domain_repositories.study_selections.study_arm_repository import (
@@ -11,8 +12,13 @@ from clinical_mdr_api.domains.study_selections.study_selection_arm import (
     StudySelectionArmVO,
 )
 from clinical_mdr_api.models.controlled_terminologies.ct_term import SimpleTermModel
+from clinical_mdr_api.models.error import BatchErrorResponse
 from clinical_mdr_api.models.study_selections.study_selection import (
+    CompactStudyArm,
     StudySelectionArm,
+    StudySelectionArmBatchInput,
+    StudySelectionArmBatchOutput,
+    StudySelectionArmBatchUpdateInput,
     StudySelectionArmCreateInput,
     StudySelectionArmInput,
     StudySelectionArmVersion,
@@ -23,6 +29,7 @@ from clinical_mdr_api.repositories._utils import FilterOperator
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services._utils import (
     calculate_diffs,
+    ensure_transaction,
     fill_missing_values_in_base_model_from_reference_base_model,
     service_level_generic_filtering,
     service_level_generic_header_filtering,
@@ -41,9 +48,12 @@ class StudyArmSelectionService(StudySelectionMixin):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionArmAR,
+        study_selection: StudySelectionArmAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionArmWithConnectedBranchArms]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -82,7 +92,6 @@ class StudyArmSelectionService(StudySelectionMixin):
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
 
-    @db.transaction
     def get_all_selections_for_all_studies(
         self,
         project_name: str | None = None,
@@ -91,7 +100,7 @@ class StudyArmSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudySelectionArmWithConnectedBranchArms]:
         repos = self._repos
@@ -120,16 +129,15 @@ class StudyArmSelectionService(StudySelectionMixin):
         )
         return filtered_items
 
-    @db.transaction
     def get_distinct_values_for_header(
         self,
         field_name: str,
         study_uid: str | None = None,
         project_name: str | None = None,
         project_number: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         repos = self._repos
@@ -173,7 +181,6 @@ class StudyArmSelectionService(StudySelectionMixin):
         # Return values for field_name
         return header_values
 
-    @db.transaction
     def get_all_selection(
         self,
         study_uid: str,
@@ -181,7 +188,7 @@ class StudyArmSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         study_value_version: str | None = None,
     ) -> GenericFilteringReturn[StudySelectionArmWithConnectedBranchArms]:
@@ -207,91 +214,107 @@ class StudyArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    def get_arms_branches_and_cohorts(
+        self,
+        study_uid: str,
+        study_value_version: str | None = None,
+    ) -> list[CompactStudyArm]:
+        repos = MetaRepository()
+        try:
+            arms_branches_and_cohorts = (
+                repos.study_arm_repository.get_arms_branches_and_cohorts(
+                    study_uid, study_value_version=study_value_version
+                )
+            )
+            result = []
+            for study_arm in arms_branches_and_cohorts:
+                result.append(
+                    CompactStudyArm.from_repository_output(arm_structure=study_arm)
+                )
+            return result
+        finally:
+            repos.close()
+
+    @ensure_transaction(db)
     def delete_selection(self, study_uid: str, study_selection_uid: str):
         repos = self._repos
         try:
             # cascade delete
             # delete study branch arms assigned to arm
-            branch_arms_on_arm = None
-            if repos.study_arm_repository.arm_specific_has_connected_branch_arms(
-                study_uid=study_uid, arm_uid=study_selection_uid
-            ):
-                branch_arms_on_arm = (
-                    repos.study_branch_arm_repository.get_branch_arms_connected_to_arm(
-                        study_uid=study_uid, study_arm_uid=study_selection_uid
-                    )
+            branch_arms_on_arm = (
+                repos.study_branch_arm_repository.get_branch_arms_connected_to_arm(
+                    study_uid=study_uid, study_arm_uid=study_selection_uid
                 )
+            )
             design_cells_on_branch_arm: list[Any] = []
             design_cells_to_delete_from_branch_arm: list[Any] = []
-            if branch_arms_on_arm is not None:
-                for i_branch_arm in branch_arms_on_arm:
-                    cascade_deletion_last_branch = False
-                    # if the branch_arm has connected design cells
-                    if repos.study_branch_arm_repository.branch_arm_specific_has_connected_cell(
+            for i_branch_arm in branch_arms_on_arm:
+                cascade_deletion_last_branch = False
+                # if the branch_arm has connected design cells
+                if repos.study_branch_arm_repository.branch_arm_specific_has_connected_cell(
+                    study_uid=study_uid,
+                    branch_arm_uid=i_branch_arm.uid,
+                ):
+                    design_cells_on_branch_arm = self._repos.study_design_cell_repository.get_design_cells_connected_to_branch_arm(
+                        study_uid=study_uid, study_branch_arm_uid=i_branch_arm.uid
+                    )
+                    # if the study_branch_arm is the last StudyBranchArm of its StudyArm root
+                    if repos.study_branch_arm_repository.branch_arm_specific_is_last_on_arm_root(
                         study_uid=study_uid,
+                        arm_root_uid=study_selection_uid,
                         branch_arm_uid=i_branch_arm.uid,
                     ):
-                        design_cells_on_branch_arm = self._repos.study_design_cell_repository.get_design_cells_connected_to_branch_arm(
-                            study_uid=study_uid, study_branch_arm_uid=i_branch_arm.uid
-                        )
-                        # if the study_branch_arm is the last StudyBranchArm of its StudyArm root
-                        if repos.study_branch_arm_repository.branch_arm_specific_is_last_on_arm_root(
-                            study_uid=study_uid,
-                            arm_root_uid=study_selection_uid,
-                            branch_arm_uid=i_branch_arm.uid,
-                        ):
-                            # switch all the study designcells to the study branch arm
-                            cascade_deletion_last_branch = True
+                        # switch all the study designcells to the study branch arm
+                        cascade_deletion_last_branch = True
 
-                        # else the study_branch_arm is not last StudyBranchArm of its StudyArm root, so delete studyDesignCells
-                        else:
-                            design_cells_to_delete_in_desc_order = sorted(
-                                design_cells_on_branch_arm,
-                                key=lambda dc: dc.order,
-                                reverse=True,
-                            )
-                            for i_design_cell in design_cells_to_delete_in_desc_order:
-                                study_design_cell = self._repos.study_design_cell_repository.find_by_uid(
+                    # else the study_branch_arm is not last StudyBranchArm of its StudyArm root, so delete studyDesignCells
+                    else:
+                        design_cells_to_delete_in_desc_order = sorted(
+                            design_cells_on_branch_arm,
+                            key=lambda dc: dc.order,
+                            reverse=True,
+                        )
+                        for i_design_cell in design_cells_to_delete_in_desc_order:
+                            study_design_cell = (
+                                self._repos.study_design_cell_repository.find_by_uid(
                                     study_uid=study_uid, uid=i_design_cell.uid
                                 )
-                                self._repos.study_design_cell_repository.delete(
-                                    study_uid, i_design_cell.uid, self.author
-                                )
-                                all_design_cells = self._repos.study_design_cell_repository.find_all_design_cells_by_study(
-                                    study_uid
-                                )
-                                # shift one order more to fit the modified
-                                for design_cell in all_design_cells[
-                                    study_design_cell.order - 1 :
-                                ]:
-                                    design_cell.order -= 1
-                                    self._repos.study_design_cell_repository.save(
-                                        design_cell, author_id=self.author, create=False
-                                    )
-                    # Load aggregate
-                    branch_arm_aggregate = (
-                        repos.study_branch_arm_repository.find_by_study(
-                            study_uid=study_uid, for_update=True
-                        )
-                    )
-                    # remove the connection
-                    branch_arm_aggregate.remove_branch_arm_selection(i_branch_arm.uid)
-
-                    # sync with DB and save the update
-                    repos.study_branch_arm_repository.save(
-                        branch_arm_aggregate, self.author
-                    )
-
-                    if cascade_deletion_last_branch:
-                        for i_design_cell in design_cells_on_branch_arm:
-                            self._repos.study_design_cell_repository.patch_study_arm(
-                                study_uid=study_uid,
-                                design_cell_uid=i_design_cell.uid,
-                                study_arm_uid=study_selection_uid,
-                                author_id=self.author,
-                                allow_none_arm_branch_arm=True,
                             )
+                            self._repos.study_design_cell_repository.delete(
+                                study_uid, i_design_cell.uid, self.author
+                            )
+                            all_design_cells = self._repos.study_design_cell_repository.find_all_design_cells_by_study(
+                                study_uid
+                            )
+                            # shift one order more to fit the modified
+                            for design_cell in all_design_cells[
+                                study_design_cell.order - 1 :
+                            ]:
+                                design_cell.order -= 1
+                                self._repos.study_design_cell_repository.save(
+                                    design_cell, author_id=self.author, create=False
+                                )
+                # Load aggregate
+                branch_arm_aggregate = repos.study_branch_arm_repository.find_by_study(
+                    study_uid=study_uid, for_update=True
+                )
+                # remove the connection
+                branch_arm_aggregate.remove_branch_arm_selection(i_branch_arm.uid)
+
+                # sync with DB and save the update
+                repos.study_branch_arm_repository.save(
+                    branch_arm_aggregate, self.author
+                )
+
+                if cascade_deletion_last_branch:
+                    for i_design_cell in design_cells_on_branch_arm:
+                        self._repos.study_design_cell_repository.patch_study_arm(
+                            study_uid=study_uid,
+                            design_cell_uid=i_design_cell.uid,
+                            study_arm_uid=study_selection_uid,
+                            author_id=self.author,
+                            allow_none_arm_branch_arm=True,
+                        )
 
             # delete study design cells assigned to arm
             design_cells_on_arm = []
@@ -341,7 +364,7 @@ class StudyArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def set_new_order(
         self, study_uid: str, study_selection_uid: str, new_order: int
     ) -> StudySelectionArmWithConnectedBranchArms:
@@ -382,7 +405,7 @@ class StudyArmSelectionService(StudySelectionMixin):
         self,
         study_selection_history: SelectionHistoryArm,
         study_uid: str,
-        effective_date: datetime = None,
+        effective_date: datetime | None = None,
     ) -> StudySelectionArm:
         return StudySelectionArm.from_study_selection_history(
             study_selection_history=study_selection_history,
@@ -391,7 +414,6 @@ class StudyArmSelectionService(StudySelectionMixin):
             effective_date=effective_date,
         )
 
-    @db.transaction
     def get_all_selection_audit_trail(
         self, study_uid: str
     ) -> list[StudySelectionArmVersion]:
@@ -442,13 +464,12 @@ class StudyArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
     def get_specific_selection_audit_trail(
         self, study_uid: str, study_selection_uid: str
     ) -> list[StudySelectionArmVersion]:
         repos = self._repos
         try:
-            selection_history: list[StudySelectionArmVersion] = (
+            selection_history: list[SelectionHistoryArm] = (
                 repos.study_arm_repository.find_selection_history(
                     study_uid, study_selection_uid
                 )
@@ -481,62 +502,64 @@ class StudyArmSelectionService(StudySelectionMixin):
             uid, self._repos.ct_term_name_repository.find_by_uid
         )
 
+    @ensure_transaction(db)
     def make_selection(
         self,
         study_uid: str,
         selection_create_input: StudySelectionArmCreateInput,
+        validate: bool = True,
     ) -> StudySelectionArm:
         repos = self._repos
 
         try:
+            # create new VO to add
+            new_selection = StudySelectionArmVO.from_input_values(
+                study_uid=study_uid,
+                author_id=self.author,
+                name=selection_create_input.name,
+                short_name=selection_create_input.short_name,
+                code=selection_create_input.code,
+                description=selection_create_input.description,
+                randomization_group=selection_create_input.randomization_group,
+                number_of_subjects=selection_create_input.number_of_subjects,
+                arm_type_uid=selection_create_input.arm_type_uid,
+                merge_branch_for_this_arm_for_sdtm_adam=selection_create_input.merge_branch_for_this_arm_for_sdtm_adam,
+                generate_uid_callback=repos.study_arm_repository.generate_uid,
+            )
             # Load aggregate
-            with db.transaction:
-                # create new VO to add
-                new_selection = StudySelectionArmVO.from_input_values(
-                    study_uid=study_uid,
-                    author_id=self.author,
-                    name=selection_create_input.name,
-                    short_name=selection_create_input.short_name,
-                    code=selection_create_input.code,
-                    description=selection_create_input.description,
-                    arm_colour=selection_create_input.arm_colour,
-                    randomization_group=selection_create_input.randomization_group,
-                    number_of_subjects=selection_create_input.number_of_subjects,
-                    arm_type_uid=selection_create_input.arm_type_uid,
-                    generate_uid_callback=repos.study_arm_repository.generate_uid,
+            selection_aggregate: StudySelectionArmAR = (
+                repos.study_arm_repository.find_by_study(
+                    study_uid=study_uid, for_update=True
                 )
-                # add VO to aggregate
-                selection_aggregate: StudySelectionArmAR = (
-                    repos.study_arm_repository.find_by_study(
-                        study_uid=study_uid, for_update=True
-                    )
-                )
-                assert selection_aggregate is not None
-                selection_aggregate.add_arm_selection(
-                    new_selection,
-                    self._repos.ct_term_name_repository.term_specific_exists_by_uid,
-                    arm_exists_callback_by=repos.study_arm_repository.arm_exists_by,
-                )
+            )
+            assert selection_aggregate is not None
+            # add VO to aggregate
+            selection_aggregate.add_arm_selection(
+                new_selection,
+                self._repos.ct_term_name_repository.term_specific_exists_by_uid,
+                arm_exists_callback_by=repos.study_arm_repository.arm_exists_by,
+                validate=validate,
+            )
 
-                # sync with DB and save the update
-                repos.study_arm_repository.save(selection_aggregate, self.author)
+            # sync with DB and save the update
+            repos.study_arm_repository.save(selection_aggregate, self.author)
 
-                # Fetch the new selection which was just added
-                new_selection, order = selection_aggregate.get_specific_arm_selection(
-                    new_selection.study_selection_uid
-                )
-                terms_at_specific_datetime = (
-                    self._extract_study_standards_effective_date(study_uid=study_uid)
-                )
-                # add the arm and return
-                # StudyArm without connected BranchArms not make sense that has BranchArms yet
-                return StudySelectionArm.from_study_selection_arm_ar_and_order(
-                    study_uid=study_uid,
-                    selection=new_selection,
-                    order=order,
-                    find_simple_term_arm_type_by_term_uid=self._find_by_uid_or_raise_not_found,
-                    terms_at_specific_datetime=terms_at_specific_datetime,
-                )
+            # Fetch the new selection which was just added
+            new_selection, order = selection_aggregate.get_specific_arm_selection(
+                new_selection.study_selection_uid
+            )
+            terms_at_specific_datetime = self._extract_study_standards_effective_date(
+                study_uid=study_uid
+            )
+            # add the arm and return
+            # StudyArm without connected BranchArms not make sense that has BranchArms yet
+            return StudySelectionArm.from_study_selection_arm_ar_and_order(
+                study_uid=study_uid,
+                selection=new_selection,
+                order=order,
+                find_simple_term_arm_type_by_term_uid=self._find_by_uid_or_raise_not_found,
+                terms_at_specific_datetime=terms_at_specific_datetime,
+            )
         finally:
             repos.close()
 
@@ -552,10 +575,10 @@ class StudyArmSelectionService(StudySelectionMixin):
             short_name=current_study_arm.short_name,
             code=current_study_arm.code,
             description=current_study_arm.description,
-            arm_colour=current_study_arm.arm_colour,
             randomization_group=current_study_arm.randomization_group,
             number_of_subjects=current_study_arm.number_of_subjects,
             arm_type_uid=current_study_arm.arm_type_uid,
+            merge_branch_for_this_arm_for_sdtm_adam=current_study_arm.merge_branch_for_this_arm_for_sdtm_adam,
         )
 
         # fill the missing from the inputs
@@ -570,20 +593,21 @@ class StudyArmSelectionService(StudySelectionMixin):
             short_name=request_study_arm.short_name,
             code=request_study_arm.code,
             description=request_study_arm.description,
-            arm_colour=request_study_arm.arm_colour,
             randomization_group=request_study_arm.randomization_group,
             number_of_subjects=request_study_arm.number_of_subjects,
             arm_type_uid=request_study_arm.arm_type_uid,
+            merge_branch_for_this_arm_for_sdtm_adam=request_study_arm.merge_branch_for_this_arm_for_sdtm_adam,
             study_selection_uid=current_study_arm.study_selection_uid,
             author_id=self.author,
         )
 
-    @db.transaction
+    @ensure_transaction(db)
     def patch_selection(
         self,
         study_uid: str,
         study_selection_uid: str,
         selection_update_input: StudySelectionArmInput,
+        validate: bool = True,
     ) -> StudySelectionArmWithConnectedBranchArms:
         repos = self._repos
         try:
@@ -606,30 +630,37 @@ class StudyArmSelectionService(StudySelectionMixin):
                 request_study_arm=selection_update_input, current_study_arm=current_vo
             )
 
-            # let the aggregate update the value object
-            selection_aggregate.update_selection(
-                updated_study_arm_selection=updated_selection,
-                ct_term_exists_callback=self._repos.ct_term_name_repository.term_specific_exists_by_uid,
-                arm_exists_callback_by=repos.study_arm_repository.arm_exists_by,
-            )
+            selection_vo: StudySelectionArmVO
+            if updated_selection != current_vo:
+                # let the aggregate update the value object
+                selection_aggregate.update_selection(
+                    updated_study_arm_selection=updated_selection,
+                    ct_term_exists_callback=self._repos.ct_term_name_repository.term_specific_exists_by_uid,
+                    arm_exists_callback_by=repos.study_arm_repository.arm_exists_by,
+                    validate=validate,
+                )
 
-            # sync with DB and save the update
-            repos.study_arm_repository.save(selection_aggregate, self.author)
+                # sync with DB and save the update
+                repos.study_arm_repository.save(selection_aggregate, self.author)
 
-            # Fetch the new selection which was just updated
-            new_selection, order = selection_aggregate.get_specific_object_selection(
-                study_selection_uid
-            )
+                # Fetch the new selection which was just updated
+                new_selection, order = (
+                    selection_aggregate.get_specific_object_selection(
+                        study_selection_uid
+                    )
+                )
+                selection_vo = new_selection
+            else:
+                selection_vo = current_vo
 
             terms_at_specific_datetime = self._extract_study_standards_effective_date(
                 study_uid=study_uid
             )
-            # add the arm and return
+
             # With Connected BranchArms because can carry out the connected BranchARms
-            # pylint: disable=line-too-long
             return StudySelectionArmWithConnectedBranchArms.from_study_selection_arm_ar__order__connected_branch_arms(
                 study_uid=study_uid,
-                selection=new_selection,
+                selection=selection_vo,
                 order=order,
                 find_simple_term_arm_type_by_term_uid=self._find_by_uid_or_raise_not_found,
                 find_multiple_connected_branch_arm=self._find_branch_arms_connected_to_arm_uid,
@@ -638,7 +669,7 @@ class StudyArmSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def get_specific_selection(
         self,
         study_uid: str,
@@ -667,3 +698,70 @@ class StudyArmSelectionService(StudySelectionMixin):
             study_value_version=study_value_version,
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
+
+    @ensure_transaction(db)
+    def handle_batch_operations(
+        self,
+        study_uid: str,
+        operations: list[StudySelectionArmBatchInput],
+    ) -> list[StudySelectionArmBatchOutput]:
+        results = []
+        try:
+            for operation in operations:
+                item: (
+                    StudySelectionArm | StudySelectionArmWithConnectedBranchArms | None
+                ) = None
+                if operation.method == "PATCH":
+                    if isinstance(operation.content, StudySelectionArmBatchUpdateInput):
+                        item = self.patch_selection(
+                            study_uid=study_uid,
+                            study_selection_uid=operation.content.arm_uid,
+                            selection_update_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_200_OK
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudySelectionArmBatchUpdateInput as request payload."
+                        )
+                elif operation.method == "POST":
+                    if isinstance(operation.content, StudySelectionArmCreateInput):
+                        item = self.make_selection(
+                            study_uid=study_uid,
+                            selection_create_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_201_CREATED
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudySelectionArmCreateInput as request payload."
+                        )
+                else:
+                    raise exceptions.MethodNotAllowedException(method=operation.method)
+                results.append(
+                    StudySelectionArmBatchOutput(
+                        response_code=response_code,
+                        content=item,
+                    )
+                )
+
+            # For batch operations we need to perform validation/uniqueness checks after all requests are handled
+            study_arm_ar: StudySelectionArmAR = (
+                self._repos.study_arm_repository.find_by_study(study_uid=study_uid)
+            )
+            modified_study_arms = {study_arm.content.arm_uid for study_arm in results}
+            for study_arm_vo in study_arm_ar.study_arms_selection:
+                if study_arm_vo.study_selection_uid in modified_study_arms:
+                    study_arm_vo.validate(
+                        self._repos.ct_term_name_repository.term_specific_exists_by_uid,
+                        arm_exists_callback_by=self._repos.study_arm_repository.arm_exists_by,
+                    )
+        except exceptions.MDRApiBaseException as error:
+            results.append(
+                StudySelectionArmBatchOutput.model_construct(
+                    response_code=error.status_code,
+                    content=BatchErrorResponse(message=str(error)),
+                )
+            )
+            raise error
+        return results

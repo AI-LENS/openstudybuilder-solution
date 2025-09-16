@@ -189,6 +189,7 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
             if (
                 codelist_item.getAttribute("CodedValue")
                 not in term_code_submission_values
+                and active_codelist.codelist_uid is not None
             ):
                 ct_term = self.ct_term_service.non_transactional_create(
                     CTTermCreateInput(
@@ -351,11 +352,15 @@ class OdmClinicalXmlImporterService(OdmXmlImporterService):
             }
 
             for codelist_item in codelist.getElementsByTagName("CodeListItem"):
-                key = (codelist_uid, codelist_item.getAttribute("CodedValue"))
-                if key in term_uid_map:
+                key = (
+                    str(codelist_uid) if codelist_uid is not None else "",
+                    codelist_item.getAttribute("CodedValue"),
+                )
+                term_uid = term_uid_map.get(key, None)
+                if key in term_uid_map and term_uid:
                     input_terms.append(
                         OdmItemTermRelationshipInput(
-                            uid=term_uid_map.get(key),
+                            uid=term_uid,
                             order=int(float(codelist_item.getAttribute("Rank") or "1")),
                             display_text=codelist_item.getElementsByTagName(
                                 "TranslatedText"

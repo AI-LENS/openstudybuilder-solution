@@ -15,6 +15,7 @@ from unittest import mock
 import pytest
 from fastapi.testclient import TestClient
 
+from clinical_mdr_api.domains.enums import StudyDesignClassEnum
 from clinical_mdr_api.main import app
 from clinical_mdr_api.models.study_selections.study import Study
 from clinical_mdr_api.models.study_selections.study_selection import StudySelectionArm
@@ -67,7 +68,6 @@ def test_branch_arm_modify_actions_on_locked_study(api_client):
             "short_name": "BranchArm_Short_Name_1",
             "code": "BranchArm_code_1",
             "description": "desc...",
-            "colour_code": "desc...",
             "randomization_group": "Randomization_Group_1",
             "number_of_subjects": 1,
             "arm_uid": study_arm.arm_uid,
@@ -106,7 +106,6 @@ def test_branch_arm_modify_actions_on_locked_study(api_client):
             "short_name": "BranchArm_Short_Name_2",
             "code": "BranchArm_code_2",
             "description": "desc...",
-            "colour_code": "desc...",
             "randomization_group": "Randomization_Group_2",
             "number_of_subjects": 1,
             "arm_uid": study_arm.arm_uid,
@@ -147,7 +146,7 @@ def test_study_branch_arm_study_versions(api_client):
     before_unlock_arms = api_client.get(f"/studies/{study.uid}/study-arms").json()
     before_unlock_branch_arms = api_client.get(
         f"/studies/{study.uid}/study-branch-arms"
-    ).json()
+    ).json()["items"]
     # Unlock -- Study remain unlocked
     response = api_client.delete(f"/studies/{study.uid}/locks")
     assert_response_status_code(response, 200)
@@ -185,7 +184,7 @@ def test_study_branch_arm_study_versions(api_client):
         before_unlock_branch_arms
         == api_client.get(
             f"/studies/{study.uid}/study-branch-arms?study_value_version=1"
-        ).json()
+        ).json()["items"]
     )
 
 
@@ -207,3 +206,555 @@ def test_get_study_branch_arms_csv_xml_excel(api_client, export_format):
     if export_format == "text/csv":
         assert "study_version" in str(exported_data.read())
         assert "LATEST" in str(exported_data.read())
+
+
+def test_batch_operations(api_client):
+    test_study = TestUtils.create_study()
+    study_arm = TestUtils.create_study_arm(
+        study_uid=test_study.uid,
+        name="test_arm",
+        short_name="test_arm",
+    )
+    branch_arm_name_1 = "Unique branch arm name1"
+    branch_arm_name_2 = "Unique branch arm name2"
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-branch-arms/batch",
+        json=[
+            {
+                "method": "POST",
+                "content": {
+                    "name": branch_arm_name_1,
+                    "short_name": "BranchArm_Short_Name_1",
+                    "code": "BranchArm_code_1",
+                    "description": "desc...",
+                    "randomization_group": "Randomization_Group_1",
+                    "number_of_subjects": 1,
+                    "arm_uid": study_arm.arm_uid,
+                },
+            },
+            {
+                "method": "POST",
+                "content": {
+                    "name": branch_arm_name_2,
+                    "short_name": "BranchArm_Short_Name_2",
+                    "code": "BranchArm_code_2",
+                    "description": "desc...",
+                    "randomization_group": "Randomization_Group_2",
+                    "number_of_subjects": 1,
+                    "arm_uid": study_arm.arm_uid,
+                },
+            },
+        ],
+    )
+    assert_response_status_code(response, 207)
+
+    res = response.json()
+    assert res[0]["response_code"] == 201
+    assert res[0]["content"]["name"] == branch_arm_name_1
+    assert res[1]["response_code"] == 201
+    assert res[1]["content"]["name"] == branch_arm_name_2
+    study_branch_arm_1_uid = res[0]["content"]["branch_arm_uid"]
+    study_branch_arm_2_uid = res[1]["content"]["branch_arm_uid"]
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-branch-arms")
+    assert_response_status_code(response, 200)
+    study_branch_arms = response.json()["items"]
+
+    assert len(study_branch_arms) == 2
+    assert study_branch_arms[0]["name"] == branch_arm_name_1
+    assert study_branch_arms[1]["name"] == branch_arm_name_2
+
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-branch-arms/batch",
+        json=[
+            {
+                "method": "PATCH",
+                "content": {
+                    "branch_arm_uid": study_branch_arm_1_uid,
+                    "name": branch_arm_name_2,
+                },
+            },
+        ],
+    )
+    assert_response_status_code(response, 422)
+    res = response.json()
+    assert (
+        res["message"]
+        == f"Value '{branch_arm_name_2}' in field Branch Arm Name is not unique for the study."
+    )
+
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-branch-arms/batch",
+        json=[
+            {
+                "method": "PATCH",
+                "content": {
+                    "branch_arm_uid": study_branch_arm_1_uid,
+                    "name": branch_arm_name_2,
+                },
+            },
+            {
+                "method": "PATCH",
+                "content": {
+                    "branch_arm_uid": study_branch_arm_2_uid,
+                    "name": branch_arm_name_1,
+                },
+            },
+        ],
+    )
+    assert_response_status_code(response, 207)
+    res = response.json()
+    assert res[0]["response_code"] == 200
+    assert res[0]["content"]["name"] == branch_arm_name_2
+    assert res[1]["response_code"] == 200
+    assert res[1]["content"]["name"] == branch_arm_name_1
+
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-branch-arms/batch",
+        json=[
+            {
+                "method": "DELETE",
+                "content": {
+                    "branch_arm_uid": study_branch_arm_1_uid,
+                },
+            },
+            {
+                "method": "DELETE",
+                "content": {
+                    "branch_arm_uid": study_branch_arm_2_uid,
+                },
+            },
+        ],
+    )
+    assert_response_status_code(response, 207)
+    res = response.json()
+    assert res[0]["response_code"] == 204
+    assert res[1]["response_code"] == 204
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-branch-arms")
+    assert_response_status_code(response, 200)
+    study_branch_arms = response.json()["items"]
+    assert len(study_branch_arms) == 0
+
+
+def test_derived_number_of_subjects_property(api_client):
+    test_study = TestUtils.create_study()
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-design-classes",
+        json={
+            "value": StudyDesignClassEnum.STUDY_WITH_COHORTS_BRANCHES_AND_SUBPOPULATIONS.value
+        },
+    )
+    assert_response_status_code(response, 201)
+
+    study_arm = TestUtils.create_study_arm(
+        study_uid=test_study.uid,
+        name="test_arm",
+        short_name="test_arm",
+        number_of_subjects=100,
+    )
+    study_cohort_1 = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="cohort name 1",
+        short_name="cohort name 1",
+        arm_uids=[study_arm.arm_uid],
+        number_of_subjects=30,
+    )
+    study_cohort_2 = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="cohort name 2",
+        short_name="cohort name 2",
+        arm_uids=[study_arm.arm_uid],
+        number_of_subjects=70,
+    )
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-branch-arms/batch",
+        json=[
+            {
+                "method": "POST",
+                "content": {
+                    "name": "Unique branch arm name1",
+                    "short_name": "BranchArm_Short_Name_1",
+                    "code": "BranchArm_code_1",
+                    "description": "desc...",
+                    "randomization_group": "Randomization_Group_1",
+                    "number_of_subjects": 5,
+                    "arm_uid": study_arm.arm_uid,
+                    "study_cohort_uid": study_cohort_1.cohort_uid,
+                },
+            },
+            {
+                "method": "POST",
+                "content": {
+                    "name": "Unique branch arm name2",
+                    "short_name": "BranchArm_Short_Name_2",
+                    "code": "BranchArm_code_2",
+                    "description": "desc...",
+                    "randomization_group": "Randomization_Group_2",
+                    "number_of_subjects": 5,
+                    "arm_uid": study_arm.arm_uid,
+                    "study_cohort_uid": study_cohort_1.cohort_uid,
+                },
+            },
+            {
+                "method": "POST",
+                "content": {
+                    "name": "Unique branch arm name3",
+                    "short_name": "BranchArm_Short_Name_3",
+                    "code": "BranchArm_code_3",
+                    "description": "desc...",
+                    "randomization_group": "Randomization_Group_3",
+                    "number_of_subjects": 5,
+                    "arm_uid": study_arm.arm_uid,
+                    "study_cohort_uid": study_cohort_2.cohort_uid,
+                },
+            },
+        ],
+    )
+    assert_response_status_code(response, 207)
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-arms")
+    assert_response_status_code(response, 200)
+    study_arms = response.json()["items"]
+    assert len(study_arms) == 1
+    assert study_arms[0]["number_of_subjects"] == 15
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-cohorts")
+    assert_response_status_code(response, 200)
+    study_cohorts = response.json()["items"]
+    assert len(study_cohorts) == 2
+    assert study_cohorts[0]["number_of_subjects"] == 10
+    assert study_cohorts[1]["number_of_subjects"] == 5
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-branch-arms")
+    assert_response_status_code(response, 200)
+    study_branch_arms = response.json()["items"]
+    assert len(study_branch_arms) > 1
+    last_study_branch_arm = study_branch_arms[-1]
+
+    response = api_client.patch(
+        f"/studies/{test_study.uid}/study-branch-arms/{last_study_branch_arm['branch_arm_uid']}",
+        json={"number_of_subjects": 20},
+    )
+    assert_response_status_code(response, 200)
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-branch-arms/{last_study_branch_arm['branch_arm_uid']}"
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert res["number_of_subjects"] == 20
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-arms")
+    assert_response_status_code(response, 200)
+    study_arms = response.json()["items"]
+    assert len(study_arms) == 1
+    assert study_arms[0]["number_of_subjects"] == 30
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-cohorts")
+    assert_response_status_code(response, 200)
+    study_cohorts = response.json()["items"]
+    assert len(study_cohorts) == 2
+    assert study_cohorts[0]["number_of_subjects"] == 10
+    assert study_cohorts[1]["number_of_subjects"] == 20
+
+    # Edit StudyDesignClass to check if number_of_subject properties has changed
+    response = api_client.put(
+        f"/studies/{test_study.uid}/study-design-classes",
+        json={"value": StudyDesignClassEnum.MANUAL.value},
+    )
+    assert_response_status_code(response, 200)
+    # Verify StudyBranchArms are removed when switching from Cohort stepper to Study with arms only
+    response = api_client.get(f"/studies/{test_study.uid}/study-branch-arms")
+    assert_response_status_code(response, 200)
+    study_branch_arms = response.json()["items"]
+    assert len(study_branch_arms) == 0
+    # Verify StudyCohorts are removed when switching from Cohort stepper to Study with arms only
+    response = api_client.get(f"/studies/{test_study.uid}/study-cohorts")
+    assert_response_status_code(response, 200)
+    study_cohorts = response.json()["items"]
+    assert len(study_cohorts) == 0
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-arms")
+    assert_response_status_code(response, 200)
+    study_arms = response.json()["items"]
+    assert len(study_arms) == 1
+    assert study_arms[0]["number_of_subjects"] == 100
+
+    orphaned_cohort = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="orphaned cohort",
+        short_name="orphaned cohort",
+    )
+
+    # Create simple StudyBranchArm and edit StudyDesignClass back to cohort stepper to see whether StudyBranchArm is removed
+    TestUtils.create_study_branch_arm(
+        study_uid=test_study.uid,
+        name="_",
+        short_name="_",
+        code="_",
+        randomization_group="_",
+        number_of_subjects=5,
+        study_arm_uid=study_arm.arm_uid,
+    )
+    response = api_client.put(
+        f"/studies/{test_study.uid}/study-design-classes",
+        json={
+            "value": StudyDesignClassEnum.STUDY_WITH_COHORTS_BRANCHES_AND_SUBPOPULATIONS.value
+        },
+    )
+    assert_response_status_code(response, 200)
+    response = api_client.get(f"/studies/{test_study.uid}/study-arms")
+    assert_response_status_code(response, 200)
+    study_arms = response.json()["items"]
+    assert len(study_arms) == 1
+    assert study_arms[0]["number_of_subjects"] == 0
+
+    response = api_client.get(f"/studies/{test_study.uid}/study-cohorts")
+    assert_response_status_code(response, 200)
+    study_cohorts = response.json()["items"]
+    assert len(study_cohorts) == 1
+    assert study_cohorts[0]["number_of_subjects"] == 0
+    assert study_cohorts[0]["name"] == orphaned_cohort.name
+
+    # Verify StudyBranchArms are removed when switching from Study with arms only to Cohort stepper
+    response = api_client.get(f"/studies/{test_study.uid}/study-branch-arms")
+    assert_response_status_code(response, 200)
+    study_branch_arms = response.json()["items"]
+    assert len(study_branch_arms) == 0
+
+
+def test_study_arms_branches_and_cohorts_endpoint(api_client):
+    test_study = TestUtils.create_study()
+    response = api_client.post(
+        f"/studies/{test_study.uid}/study-design-classes",
+        json={
+            "value": StudyDesignClassEnum.STUDY_WITH_COHORTS_BRANCHES_AND_SUBPOPULATIONS.value
+        },
+    )
+    assert_response_status_code(response, 201)
+
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-arms-branches-and-cohorts"
+    )
+    assert_response_status_code(response, 200)
+    study_arms_branches_and_cohorts = response.json()
+    assert len(study_arms_branches_and_cohorts) == 0
+
+    study_arm = TestUtils.create_study_arm(
+        study_uid=test_study.uid,
+        name="test_arm",
+        short_name="test_arm",
+    )
+
+    study_cohort_1 = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="cohort name 1",
+        short_name="cohort name 1",
+        arm_uids=[study_arm.arm_uid],
+    )
+
+    study_cohort_2 = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="cohort name 2",
+        short_name="cohort name 2",
+        arm_uids=[study_arm.arm_uid],
+    )
+
+    study_branch_arm_1 = TestUtils.create_study_branch_arm(
+        study_uid=test_study.uid,
+        name="Unique branch arm name1",
+        short_name="BranchArm_Short_Name_1",
+        code="BranchArm_code_1",
+        randomization_group="Randomization_Group_1",
+        number_of_subjects=5,
+        study_arm_uid=study_arm.arm_uid,
+        study_cohort_uid=study_cohort_1.cohort_uid,
+    )
+    study_branch_arm_2 = TestUtils.create_study_branch_arm(
+        study_uid=test_study.uid,
+        name="Unique branch arm name2",
+        short_name="BranchArm_Short_Name_2",
+        code="BranchArm_code_2",
+        randomization_group="Randomization_Group_2",
+        number_of_subjects=5,
+        study_arm_uid=study_arm.arm_uid,
+        study_cohort_uid=study_cohort_1.cohort_uid,
+    )
+    study_branch_arm_3 = TestUtils.create_study_branch_arm(
+        study_uid=test_study.uid,
+        name="Unique branch arm name3",
+        short_name="BranchArm_Short_Name_3",
+        code="BranchArm_code_3",
+        randomization_group="Randomization_Group_3",
+        number_of_subjects=5,
+        study_arm_uid=study_arm.arm_uid,
+        study_cohort_uid=study_cohort_2.cohort_uid,
+    )
+
+    response = api_client.patch(
+        f"/studies/{test_study.uid}/study-branch-arms/{study_branch_arm_3.branch_arm_uid}",
+        json={"number_of_subjects": 20},
+    )
+    assert_response_status_code(response, 200)
+    study_branch_arm_3 = response.json()
+
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-arms/{study_arm.arm_uid}"
+    )
+    assert_response_status_code(response, 200)
+    study_arm = response.json()
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-cohorts/{study_cohort_1.cohort_uid}"
+    )
+    assert_response_status_code(response, 200)
+    study_cohort_1 = response.json()
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-cohorts/{study_cohort_2.cohort_uid}"
+    )
+    assert_response_status_code(response, 200)
+    study_cohort_2 = response.json()
+
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-arms-branches-and-cohorts"
+    )
+    assert_response_status_code(response, 200)
+    study_arms_branches_and_cohorts = response.json()
+
+    assert len(study_arms_branches_and_cohorts) == 1
+    assert study_arms_branches_and_cohorts[0]["uid"] == study_arm["arm_uid"]
+    assert study_arms_branches_and_cohorts[0]["name"] == study_arm["name"]
+    assert study_arms_branches_and_cohorts[0]["short_name"] == study_arm["short_name"]
+    assert (
+        study_arms_branches_and_cohorts[0]["number_of_subjects"]
+        == study_arm["number_of_subjects"]
+    )
+
+    assert len(study_arms_branches_and_cohorts[0]["study_cohorts"]) == 2
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["uid"]
+        == study_cohort_1["cohort_uid"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["name"]
+        == study_cohort_1["name"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["short_name"]
+        == study_cohort_1["short_name"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["number_of_subjects"]
+        == study_cohort_1["number_of_subjects"]
+    )
+    assert (
+        len(study_arms_branches_and_cohorts[0]["study_cohorts"][0]["study_branch_arms"])
+        == 2
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["study_branch_arms"][0][
+            "uid"
+        ]
+        == study_branch_arm_1.branch_arm_uid
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["study_branch_arms"][0][
+            "number_of_subjects"
+        ]
+        == study_branch_arm_1.number_of_subjects
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["study_branch_arms"][1][
+            "uid"
+        ]
+        == study_branch_arm_2.branch_arm_uid
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][0]["study_branch_arms"][1][
+            "number_of_subjects"
+        ]
+        == study_branch_arm_2.number_of_subjects
+    )
+
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["uid"]
+        == study_cohort_2["cohort_uid"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["name"]
+        == study_cohort_2["name"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["short_name"]
+        == study_cohort_2["short_name"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["number_of_subjects"]
+        == study_cohort_2["number_of_subjects"]
+    )
+    assert (
+        len(study_arms_branches_and_cohorts[0]["study_cohorts"][1]["study_branch_arms"])
+        == 1
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["study_branch_arms"][0][
+            "uid"
+        ]
+        == study_branch_arm_3["branch_arm_uid"]
+    )
+    assert (
+        study_arms_branches_and_cohorts[0]["study_cohorts"][1]["study_branch_arms"][0][
+            "number_of_subjects"
+        ]
+        == study_branch_arm_3["number_of_subjects"]
+    )
+
+
+def test_study_branch_arm_is_not_updated_when_same_payload_is_sent(api_client):
+    test_study = TestUtils.create_study()
+
+    study_arm = TestUtils.create_study_arm(
+        study_uid=test_study.uid,
+        name="Arm 1 name",
+        short_name="Arm 1 short name",
+        description="Arm 1 description",
+    )
+
+    study_cohort = TestUtils.create_study_cohort(
+        study_uid=test_study.uid,
+        name="cohort name 1",
+        short_name="cohort name 1",
+        arm_uids=[study_arm.arm_uid],
+    )
+    study_branch_arm = TestUtils.create_study_branch_arm(
+        study_uid=test_study.uid,
+        name="Unique branch arm name",
+        short_name="BranchArm_Short_Name",
+        code="BranchArm_code",
+        randomization_group="Randomization_Group",
+        number_of_subjects=5,
+        study_arm_uid=study_arm.arm_uid,
+        study_cohort_uid=study_cohort.cohort_uid,
+    )
+    # edit branch arm
+    response = api_client.patch(
+        f"/studies/{test_study.uid}/study-branch-arms/{study_branch_arm.branch_arm_uid}",
+        json={
+            "name": "Unique branch arm name",
+            "short_name": "BranchArm_Short_Name",
+            "code": "BranchArm_code",
+            "randomization_group": "Randomization_Group",
+            "number_of_subjects": 5,
+        },
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert res["name"] == "Unique branch arm name"
+    assert res["short_name"] == "BranchArm_Short_Name"
+
+    # get branch arm audit trail
+    response = api_client.get(
+        f"/studies/{test_study.uid}/study-branch-arms/{study_branch_arm.branch_arm_uid}/audit-trail",
+    )
+    assert_response_status_code(response, 200)
+    res = response.json()
+    assert len(res) == 1

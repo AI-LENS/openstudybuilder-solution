@@ -393,3 +393,14 @@ def load_env(key: str, default: Optional[str] = None):
     else:
         print("%s is not set, using default value: %s", key, value)
         return default
+
+
+def create_user(tx, author_id):
+    tx.run(
+        """
+        MERGE (u:User {user_id: $author_id, username: $author_id})
+            ON CREATE SET u.created = datetime()
+            ON MATCH SET u.updated = datetime()
+        """,
+        author_id=author_id,
+    )

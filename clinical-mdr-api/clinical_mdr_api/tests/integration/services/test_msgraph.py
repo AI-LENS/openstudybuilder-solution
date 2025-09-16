@@ -247,7 +247,7 @@ class MockMsGraphApiClient:
                 pos=0,
             )
 
-        response.json = raise_exc  # type: ignore[method-assign]
+        setattr(response, "json", raise_exc)
         return response
 
     @staticmethod

@@ -30,6 +30,7 @@ from clinical_mdr_api.models.concepts.activities.activity import (
 from clinical_mdr_api.models.concepts.activities.activity_instance import (
     ActivityInstanceDetail,
     ActivityInstanceEditInput,
+    ActivityInstanceGrouping,
 )
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import FilterOperator
@@ -134,7 +135,9 @@ class ActivityService(ConceptGenericService[ActivityAR]):
         ]
 
     def _create_aggregate_root(
-        self, concept_input: ActivityCreateInput, library: LibraryVO
+        self,
+        concept_input: ActivityCreateInput | ActivityFromRequestInput,
+        library: LibraryVO,
     ) -> ActivityAR:
         # resolve names of activity groupings
         activity_groupings = (
@@ -171,14 +174,17 @@ class ActivityService(ConceptGenericService[ActivityAR]):
     def _edit_aggregate(
         self, item: ActivityAR, concept_edit_input: ActivityEditInput
     ) -> ActivityAR:
+        activity_groups_by_uid: dict[Any, Any] | set
+        activity_subgroups_by_uid: dict[Any, Any] | set
+
         if "activity_groupings" in concept_edit_input.model_fields_set:
             acg_and_acsg_by_uid: tuple[Any, ...] = (
                 self._get_activity_groups_and_subgroups_from_activity_groupings(
-                    concept_edit_input.activity_groupings
+                    concept_edit_input.activity_groupings or []
                 )
             )
-            activity_groups_by_uid: dict[Any, Any] = acg_and_acsg_by_uid[0]
-            activity_subgroups_by_uid: dict[Any, Any] = acg_and_acsg_by_uid[1]
+            activity_groups_by_uid = acg_and_acsg_by_uid[0]
+            activity_subgroups_by_uid = acg_and_acsg_by_uid[1]
             activity_groupings = (
                 [
                     self._to_activity_grouping_vo(
@@ -435,7 +441,7 @@ class ActivityService(ConceptGenericService[ActivityAR]):
                     "activity_subgroup_uid": grouping.activity_subgroup_uid,
                 }
                 if grp in instance["activity_groupings"]:
-                    instance_groupings.append(grp)
+                    instance_groupings.append(ActivityInstanceGrouping(**grp))
 
             if not instance_groupings:
                 # No matching groupings found, skip this instance
@@ -448,6 +454,8 @@ class ActivityService(ConceptGenericService[ActivityAR]):
             edit_input = ActivityInstanceEditInput(
                 change_description="Cascade edit",
                 activity_groupings=instance_groupings,
+                name=instance["name"],
+                name_sentence_case=instance["name_sentence_case"],
             )
             instance_service.non_transactional_edit(
                 uid=instance["uid"], concept_edit_input=edit_input, patch_mode=False
@@ -497,12 +505,12 @@ class ActivityService(ConceptGenericService[ActivityAR]):
             items = [
                 ActivityVersionDetail.from_repository_input(item) for item in data.items
             ]
-            return GenericFilteringReturn.create(items=items, total=data.total)
+            return GenericFilteringReturn(items=items, total=data.total)
 
         # Handle non-paginated response for backward compatibility
         return ActivityVersionDetail.from_repository_input(data=data)
 
-    def specific_version_exists(self, uid: str, version: str) -> bool:
+    def specific_version_exists(self, uid: str, version: str | None) -> bool:
         """Checks if a specific version exists for a given concept UID."""
         # This could be implemented in the repository if preferred, but here it's in the service
         query = """
@@ -558,7 +566,7 @@ class ActivityService(ConceptGenericService[ActivityAR]):
         # Transform each instance dict into a model
         instance_models = [ActivityInstanceDetail(**instance) for instance in instances]
 
-        return GenericFilteringReturn.create(items=instance_models, total=total_count)
+        return GenericFilteringReturn(items=instance_models, total=total_count)
 
     def get_flattened_activity_instances_for_version(
         self,
@@ -612,7 +620,7 @@ class ActivityService(ConceptGenericService[ActivityAR]):
         else:
             paginated_items = flattened_items
 
-        return GenericFilteringReturn.create(items=paginated_items, total=total)
+        return GenericFilteringReturn(items=paginated_items, total=total)
 
     def get_compact_activity_with_splitted_groupings(
         self,
@@ -621,7 +629,7 @@ class ActivityService(ConceptGenericService[ActivityAR]):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[CompactActivity]:
         self.enforce_library(library)
@@ -636,7 +644,7 @@ class ActivityService(ConceptGenericService[ActivityAR]):
             page_size=page_size,
         )
 
-        all_concepts = GenericFilteringReturn.create(items, total)
+        all_concepts = GenericFilteringReturn(items=items, total=total)
         all_concepts.items = [
             CompactActivity.from_repository_output(item) for item in all_concepts.items
         ]
@@ -647,9 +655,9 @@ class ActivityService(ConceptGenericService[ActivityAR]):
         self,
         library: str | None,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:

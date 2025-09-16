@@ -19,7 +19,6 @@ from clinical_mdr_api.domains.controlled_terminologies.ct_codelist_name import (
     CTCodelistNameAR,
 )
 from clinical_mdr_api.models.controlled_terminologies.ct_stats import CodelistCount
-from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import (
     CypherQueryBuilder,
     FilterDict,
@@ -144,10 +143,10 @@ class CTCodelistAggregatedRepository:
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         term_filter: dict[str, str | list[Any]] | None = None,
-    ) -> GenericFilteringReturn[tuple[CTCodelistNameAR, CTCodelistAttributesAR]]:
+    ) -> tuple[list[tuple[CTCodelistNameAR, CTCodelistAttributesAR]], int]:
         """
         Method runs a cypher query to fetch all data related to the CTCodelistName* and CTCodelistAttributes*.
         It allows to filter the query output by catalogue_name, library and package.
@@ -196,7 +195,7 @@ class CTCodelistAggregatedRepository:
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             wildcard_properties_list=list_codelist_wildcard_properties(),
@@ -225,7 +224,7 @@ class CTCodelistAggregatedRepository:
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=codelists_ars, total=total)
+        return codelists_ars, total
 
     def get_distinct_headers(
         self,
@@ -234,9 +233,9 @@ class CTCodelistAggregatedRepository:
         library: str | None = None,
         package: str | None = None,
         is_sponsor: bool = False,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         """
@@ -280,7 +279,7 @@ class CTCodelistAggregatedRepository:
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,

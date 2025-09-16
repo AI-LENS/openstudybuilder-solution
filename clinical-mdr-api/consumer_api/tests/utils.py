@@ -5,7 +5,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from random import randint
-from typing import Any
+from typing import Any, Iterable
 from urllib.parse import urljoin
 from xml.etree import ElementTree
 
@@ -67,7 +67,7 @@ def set_db(db_name):
     return db
 
 
-def assert_response_status_code(response: httpx.Response, status: int | list[int]):
+def assert_response_status_code(response: httpx.Response, status: int | Iterable[int]):
     """Assert request.Response status code"""
     # pylint: disable=unused-variable
     __tracebackhide__ = True

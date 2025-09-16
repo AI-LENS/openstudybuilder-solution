@@ -3,9 +3,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Callable, MutableSequence, Self
 
-from clinical_mdr_api.domains.study_definition_aggregates._utils import (
-    default_failure_callback_for_variable,
-)
 from clinical_mdr_api.domains.study_definition_aggregates.registry_identifiers import (
     RegistryIdentifiersVO,
 )
@@ -47,12 +44,12 @@ class StudyDefinitionSnapshot:
         Class for representing values of Study metadata in some particular version (DRAFT, RELEASED or LOCKED).
         """
 
-        study_number: str | None = None
+        study_number: str
+        project_number: str
         subpart_id: str | None = None
         study_acronym: str | None = None
         study_subpart_acronym: str | None = None
         study_id_prefix: str | None = None
-        project_number: str | None = None
         description: str | None = None
         ct_gov_id: str | None = None
         ct_gov_id_null_value_code: str | None = None
@@ -88,9 +85,9 @@ class StudyDefinitionSnapshot:
         version_number: Decimal | None = None
         study_type_code: str | None = None
         study_type_null_value_code: str | None = None
-        trial_intent_types_codes: tuple[str] = ()
+        trial_intent_types_codes: tuple[str, ...] = ()
         trial_intent_type_null_value_code: str | None = None
-        trial_type_codes: tuple[str] = ()
+        trial_type_codes: tuple[str, ...] = ()
         trial_type_null_value_code: str | None = None
         trial_phase_code: str | None = None
         trial_phase_null_value_code: str | None = None
@@ -103,13 +100,13 @@ class StudyDefinitionSnapshot:
         study_stop_rules: str | None = None
         study_stop_rules_null_value_code: str | None = None
 
-        therapeutic_area_codes: tuple[str] = ()
+        therapeutic_area_codes: tuple[str, ...] = ()
         therapeutic_area_null_value_code: str | None = None
 
-        disease_condition_or_indication_codes: tuple[str] = ()
+        disease_condition_or_indication_codes: tuple[str, ...] = ()
         disease_condition_or_indication_null_value_code: str | None = None
 
-        diagnosis_group_codes: tuple[str] = ()
+        diagnosis_group_codes: tuple[str, ...] = ()
         diagnosis_group_null_value_code: str | None = None
 
         sex_of_participants_code: str | None = None
@@ -175,7 +172,7 @@ class StudyDefinitionSnapshot:
         study_title: str | None = None
         study_short_title: str | None = None
 
-    uid: str | None
+    uid: str
     study_parent_part_uid: str | None
     study_subpart_uids: list[str]
     current_metadata: StudyMetadataSnapshot | None
@@ -347,56 +344,30 @@ class StudyDefinitionAR:
         new_study_population: StudyPopulationVO | None = None,
         new_study_intervention: StudyInterventionVO | None = None,
         new_study_description: StudyDescriptionVO | None = None,
-        therapeutic_area_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("therapeutic_area"),
+        therapeutic_area_exists_callback: Callable[[str], bool] = lambda _: True,
         disease_condition_or_indication_exists_callback: Callable[[str], bool] = (
-            default_failure_callback_for_variable("disease_condition_or_indication")
+            lambda _: True
         ),
-        diagnosis_group_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("diagnosis_group"),
-        sex_of_participants_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("sex_of_participants"),
-        study_number_exists_callback: Callable[[str, str], bool] = (lambda x, y: False),
-        project_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("project_number"),
-        study_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_type"),
-        trial_intent_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_intent_type"),
-        trial_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_type"),
-        trial_phase_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_phase"),
-        null_value_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("null_value_code"),
-        intervention_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("intervention_type_code"),
-        control_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("control_type_code"),
-        intervention_model_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("intervention_model_code"),
-        trial_blinding_schema_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_blinding_schema_code"),
-        study_title_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_title"),
+        diagnosis_group_exists_callback: Callable[[str], bool] = lambda _: True,
+        sex_of_participants_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_number_exists_callback: Callable[[str, str | None], bool] = (
+            lambda x, y: False
+        ),
+        project_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_intent_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_phase_exists_callback: Callable[[str], bool] = lambda _: True,
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        control_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_model_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_blinding_schema_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_title_exists_callback: Callable[[str, str], bool] = lambda x, y: True,
         study_short_title_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_short_title"),
-        author_id: str | None = None,
+            [str, str], bool
+        ] = lambda x, y: True,
+        author_id: str,
         is_subpart: bool = False,
         previous_is_subpart: bool = False,
         updatable_subpart: bool = False,
@@ -636,9 +607,7 @@ class StudyDefinitionAR:
                 study_description=new_study_description,
             )
 
-    def release(
-        self, change_description: str | None, author_id: str | None = None
-    ) -> None:
+    def release(self, change_description: str | None, author_id: str) -> None:
         """
         Creates new RELEASED version of study metadata (replacing previous one if exists).
         Only allowed if current state of Study is DRAFT. Current state of the study remains DRAFT.
@@ -666,6 +635,7 @@ class StudyDefinitionAR:
         version_number = (
             Decimal(self.released_metadata.ver_metadata.version_number)
             if self.released_metadata
+            and self.released_metadata.ver_metadata.version_number is not None
             else None
         )
         # and replace released metadata
@@ -739,7 +709,7 @@ class StudyDefinitionAR:
         # append that version to the list
         self._locked_metadata_versions.append(locked_metadata)
 
-    def unlock(self, author_id: str | None = None) -> None:
+    def unlock(self, author_id: str) -> None:
         current_metadata = self.current_metadata
         BusinessLogicException.raise_if(
             current_metadata.ver_metadata.study_status != StudyStatus.LOCKED,
@@ -831,7 +801,7 @@ class StudyDefinitionAR:
 
         # helper function for creating StudyMetadataSnapshots
         def snapshot_from_study_metadata(
-            study_metadata: StudyMetadataVO,
+            study_metadata: StudyMetadataVO | None,
         ) -> StudyDefinitionSnapshot.StudyMetadataSnapshot:
             snapshot_dict = {}
             for config_item in FieldConfiguration.default_field_config():
@@ -924,7 +894,7 @@ class StudyDefinitionAR:
                 study_metadata_dict[config_item.study_field_grouping][
                     config_item.study_field_name
                 ] = getattr(study_metadata_snapshot, config_item.study_field_name)
-            study_creation_dict = {}
+            study_creation_dict: dict[str, Any] = {}
             for value_object_name, value_object_class in meta_classes.items():
                 if value_object_name == "id_metadata":
                     id_metadata = StudyIdentificationMetadataVO(
@@ -991,7 +961,7 @@ class StudyDefinitionAR:
                         **(study_metadata_dict[value_object_name])
                     )
                     study_creation_dict[value_object_name] = vo_object
-            return StudyMetadataVO(**study_creation_dict)
+            return StudyMetadataVO(**study_creation_dict)  # type: ignore[arg-type]
 
         if not study_snapshot.deleted:
             assert study_snapshot.current_metadata is not None
@@ -1054,60 +1024,34 @@ class StudyDefinitionAR:
         *,
         generate_uid_callback: Callable[[], str],
         initial_id_metadata: StudyIdentificationMetadataVO,
-        project_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("project_number"),
-        study_number_exists_callback: Callable[[str, str], bool] = (lambda x, y: False),
+        author_id: str,
+        project_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_number_exists_callback: Callable[[str, str | None], bool] = (
+            lambda x, y: False
+        ),
         initial_high_level_study_design: HighLevelStudyDesignVO = _DEF_INITIAL_HIGH_LEVEL_STUDY_DESIGN,
         initial_study_population: StudyPopulationVO = _DEF_INITIAL_STUDY_POPULATION,
         initial_study_intervention: StudyInterventionVO = _DEF_INITIAL_STUDY_INTERVENTION,
         initial_study_description: StudyDescriptionVO = _DEF_INITIAL_STUDY_DESCRIPTION,
-        therapeutic_area_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("therapeutic_area"),
+        therapeutic_area_exists_callback: Callable[[str], bool] = lambda _: True,
         disease_condition_or_indication_exists_callback: Callable[[str], bool] = (
-            default_failure_callback_for_variable("disease_condition_or_indication")
+            lambda _: True
         ),
-        diagnosis_group_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("diagnosis_group"),
-        sex_of_participants_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("sex_of_participants"),
-        study_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_type_code"),
-        trial_intent_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_intent_type_code"),
-        trial_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_type_code"),
-        trial_phase_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_phase_code"),
-        null_value_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("null_value_code"),
-        intervention_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("intervention_type_code"),
-        control_type_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("control_type_code"),
-        intervention_model_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("intervention_model_code"),
-        trial_blinding_schema_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("trial_blinding_schema_code"),
-        study_title_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_title"),
+        diagnosis_group_exists_callback: Callable[[str], bool] = lambda _: True,
+        sex_of_participants_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_intent_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_phase_exists_callback: Callable[[str], bool] = lambda _: True,
+        null_value_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        control_type_exists_callback: Callable[[str], bool] = lambda _: True,
+        intervention_model_exists_callback: Callable[[str], bool] = lambda _: True,
+        trial_blinding_schema_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_title_exists_callback: Callable[[str, str], bool] = lambda x, y: True,
         study_short_title_exists_callback: Callable[
-            [str], bool
-        ] = default_failure_callback_for_variable("study_short_title"),
-        author_id: str | None = None,
+            [str, str], bool
+        ] = lambda x, y: True,
         is_subpart: bool = False,
     ) -> Self:
         """

@@ -50,10 +50,10 @@ def test_data():
     global rand
     global studies
 
-    studies = [study]
+    studies = [study]  # type: ignore[list-item]
     for _idx in range(1, 5):
         rand = TestUtils.random_str(4)
-        studies.append(TestUtils.create_study(number=rand, acronym=f"ACR-{rand}"))
+        studies.append(TestUtils.create_study(number=rand, acronym=f"ACR-{rand}"))  # type: ignore[arg-type]
 
 
 def test_get_studies(api_client):

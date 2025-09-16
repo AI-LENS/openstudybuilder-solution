@@ -81,7 +81,10 @@ class OdmItemService(OdmGenericService[OdmItemAR]):
                 sds_var_name=concept_input.sds_var_name,
                 origin=concept_input.origin,
                 comment=concept_input.comment,
-                description_uids=concept_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_input.descriptions
+                ],
                 alias_uids=concept_input.alias_uids,
                 unit_definition_uids=[
                     unit_definition.uid
@@ -122,7 +125,10 @@ class OdmItemService(OdmGenericService[OdmItemAR]):
                 sds_var_name=concept_edit_input.sds_var_name,
                 origin=concept_edit_input.origin,
                 comment=concept_edit_input.comment,
-                description_uids=concept_edit_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_edit_input.descriptions
+                ],
                 alias_uids=concept_edit_input.alias_uids,
                 unit_definition_uids=[
                     unit_definition.uid

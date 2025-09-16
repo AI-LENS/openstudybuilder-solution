@@ -221,6 +221,7 @@ class TestStudyEpochManagement(unittest.TestCase):
         )
         self.assertEqual(ep3.order, 5)
         self.assertEqual(ep3.epoch_ctterm.sponsor_preferred_name, epoch_subtype_name3)
+        epoch_service.update_ctterm_maps()
         epoch_service.reorder(ep3.uid, study_uid=ep3.study_uid, new_order=4)
         ep2 = epoch_service.find_by_uid(
             epoch_subtype_2.uid, study_uid=epoch_subtype_2.study_uid

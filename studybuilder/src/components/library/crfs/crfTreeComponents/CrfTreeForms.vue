@@ -302,7 +302,7 @@ export default {
         {
           uid: group.data.uid,
           order_number: this.selectedForm.item_groups.length,
-          mandatory: false,
+          mandatory: 'No',
           collection_exception_condition_oid: null,
           vendor: { attributes: [] },
         },

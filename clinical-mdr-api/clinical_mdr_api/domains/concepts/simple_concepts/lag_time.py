@@ -105,10 +105,10 @@ class LagTimeAR(NumericValueWithUnitAR):
         author_id: str,
         simple_concept_vo: SimpleConceptVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        find_uid_by_value_unit_and_domain_callback: (
-            Callable[[str, str, str], str | None] | None
-        ) = None,
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        find_uid_by_value_unit_and_domain_callback: Callable[
+            [float, str, str], str | None
+        ] = lambda x, y, z: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO(
             _change_description="Initial version",
@@ -127,9 +127,9 @@ class LagTimeAR(NumericValueWithUnitAR):
 
         # Check whether simple concept with the same value/unit/domain already exists. If yes, return its uid, otherwise None.
         simple_concept_uid = find_uid_by_value_unit_and_domain_callback(
-            getattr(simple_concept_vo, "value", None),
-            getattr(simple_concept_vo, "unit_definition_uid", None),
-            getattr(simple_concept_vo, "sdtm_domain_uid", None),
+            getattr(simple_concept_vo, "value"),
+            getattr(simple_concept_vo, "unit_definition_uid"),
+            getattr(simple_concept_vo, "sdtm_domain_uid"),
         )
 
         simple_concept_ar = cls(

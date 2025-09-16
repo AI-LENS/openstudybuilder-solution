@@ -55,8 +55,18 @@ class OdmConditionService(OdmGenericService[OdmConditionAR]):
             concept_vo=OdmConditionVO.from_repository_values(
                 oid=concept_input.oid,
                 name=concept_input.name,
-                formal_expression_uids=concept_input.formal_expressions,
-                description_uids=concept_input.descriptions,
+                formal_expression_uids=[
+                    (
+                        formal_expression
+                        if isinstance(formal_expression, str)
+                        else formal_expression.uid
+                    )
+                    for formal_expression in concept_input.formal_expressions
+                ],
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_input.descriptions
+                ],
                 alias_uids=concept_input.alias_uids,
             ),
             library=library,
@@ -77,8 +87,18 @@ class OdmConditionService(OdmGenericService[OdmConditionAR]):
             concept_vo=OdmConditionVO.from_repository_values(
                 oid=concept_edit_input.oid,
                 name=concept_edit_input.name,
-                formal_expression_uids=concept_edit_input.formal_expressions,
-                description_uids=concept_edit_input.descriptions,
+                formal_expression_uids=[
+                    (
+                        formal_expression
+                        if isinstance(formal_expression, str)
+                        else formal_expression.uid
+                    )
+                    for formal_expression in concept_edit_input.formal_expressions
+                ],
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_edit_input.descriptions
+                ],
                 alias_uids=concept_edit_input.alias_uids,
             ),
             odm_object_exists_callback=self._repos.odm_condition_repository.odm_object_exists,

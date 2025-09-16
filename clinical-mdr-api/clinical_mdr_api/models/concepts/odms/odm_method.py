@@ -48,7 +48,7 @@ class OdmMethod(ConceptModel):
         return cls(
             uid=odm_method_ar._uid,
             oid=odm_method_ar.concept_vo.oid,
-            name=odm_method_ar.concept_vo.name,
+            name=odm_method_ar.name,
             method_type=odm_method_ar.concept_vo.method_type,
             library_name=odm_method_ar.library.name,
             start_date=odm_method_ar.item_metadata.start_date,
@@ -65,7 +65,7 @@ class OdmMethod(ConceptModel):
                     )
                     for formal_expression_uid in odm_method_ar.concept_vo.formal_expression_uids
                 ],
-                key=lambda item: item.expression,
+                key=lambda item: item.expression or "",
             ),
             descriptions=sorted(
                 [
@@ -75,7 +75,7 @@ class OdmMethod(ConceptModel):
                     )
                     for description_uid in odm_method_ar.concept_vo.description_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             aliases=sorted(
                 [
@@ -85,7 +85,7 @@ class OdmMethod(ConceptModel):
                     )
                     for alias_uid in odm_method_ar.concept_vo.alias_uids
                 ],
-                key=lambda item: item.name,
+                key=lambda item: item.name or "",
             ),
             possible_actions=sorted(
                 [_.value for _ in odm_method_ar.get_possible_actions()]
@@ -102,6 +102,7 @@ class OdmMethodPostInput(ConceptPostInput):
 
 
 class OdmMethodPatchInput(ConceptPatchInput):
+    name: Annotated[str, Field(min_length=1)]
     oid: Annotated[str | None, Field(min_length=1)]
     method_type: Annotated[str | None, Field(min_length=1)]
     formal_expressions: Annotated[

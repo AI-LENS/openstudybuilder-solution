@@ -22,7 +22,7 @@ from common.exceptions import NotFoundException, ValidationException
 class StandardDataModelRepository(ABC):
     root_class = type
     value_class = type
-    return_model = type
+    return_model: type
 
     def _create_base_model_from_cypher_result(self, input_dict: dict[str, Any]):
         return self.return_model.from_repository_output(input_dict)
@@ -76,7 +76,7 @@ class StandardDataModelRepository(ABC):
         )
 
         NotFoundException.raise_if(
-            len(extracted_items) == 0, self.return_model.__class__, uid
+            len(extracted_items) == 0, str(self.return_model.__class__), uid
         )
         ValidationException.raise_if(
             len(extracted_items) > 1,
@@ -156,7 +156,7 @@ class StandardDataModelRepository(ABC):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         **kwargs,
     ) -> tuple[list[BaseModel], int]:
@@ -198,7 +198,7 @@ class StandardDataModelRepository(ABC):
             sort_by=self.sort_by() if self.sort_by() else sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=self.return_model,
@@ -226,9 +226,9 @@ class StandardDataModelRepository(ABC):
     def get_distinct_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:
@@ -263,7 +263,7 @@ class StandardDataModelRepository(ABC):
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,

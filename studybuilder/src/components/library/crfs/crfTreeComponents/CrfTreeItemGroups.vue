@@ -301,7 +301,7 @@ export default {
         {
           uid: item.data.uid,
           order_number: this.selectedItemGroup.items.length,
-          mandatory: false,
+          mandatory: 'No',
           collection_exception_condition_oid: null,
           key_sequence: parameters.NULL,
           methodOid: parameters.NULL,

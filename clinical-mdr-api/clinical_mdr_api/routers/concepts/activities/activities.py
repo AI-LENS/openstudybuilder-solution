@@ -125,7 +125,7 @@ def get_activities(
         ),
     ] = None,
     group_by_groupings: Annotated[
-        bool | None,
+        bool,
         Query(
             description="A boolean property to specify if the activities will be grouped by sub group and group or not,"
             " so we won't loose the information about which activity instances has each group"
@@ -135,10 +135,10 @@ def get_activities(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -153,10 +153,10 @@ def get_activities(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
     split_activity_by_groupings: Annotated[
         bool,
@@ -194,7 +194,7 @@ If equals to true, only library_name, sort_by, page_number, page_size, total_cou
             activity_group_names=activity_group_names,
             group_by_groupings=group_by_groupings,
         )
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 
@@ -278,10 +278,10 @@ def get_activities_versions(
         ),
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -296,10 +296,10 @@ def get_activities_versions(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[Activity]:
     activity_service = ActivityService()
@@ -316,7 +316,7 @@ def get_activities_versions(
         activity_subgroup_names=activity_subgroup_names,
         activity_group_names=activity_group_names,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 
@@ -342,7 +342,7 @@ def get_distinct_values_for_header(
     ],
     library_name: Annotated[str | None, Query()] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     activity_names: Annotated[
         list[str] | None,
@@ -373,10 +373,10 @@ def get_distinct_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
     split_activity_by_groupings: Annotated[
         bool,
@@ -570,10 +570,10 @@ def get_specific_activity_version_groupings(
         str, Path(description="The version of the activity in format 'x.y'")
     ],
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -581,7 +581,7 @@ def get_specific_activity_version_groupings(
         ),
     ] = settings.default_page_size,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ):
     activity_service = ActivityService()
@@ -597,7 +597,7 @@ def get_specific_activity_version_groupings(
     items = results.items if isinstance(results, GenericFilteringReturn) else [results]
     total = results.total if isinstance(results, GenericFilteringReturn) else 1
 
-    return CustomPage.create(items=items, total=total, page=page_number, size=page_size)
+    return CustomPage(items=items, total=total, page=page_number, size=page_size)
 
 
 @router.get(
@@ -659,13 +659,13 @@ def get_instances_for_specific_activity_version(
         str, Path(description="The specific version of the activity (e.g., '16.0')")
     ],
     page_number: Annotated[
-        int | None,
+        int,
         Query(
             description=_generic_descriptions.PAGE_NUMBER,
         ),
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             description=_generic_descriptions.PAGE_SIZE,
         ),
@@ -1015,7 +1015,7 @@ Possible errors:
 def approve(
     activity_uid: Annotated[str, ActivityUID],
     cascade_edit_and_approve: Annotated[
-        bool | None, Query(description="Approve all linked activity instances")
+        bool, Query(description="Approve all linked activity instances")
     ] = False,
 ) -> Activity:
     activity_service = ActivityService()

@@ -67,13 +67,13 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             template_name=self.template_name, template_name_plain=self.template_name
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         objective_template_ar = ObjectiveTemplateAR.from_input_values(
             author_id=self.author_id,
             template=template_vo,
             library=library_vo,
-            generate_uid_callback=(lambda: self.template_uid),
+            generate_uid_callback=lambda: self.template_uid,
         )
         # Create template
         with db.transaction:
@@ -95,7 +95,7 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             )
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         self.object_ar = ObjectiveAR.from_input_values(
             author_id=self.author_id,
@@ -115,13 +115,13 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             template_name=self.template_name, template_name_plain=self.template_name
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         endpoint_template_ar = EndpointTemplateAR.from_input_values(
             author_id=self.author_id,
             template=template_vo,
             library=library_vo,
-            generate_uid_callback=(lambda: self.template_uid),
+            generate_uid_callback=lambda: self.template_uid,
         )
         # Create template
         with db.transaction:
@@ -143,7 +143,7 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             )
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         self.object_ar = EndpointAR.from_input_values(
             author_id=self.author_id,
@@ -163,13 +163,13 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             template_name=self.template_name, template_name_plain=self.template_name
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         timeframe_template_ar = TimeframeTemplateAR.from_input_values(
             author_id=self.author_id,
             template=template_vo,
             library=library_vo,
-            generate_uid_callback=(lambda: self.template_uid),
+            generate_uid_callback=lambda: self.template_uid,
         )
         # Create template
         with db.transaction:
@@ -191,7 +191,7 @@ class ObjectiveRepositoryConcurrencyTest(unittest.TestCase):
             )
         )
         library_vo = LibraryVO.from_input_values_2(
-            library_name="Sponsor", is_library_editable_callback=(lambda _: True)
+            library_name="Sponsor", is_library_editable_callback=lambda _: True
         )
         self.object_ar = TimeframeAR.from_input_values(
             author_id=self.author_id,

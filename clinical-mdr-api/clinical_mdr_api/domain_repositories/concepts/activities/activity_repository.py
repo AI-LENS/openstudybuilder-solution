@@ -86,13 +86,13 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> ActivityAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         return ActivityAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=ActivityVO.from_repository_values(
                 nci_concept_id=input_dict.get("nci_concept_id"),
                 nci_concept_name=input_dict.get("nci_concept_name"),
-                name=input_dict.get("name"),
+                name=input_dict["name"],
                 name_sentence_case=input_dict.get("name_sentence_case"),
                 synonyms=input_dict.get("synonyms") or [],
                 definition=input_dict.get("definition"),
@@ -116,35 +116,33 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
                     )
                     for activity_grouping in input_dict.get("activity_groupings")
                 ],
-                activity_instances=input_dict.get("activity_instances"),
+                activity_instances=input_dict["activity_instances"],
                 request_rationale=input_dict.get("request_rationale"),
-                is_request_final=input_dict.get("is_request_final"),
+                is_request_final=input_dict["is_request_final"],
                 requester_study_id=input_dict.get("requester_study_id"),
                 replaced_by_activity=input_dict.get("replaced_by_activity"),
                 reason_for_rejecting=input_dict.get("reason_for_rejecting"),
                 contact_person=input_dict.get("contact_person"),
-                is_request_rejected=input_dict.get("is_request_rejected"),
-                is_data_collected=input_dict.get("is_data_collected"),
-                is_multiple_selection_allowed=input_dict.get(
+                is_request_rejected=input_dict["is_request_rejected"],
+                is_data_collected=input_dict["is_data_collected"],
+                is_multiple_selection_allowed=input_dict[
                     "is_multiple_selection_allowed"
-                ),
-                is_finalized=input_dict.get("is_finalized"),
-                is_used_by_legacy_instances=input_dict.get(
-                    "is_used_by_legacy_instances"
-                ),
+                ],
+                is_finalized=input_dict["is_finalized"],
+                is_used_by_legacy_instances=input_dict["is_used_by_legacy_instances"],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=convert_to_datetime(value=input_dict.get("end_date")),
                 major_version=int(major),
                 minor_version=int(minor),
@@ -214,7 +212,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -222,7 +220,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -342,7 +340,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -727,7 +725,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> tuple[list[dict[str, Any]], int]:
         """
@@ -763,7 +761,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=CompactActivity,
@@ -786,10 +784,10 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
     def get_compact_activity_with_splitted_groupings_distinct_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         library: str | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:
@@ -822,7 +820,7 @@ class ActivityRepository(ConceptGenericRepository[ActivityAR]):
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -1477,7 +1475,7 @@ RETURN r.uid, [value IN $syn WHERE value IN v.synonyms] as existingSynonyms
             end_idx = start_idx + page_size
             paginated_groupings = activity_groupings[start_idx:end_idx]
 
-            # Return paginated results with GenericFilteringReturn.create()
+            # Return paginated results with GenericFilteringReturn()
             items = [
                 {
                     "activity_uid": uid,
@@ -1486,7 +1484,7 @@ RETURN r.uid, [value IN $syn WHERE value IN v.synonyms] as existingSynonyms
                     "activity_instances": activity_instances_list,
                 }
             ]
-            return GenericFilteringReturn.create(
+            return GenericFilteringReturn(
                 items=items, total=total or len(paginated_groupings)
             )
 
@@ -1497,7 +1495,7 @@ RETURN r.uid, [value IN $syn WHERE value IN v.synonyms] as existingSynonyms
             "activity_groupings": activity_groupings,
             "activity_instances": activity_instances_list,
         }
-        return GenericFilteringReturn.create(items=[item], total=1)
+        return GenericFilteringReturn(items=[item], total=1)
 
     def get_activity_instances_for_version(
         self,

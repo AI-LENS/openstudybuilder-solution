@@ -1,6 +1,6 @@
 from abc import ABC
 from datetime import datetime
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import ConfigDict, Field
 
@@ -122,12 +122,12 @@ class Concept(VersionProperties):
 
     uid: Annotated[str, Field()]
     name: Annotated[
-        str,
+        str | None,
         Field(
             description="The name or the actual value. E.g. 'Systolic Blood Pressure', 'Body Temperature', 'Metformin', ...",
             json_schema_extra={"source": "has_latest_value.name"},
         ),
-    ]
+    ] = None
     name_sentence_case: Annotated[
         str | None,
         Field(
@@ -171,7 +171,7 @@ class ExtendedConceptPostInput(PostInputModel):
     name_sentence_case: Annotated[str | None, Field(min_length=1)] = None
     definition: Annotated[str | None, Field(min_length=1)] = None
     abbreviation: Annotated[str | None, Field(min_length=1)] = None
-    library_name: Annotated[str | None, Field(min_length=1)] = None
+    library_name: Annotated[str, Field(min_length=1)] = "Sponsor"
 
 
 class ExtendedConceptPatchInput(PatchInputModel):
@@ -193,11 +193,11 @@ class SimpleConcept(Concept):
 
 
 class SimpleConceptPostInput(ExtendedConceptPostInput):
-    template_parameter: Annotated[bool | None, Field()] = False
+    template_parameter: Annotated[bool, Field()] = False
 
 
 class SimpleConceptPatchInput(ExtendedConceptPatchInput):
-    template_parameter: Annotated[bool | None, Field()] = False
+    template_parameter: Annotated[bool, Field()] = False
 
 
 class TextValue(SimpleConcept):
@@ -206,7 +206,7 @@ class TextValue(SimpleConcept):
         return cls(
             uid=text_value.uid,
             library_name=Library.from_library_vo(text_value.library).name,
-            name=text_value.concept_vo.name,
+            name=text_value.concept_vo.name or "",
             name_sentence_case=text_value.concept_vo.name_sentence_case,
             definition=text_value.concept_vo.definition,
             abbreviation=text_value.concept_vo.abbreviation,
@@ -259,7 +259,7 @@ class NumericValueWithUnit(NumericValue):
         numeric_value: NumericValueWithUnitAR,
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
     ) -> Self:
-        unit: UnitDefinitionAR = find_unit_by_uid(
+        unit: UnitDefinitionAR | None = find_unit_by_uid(
             numeric_value.concept_vo.unit_definition_uid
         )
         return cls(
@@ -272,7 +272,7 @@ class NumericValueWithUnit(NumericValue):
             abbreviation=numeric_value.concept_vo.abbreviation,
             template_parameter=numeric_value.concept_vo.is_template_parameter,
             unit_definition_uid=numeric_value.concept_vo.unit_definition_uid,
-            unit_label=unit.concept_vo.name,
+            unit_label=unit.concept_vo.name if unit and unit.concept_vo.name else "",
         )
 
 
@@ -286,19 +286,35 @@ class SimpleNumericValueWithUnit(BaseModel):
     unit_definition_uid: Annotated[str, Field()]
     unit_label: Annotated[str, Field()]
 
+    @overload
     @classmethod
     def from_concept_uid(
         cls,
         uid: str,
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: None,
+        find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
+        find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: str | None,
+        find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
+        find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
     ) -> Self | None:
         concept = None
         if uid is not None:
-            val: NumericValueWithUnitAR = find_numeric_value_by_uid(uid)
+            val: NumericValueWithUnitAR | None = find_numeric_value_by_uid(uid)
 
             if val is not None:
-                unit: UnitDefinitionAR = find_unit_by_uid(
+                unit: UnitDefinitionAR | None = find_unit_by_uid(
                     val.concept_vo.unit_definition_uid
                 )
 
@@ -306,7 +322,9 @@ class SimpleNumericValueWithUnit(BaseModel):
                     uid=val.uid,
                     unit_definition_uid=val.concept_vo.unit_definition_uid,
                     value=val.concept_vo.value,
-                    unit_label=unit.concept_vo.name,
+                    unit_label=(
+                        unit.concept_vo.name if unit and unit.concept_vo.name else ""
+                    ),
                 )
 
         return concept
@@ -321,7 +339,7 @@ class LagTime(NumericValueWithUnit):
         numeric_value: LagTimeAR,
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
     ) -> Self:
-        unit: UnitDefinitionAR = find_unit_by_uid(
+        unit: UnitDefinitionAR | None = find_unit_by_uid(
             numeric_value.concept_vo.unit_definition_uid
         )
         return cls(
@@ -334,7 +352,7 @@ class LagTime(NumericValueWithUnit):
             abbreviation=numeric_value.concept_vo.abbreviation,
             template_parameter=numeric_value.concept_vo.is_template_parameter,
             unit_definition_uid=numeric_value.concept_vo.unit_definition_uid,
-            unit_label=unit.concept_vo.name,
+            unit_label=unit.concept_vo.name if unit and unit.concept_vo.name else "",
             sdtm_domain_uid=numeric_value.concept_vo.sdtm_domain_uid,
         )
 
@@ -351,6 +369,7 @@ class SimpleLagTime(BaseModel):
     sdtm_domain_uid: Annotated[str, Field()]
     sdtm_domain_label: Annotated[str, Field()]
 
+    @overload
     @classmethod
     def from_concept_uid(
         cls,
@@ -358,17 +377,34 @@ class SimpleLagTime(BaseModel):
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_term_by_uid: Callable[[str], CTTermNameAR | None],
         find_lag_time_by_uid: Callable[[str], LagTimeAR | None],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: None,
+        find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
+        find_term_by_uid: Callable[[str], CTTermNameAR | None],
+        find_lag_time_by_uid: Callable[[str], LagTimeAR | None],
+    ) -> None: ...
+    @classmethod
+    def from_concept_uid(
+        cls,
+        uid: str | None,
+        find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
+        find_term_by_uid: Callable[[str], CTTermNameAR | None],
+        find_lag_time_by_uid: Callable[[str], LagTimeAR | None],
     ) -> Self | None:
         concept = None
         if uid is not None:
-            val: LagTimeAR = find_lag_time_by_uid(uid)
+            val: LagTimeAR | None = find_lag_time_by_uid(uid)
 
             if val is not None:
-                unit: UnitDefinitionAR = find_unit_by_uid(
+                unit: UnitDefinitionAR | None = find_unit_by_uid(
                     val.concept_vo.unit_definition_uid
                 )
 
-                sdtm_domain: CTTermNameAR = find_term_by_uid(
+                sdtm_domain: CTTermNameAR | None = find_term_by_uid(
                     val.concept_vo.sdtm_domain_uid
                 )
 
@@ -376,9 +412,15 @@ class SimpleLagTime(BaseModel):
                     uid=val.uid,
                     value=val.concept_vo.value,
                     unit_definition_uid=val.concept_vo.unit_definition_uid,
-                    unit_label=unit.concept_vo.name,
+                    unit_label=(
+                        unit.concept_vo.name if unit and unit.concept_vo.name else ""
+                    ),
                     sdtm_domain_uid=val.concept_vo.sdtm_domain_uid,
-                    sdtm_domain_label=sdtm_domain.ct_term_vo.name,
+                    sdtm_domain_label=(
+                        sdtm_domain.ct_term_vo.name
+                        if sdtm_domain and sdtm_domain.ct_term_vo.name
+                        else ""
+                    ),
                 )
 
         return concept
@@ -394,7 +436,7 @@ class TimePoint(SimpleConcept):
         return cls(
             uid=time_point.uid,
             library_name=Library.from_library_vo(time_point.library).name,
-            name=time_point.concept_vo.name,
+            name=time_point.concept_vo.name or "",
             name_sentence_case=time_point.concept_vo.name_sentence_case,
             definition=time_point.concept_vo.definition,
             abbreviation=time_point.concept_vo.abbreviation,

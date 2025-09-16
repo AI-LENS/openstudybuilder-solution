@@ -9,6 +9,7 @@
       :history-data-fetcher="fetchCohortsHistory"
       :history-title="$t('StudyCohorts.global_history_title')"
       :export-data-url="exportDataUrl"
+      :export-data-url-params="{ split_if_in_multiple_arms_and_branches: true }"
       export-object-label="StudyCohorts"
       disable-filtering
       :hide-default-body="sortMode && cohorts.length > 0"
@@ -28,6 +29,7 @@
       </template>
       <template #actions="">
         <v-btn
+          v-if="editStepper && designClass === cohortConstants.MANUAL"
           class="ml-2"
           size="small"
           variant="outlined"
@@ -41,6 +43,21 @@
           icon="mdi-plus"
           @click.stop="showForm()"
         />
+        <v-btn
+          v-else-if="editStepper"
+          class="ml-2"
+          size="small"
+          variant="outlined"
+          color="nnBaseBlue"
+          :title="$t('StudyCohorts.cohorts_stepper')"
+          :disabled="
+            !accessGuard.checkPermission($roles.STUDY_WRITE) ||
+            studiesGeneralStore.selectedStudyVersion !== null
+          "
+          :icon="editStepper ? 'mdi-pencil' : 'mdi-plus'"
+          @click.stop="showCohortsStepper = true"
+          @close="showCohortsStepper = false"
+        />
       </template>
       <template #tbody>
         <tbody v-show="sortMode" ref="parent">
@@ -49,30 +66,17 @@
               <v-icon size="small"> mdi-sort </v-icon>
             </td>
             <td>{{ cohort.order }}</td>
-            <td>
-              <div v-for="arm of cohort.arm_roots" :key="arm.arm_uid">
-                {{ arm.name }}
-              </div>
-            </td>
-            <td>
-              <div
-                v-for="branch of cohort.branch_arm_roots"
-                :key="branch.branch_arm_uid"
-              >
-                {{ branch.name }}
-              </div>
-            </td>
             <td>{{ cohort.name }}</td>
             <td>{{ cohort.short_name }}</td>
             <td>{{ cohort.code }}</td>
             <td>{{ cohort.number_of_subjects }}</td>
-            <td>{{ cohort.description }}</td>
             <td>
-              <v-chip :color="cohort.colour_code" size="small" variant="flat">
-                <span>&nbsp;</span>
-                <span>&nbsp;</span>
-              </v-chip>
+              <div v-html="sanitizeHTML(getArmsDisplay(cohort))" />
             </td>
+            <td>
+              <div v-html="sanitizeHTML(getBranchesDisplay(cohort))" />
+            </td>
+            <td>{{ cohort.description }}</td>
             <td>{{ $filters.date(cohort.start_date) }}</td>
             <td>{{ cohort.author_username }}</td>
           </tr>
@@ -92,47 +96,10 @@
         </router-link>
       </template>
       <template #[`item.arm_roots`]="{ item }">
-        <router-link
-          v-for="arm of item.arm_roots"
-          :key="arm.arm_uid"
-          :to="{
-            name: 'StudyArmOverview',
-            params: {
-              study_id: studiesGeneralStore.selectedStudy.uid,
-              id: arm.arm_uid,
-            },
-          }"
-        >
-          {{ arm.name }}
-        </router-link>
+        <div v-html="sanitizeHTML(getArmsDisplay(item))" />
       </template>
       <template #[`item.branch_arm_roots`]="{ item }">
-        <div v-if="item.branch_arm_roots">
-          <router-link
-            v-for="branch of item.branch_arm_roots"
-            :key="branch.branch_arm_uid"
-            :to="{
-              name: 'StudyBranchArmOverview',
-              params: {
-                study_id: studiesGeneralStore.selectedStudy.uid,
-                id: branch.branch_arm_uid,
-              },
-            }"
-          >
-            {{ branch.name }}
-          </router-link>
-        </div>
-      </template>
-      <template #[`item.colour_code`]="{ item }">
-        <v-chip
-          :data-cy="'color=' + item.colour_code"
-          :color="item.colour_code"
-          size="small"
-          variant="flat"
-        >
-          <span>&nbsp;</span>
-          <span>&nbsp;</span>
-        </v-chip>
+        <div v-html="sanitizeHTML(getBranchesDisplay(item))" />
       </template>
       <template #[`item.start_date`]="{ item }">
         {{ $filters.date(item.start_date) }}
@@ -148,6 +115,18 @@
       :branches="branches"
       @close="closeForm"
     />
+    <v-dialog
+      v-model="showCohortsStepper"
+      persistent
+      fullscreen
+      content-class="fullscreen-dialog"
+    >
+      <CohortsStepper
+        :design-class="designClass"
+        :initial-step="3"
+        @close="closeCohortStepper"
+      />
+    </v-dialog>
     <v-dialog
       v-model="showCohortHistory"
       persistent
@@ -169,9 +148,11 @@
 <script setup>
 import NNTable from '@/components/tools/NNTable.vue'
 import armsApi from '@/api/arms'
+import cohortsApi from '@/api/cohorts'
 import StudyCohortsForm from '@/components/studies/StudyCohortsForm.vue'
 import ActionsMenu from '@/components/tools/ActionsMenu.vue'
 import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
+import CohortsStepper from './CohortsStepper.vue'
 import { useAccessGuard } from '@/composables/accessGuard'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
 import HistoryTable from '@/components/tools/HistoryTable.vue'
@@ -179,6 +160,8 @@ import filteringParameters from '@/utils/filteringParameters'
 import { computed, onMounted, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
+import { escapeHTML, sanitizeHTML } from '@/utils/sanitize'
+import cohortConstants from '@/constants/cohorts'
 
 const { t } = useI18n()
 const eventBusEmit = inject('eventBusEmit')
@@ -200,6 +183,13 @@ const [parent, cohorts] = useDragAndDrop([], {
 const headers = [
   { title: '', key: 'actions', width: '1%' },
   { title: '#', key: 'order', width: '5%' },
+  { title: t('StudyCohorts.cohort_name'), key: 'name' },
+  { title: t('StudyCohorts.cohort_short_name'), key: 'short_name' },
+  { title: t('StudyCohorts.cohort_code'), key: 'code' },
+  {
+    title: t('StudyCohorts.number_of_participants'),
+    key: 'number_of_subjects',
+  },
   {
     title: t('StudyCohorts.arm_name'),
     key: 'arm_roots',
@@ -211,15 +201,7 @@ const headers = [
     historyHeader: 'branch_arm_roots_uids',
     filteringName: 'branch_arm_roots.name',
   },
-  { title: t('StudyCohorts.cohort_name'), key: 'name' },
-  { title: t('StudyCohorts.cohort_short_name'), key: 'short_name' },
-  { title: t('StudyCohorts.cohort_code'), key: 'code' },
-  {
-    title: t('StudyCohorts.number_of_subjects'),
-    key: 'number_of_subjects',
-  },
   { title: t('_global.description'), key: 'description' },
-  { title: t('StudyCohorts.colour'), key: 'colour_code' },
   { title: t('_global.modified'), key: 'start_date' },
   { title: t('_global.modified_by'), key: 'author_username' },
 ]
@@ -255,6 +237,9 @@ const showCohortHistory = ref(false)
 const cohortHistoryItems = ref([])
 const selectedCohort = ref(null)
 const sortMode = ref(false)
+const showCohortsStepper = ref(false)
+const designClass = ref('')
+const editStepper = ref(false)
 
 const exportDataUrl = computed(() => {
   return `studies/${studiesGeneralStore.selectedStudy.uid}/study-cohorts`
@@ -271,6 +256,21 @@ const studyCohortHistoryTitle = computed(() => {
 
 onMounted(() => {
   fetchStudyArmsAndBranches()
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  cohortsApi
+    .getStudyDesignClass(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      designClass.value = resp.data.value
+    })
+    .catch((error) => {
+      if (error.response.status === 404) {
+        console.error(error)
+      }
+    })
 })
 
 async function fetchCohortsHistory() {
@@ -293,7 +293,7 @@ function fetchStudyArmsAndBranches() {
   armsApi
     .getAllBranchArms(studiesGeneralStore.selectedStudy.uid, params)
     .then((resp) => {
-      branches.value = resp.data
+      branches.value = resp.data.items
     })
 }
 
@@ -312,6 +312,16 @@ function fetchStudyCohorts(filters, options, filtersUpdated) {
     })
 }
 
+function closeCohortStepper() {
+  showCohortsStepper.value = false
+  cohortsApi
+    .checkDesignClassEditable(studiesGeneralStore.selectedStudy.uid)
+    .then((resp) => {
+      editStepper.value = !resp.data
+    })
+  table.value.filterTable()
+}
+
 function showForm() {
   form.value = true
 }
@@ -323,8 +333,12 @@ function closeForm() {
 }
 
 function editCohort(item) {
-  cohortToEdit.value = item
-  form.value = true
+  if (designClass.value === cohortConstants.MANUAL) {
+    cohortToEdit.value = item
+    form.value = true
+  } else {
+    showCohortsStepper.value = true
+  }
 }
 
 async function openCohortHistory(cohort) {
@@ -344,7 +358,11 @@ function closeCohortHistory() {
 
 function deleteCohort(item) {
   armsApi
-    .deleteCohort(studiesGeneralStore.selectedStudy.uid, item.cohort_uid)
+    .deleteCohort(
+      studiesGeneralStore.selectedStudy.uid,
+      item.cohort_uid,
+      designClass.value !== cohortConstants.MANUAL
+    )
     .then(() => {
       table.value.filterTable()
       eventBusEmit('notification', {
@@ -366,6 +384,17 @@ function changeOrder(cohortUid, newOrder) {
     .catch(() => {
       table.value.filterTable()
     })
+}
+
+function getBranchesDisplay(cohort) {
+  return cohort.branch_arm_roots
+    ?.map((branch) => `&#9679; ${escapeHTML(branch.name)}`)
+    .join('<br />')
+}
+function getArmsDisplay(cohort) {
+  return cohort.arm_roots
+    ?.map((arm) => `&#9679; ${escapeHTML(arm.name)}`)
+    .join('<br />')
 }
 </script>
 <style scoped>

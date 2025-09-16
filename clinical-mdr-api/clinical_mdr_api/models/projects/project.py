@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Self
+from typing import Annotated, Callable, Self, overload
 
 from pydantic import Field
 
@@ -23,16 +23,33 @@ class Project(BaseModel):
 
     description: Annotated[str | None, Field(json_schema_extra={"nullable": True})]
 
+    @overload
     @classmethod
     def from_uid(
         cls,
         uid: str,
         find_by_uid: Callable[[str], ProjectAR],
         find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
+    ) -> Self: ...
+    @overload
+    @classmethod
+    def from_uid(
+        cls,
+        uid: None,
+        find_by_uid: Callable[[str], ProjectAR],
+        find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
+    ) -> None: ...
+    @classmethod
+    def from_uid(
+        cls,
+        uid: str | None,
+        find_by_uid: Callable[[str], ProjectAR],
+        find_clinical_programme_by_uid: Callable[[str], ClinicalProgrammeAR],
     ) -> Self | None:
         project = None
+
         if uid is not None:
-            project_ar: ProjectAR = find_by_uid(uid)
+            project_ar: ProjectAR | None = find_by_uid(uid)
             if project_ar is not None:
                 project = Project.from_project_ar(
                     project_ar, find_clinical_programme_by_uid
@@ -60,8 +77,8 @@ class Project(BaseModel):
 
 
 class ProjectCreateInput(PostInputModel):
-    project_number: Annotated[str | None, Field(min_length=1)]
-    name: Annotated[str | None, Field(min_length=1)]
+    project_number: Annotated[str, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
 
     description: Annotated[str, Field(min_length=1)]
 

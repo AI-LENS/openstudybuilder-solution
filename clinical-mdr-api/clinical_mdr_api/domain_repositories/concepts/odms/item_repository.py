@@ -22,7 +22,6 @@ from clinical_mdr_api.domain_repositories.models.odm import (
     OdmItemValue,
 )
 from clinical_mdr_api.domains._utils import ObjectStatus
-from clinical_mdr_api.domains.concepts.concept_base import ConceptARBase
 from clinical_mdr_api.domains.concepts.odms.item import (
     OdmItemAR,
     OdmItemRefVO,
@@ -48,7 +47,7 @@ class ItemRepository(OdmGenericRepository[OdmItemAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -94,7 +93,7 @@ class ItemRepository(OdmGenericRepository[OdmItemAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -102,12 +101,12 @@ class ItemRepository(OdmGenericRepository[OdmItemAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> OdmItemAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         odm_item_ar = OdmItemAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=OdmItemVO.from_repository_values(
                 oid=input_dict.get("oid"),
-                name=input_dict.get("name"),
+                name=input_dict["name"],
                 prompt=input_dict.get("prompt"),
                 datatype=input_dict.get("datatype"),
                 length=input_dict.get("length"),
@@ -116,30 +115,30 @@ class ItemRepository(OdmGenericRepository[OdmItemAR]):
                 sds_var_name=input_dict.get("sds_var_name"),
                 origin=input_dict.get("origin"),
                 comment=input_dict.get("comment"),
-                description_uids=input_dict.get("description_uids"),
-                alias_uids=input_dict.get("alias_uids"),
-                unit_definition_uids=input_dict.get("unit_definition_uids"),
-                codelist_uid=input_dict.get("codelist_uid"),
-                term_uids=input_dict.get("term_uids"),
-                activity_uid=input_dict.get("activity_uid"),
-                vendor_element_uids=input_dict.get("vendor_element_uids"),
-                vendor_attribute_uids=input_dict.get("vendor_attribute_uids"),
-                vendor_element_attribute_uids=input_dict.get(
+                description_uids=input_dict["description_uids"],
+                alias_uids=input_dict["alias_uids"],
+                unit_definition_uids=input_dict["unit_definition_uids"],
+                codelist_uid=input_dict["codelist_uid"],
+                term_uids=input_dict["term_uids"],
+                activity_uid=input_dict["activity_uid"],
+                vendor_element_uids=input_dict["vendor_element_uids"],
+                vendor_attribute_uids=input_dict["vendor_attribute_uids"],
+                vendor_element_attribute_uids=input_dict[
                     "vendor_element_attribute_uids"
-                ),
+                ],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),
@@ -201,9 +200,7 @@ apoc.coll.toSet([vendor_attribute in vendor_attributes | vendor_attribute.uid]) 
 apoc.coll.toSet([vendor_element_attribute in vendor_element_attributes | vendor_element_attribute.uid]) AS vendor_element_attribute_uids
 """
 
-    def _get_or_create_value(
-        self, root: VersionRoot, ar: ConceptARBase
-    ) -> VersionValue:
+    def _get_or_create_value(self, root: VersionRoot, ar: OdmItemAR) -> VersionValue:
         new_value = super()._get_or_create_value(root, ar)
 
         root.has_description.disconnect_all()

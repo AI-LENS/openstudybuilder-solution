@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from fastapi import status
 from neomodel import db
 
 from clinical_mdr_api.domain_repositories.study_selections.study_cohort_repository import (
@@ -10,10 +11,14 @@ from clinical_mdr_api.domains.study_selections.study_selection_cohort import (
     StudySelectionCohortAR,
     StudySelectionCohortVO,
 )
+from clinical_mdr_api.models.error import BatchErrorResponse
 from clinical_mdr_api.models.study_selections.study_selection import (
     StudySelectionArm,
     StudySelectionBranchArm,
     StudySelectionCohort,
+    StudySelectionCohortBatchInput,
+    StudySelectionCohortBatchOutput,
+    StudySelectionCohortBatchUpdateInput,
     StudySelectionCohortCreateInput,
     StudySelectionCohortEditInput,
     StudySelectionCohortHistory,
@@ -24,6 +29,7 @@ from clinical_mdr_api.repositories._utils import FilterOperator
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services._utils import (
     calculate_diffs,
+    ensure_transaction,
     fill_missing_values_in_base_model_from_reference_base_model,
     service_level_generic_filtering,
 )
@@ -41,9 +47,12 @@ class StudyCohortSelectionService(StudySelectionMixin):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionCohortAR,
+        study_selection: StudySelectionCohortAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionCohort]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -68,7 +77,7 @@ class StudyCohortSelectionService(StudySelectionMixin):
         study_selection: StudySelectionCohortVO,
         order: int,
         study_uid: str,
-        terms_at_specific_datetime: str | None,
+        terms_at_specific_datetime: datetime | None,
         study_value_version: str | None = None,
     ) -> StudySelectionCohort:
         return StudySelectionCohort.from_study_selection_cohort_ar_and_order(
@@ -81,7 +90,6 @@ class StudyCohortSelectionService(StudySelectionMixin):
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
 
-    @db.transaction
     def get_all_selection(
         self,
         study_uid: str,
@@ -91,61 +99,112 @@ class StudyCohortSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         arm_uid: str | None = None,
         study_value_version: str | None = None,
+        split_if_in_multiple_arms_and_branches: bool = False,
     ) -> GenericFilteringReturn[StudySelectionCohort]:
         repos = self._repos
         try:
-            cohort_selection_ar = repos.study_cohort_repository.find_by_study(
-                study_uid,
-                arm_uid=arm_uid,
-                project_name=project_name,
-                project_number=project_number,
-                study_value_version=study_value_version,
+            cohort_selection_ar: StudySelectionCohortAR = (
+                repos.study_cohort_repository.find_by_study(
+                    study_uid,
+                    arm_uid=arm_uid,
+                    project_name=project_name,
+                    project_number=project_number,
+                    study_value_version=study_value_version,
+                )
             )
-            # In order for filtering to work, we need to unwind the aggregated AR object first
-            # Unwind ARs
-            selections = []
-            parsed_selections = self._transform_all_to_response_model(
-                cohort_selection_ar, study_value_version=study_value_version
+
+            parsed_selections: list[StudySelectionCohort] = (
+                self._transform_all_to_response_model(
+                    cohort_selection_ar, study_value_version=study_value_version
+                )
             )
-            for selection in parsed_selections:
-                selections.append(selection)
 
             # Do filtering, sorting, pagination and count
-            filtered_items = service_level_generic_filtering(
-                items=selections,
-                filter_by=filter_by,
-                filter_operator=filter_operator,
-                sort_by=sort_by,
-                total_count=total_count,
-                page_number=page_number,
-                page_size=page_size,
+            filtered_items: GenericFilteringReturn[StudySelectionCohort] = (
+                service_level_generic_filtering(
+                    items=parsed_selections,
+                    filter_by=filter_by,
+                    filter_operator=filter_operator,
+                    sort_by=sort_by,
+                    total_count=total_count,
+                    page_number=page_number,
+                    page_size=page_size,
+                )
             )
+
+            if split_if_in_multiple_arms_and_branches:
+                items_to_return: list[StudySelectionCohort] = []
+                for item in filtered_items.items:
+                    study_arms = item.arm_roots
+                    study_branches = item.branch_arm_roots
+                    if (
+                        study_arms
+                        and study_branches
+                        and len(study_arms) > 1
+                        and len(study_branches) > 1
+                        and len(study_arms) == len(study_branches)
+                    ):
+                        for study_arm, study_branch_arm in zip(
+                            study_arms, study_branches
+                        ):
+                            item.arm_roots = [study_arm]
+                            item.branch_arm_roots = [study_branch_arm]
+                            items_to_return.append(item)
+                    else:
+                        items_to_return.append(item)
+                return GenericFilteringReturn(
+                    items=items_to_return, total=len(items_to_return)
+                )
             return filtered_items
         finally:
             repos.close()
 
-    @db.transaction
-    def delete_selection(self, study_uid: str, study_selection_uid: str):
+    @ensure_transaction(db)
+    def delete_selection(
+        self,
+        study_uid: str,
+        study_selection_uid: str,
+        delete_linked_branches: bool = False,
+    ):
         repos = self._repos
         try:
+            branch_arms_on_cohort = (
+                repos.study_branch_arm_repository.get_branch_arms_connected_to_cohort(
+                    study_uid=study_uid, study_cohort_uid=study_selection_uid
+                )
+            )
             # Load aggregate
             selection_aggregate = repos.study_cohort_repository.find_by_study(
                 study_uid=study_uid, for_update=True
             )
-
             # remove the connection
             selection_aggregate.remove_cohort_selection(study_selection_uid)
-
             # sync with DB and save the update
             repos.study_cohort_repository.save(selection_aggregate, self.author)
+
+            # delete study branch arms assigned to cohort if that's wanted
+            if delete_linked_branches:
+                # Load aggregate
+                branch_arm_aggregate = repos.study_branch_arm_repository.find_by_study(
+                    study_uid=study_uid, for_update=True
+                )
+                for study_branch_arm in branch_arms_on_cohort:
+                    # remove the connection
+                    branch_arm_aggregate.remove_branch_arm_selection(
+                        study_branch_arm.uid
+                    )
+                # sync with DB and save the update
+                repos.study_branch_arm_repository.save(
+                    branch_arm_aggregate, self.author
+                )
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def set_new_order(
         self, study_uid: str, study_selection_uid: str, new_order: int
     ) -> StudySelectionCohort:
@@ -190,7 +249,6 @@ class StudyCohortSelectionService(StudySelectionMixin):
             study_uid=study_uid,
         )
 
-    @db.transaction
     def get_all_selection_audit_trail(
         self, study_uid: str
     ) -> list[StudySelectionCohortVersion]:
@@ -228,7 +286,7 @@ class StudyCohortSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
+    @ensure_transaction(db)
     def get_specific_selection_audit_trail(
         self, study_uid: str, study_selection_uid: str
     ) -> list[StudySelectionCohortVersion]:
@@ -312,70 +370,69 @@ class StudyCohortSelectionService(StudySelectionMixin):
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
 
+    @ensure_transaction(db)
     def make_selection(
         self,
         study_uid: str,
         selection_create_input: StudySelectionCohortCreateInput,
+        validate: bool = True,
     ) -> StudySelectionCohort:
         repos = self._repos
 
         try:
+            # create new VO to add
+            new_selection = StudySelectionCohortVO.from_input_values(
+                study_uid=study_uid,
+                author_id=self.author,
+                name=selection_create_input.name or "",
+                short_name=selection_create_input.short_name or "",
+                code=selection_create_input.code,
+                description=selection_create_input.description,
+                number_of_subjects=selection_create_input.number_of_subjects,
+                branch_arm_root_uids=selection_create_input.branch_arm_uids,
+                arm_root_uids=selection_create_input.arm_uids,
+                generate_uid_callback=repos.study_cohort_repository.generate_uid,
+            )
             # Load aggregate
-            with db.transaction:
-                # create new VO to add
-                new_selection = StudySelectionCohortVO.from_input_values(
-                    study_uid=study_uid,
-                    author_id=self.author,
-                    name=selection_create_input.name,
-                    short_name=selection_create_input.short_name,
-                    code=selection_create_input.code,
-                    description=selection_create_input.description,
-                    colour_code=selection_create_input.colour_code,
-                    number_of_subjects=selection_create_input.number_of_subjects,
-                    branch_arm_root_uids=selection_create_input.branch_arm_uids,
-                    arm_root_uids=selection_create_input.arm_uids,
-                    generate_uid_callback=repos.study_cohort_repository.generate_uid,
+            selection_aggregate: StudySelectionCohortAR = (
+                repos.study_cohort_repository.find_by_study(
+                    study_uid=study_uid, for_update=True
                 )
-                # add VO to aggregate
-                selection_aggregate: StudySelectionCohortAR = (
-                    repos.study_cohort_repository.find_by_study(
-                        study_uid=study_uid, for_update=True
-                    )
-                )
-                assert selection_aggregate is not None
+            )
+            assert selection_aggregate is not None
 
-                selection_aggregate.add_cohort_selection(
-                    study_cohort_selection=new_selection,
-                    study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
-                    study_branch_arm_exists_callback=self._repos.study_branch_arm_repository.branch_arm_specific_exists_by_uid,
-                    cohort_exists_callback_by=repos.study_cohort_repository.cohort_exists_by,
-                )
+            # add VO to aggregate
+            selection_aggregate.add_cohort_selection(
+                study_cohort_selection=new_selection,
+                study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                study_branch_arm_exists_callback=self._repos.study_branch_arm_repository.branch_arm_specific_exists_by_uid,
+                cohort_exists_callback_by=repos.study_cohort_repository.cohort_exists_by,
+                validate=validate,
+            )
 
-                # sync with DB and save the update
-                repos.study_cohort_repository.save(selection_aggregate, self.author)
+            # sync with DB and save the update
+            repos.study_cohort_repository.save(selection_aggregate, self.author)
 
-                # Fetch the new selection which was just added
-                (
-                    new_selection,
-                    order,
-                ) = selection_aggregate.get_specific_cohort_selection(
-                    new_selection.study_selection_uid
-                )
-                terms_at_specific_datetime = (
-                    self._extract_study_standards_effective_date(
-                        study_uid=study_uid,
-                    )
-                )
+            # Fetch the new selection which was just added
+            (
+                new_selection,
+                order,
+            ) = selection_aggregate.get_specific_cohort_selection(
+                new_selection.study_selection_uid
+            )
+            terms_at_specific_datetime = self._extract_study_standards_effective_date(
+                study_uid=study_uid,
+            )
 
-                # add the Cohort and return
-                return StudySelectionCohort.from_study_selection_cohort_ar_and_order(
-                    study_uid=study_uid,
-                    selection=new_selection,
-                    order=order,
-                    find_arm_root_by_uid=self._get_specific_arm_selection,
-                    find_branch_arm_root_cohort_by_uid=self._get_specific_branch_arm_selection,
-                    terms_at_specific_datetime=terms_at_specific_datetime,
-                )
+            # add the Cohort and return
+            return StudySelectionCohort.from_study_selection_cohort_ar_and_order(
+                study_uid=study_uid,
+                selection=new_selection,
+                order=order,
+                find_arm_root_by_uid=self._get_specific_arm_selection,
+                find_branch_arm_root_cohort_by_uid=self._get_specific_branch_arm_selection,
+                terms_at_specific_datetime=terms_at_specific_datetime,
+            )
         finally:
             repos.close()
 
@@ -391,7 +448,6 @@ class StudyCohortSelectionService(StudySelectionMixin):
             short_name=current_study_cohort.short_name,
             code=current_study_cohort.code,
             description=current_study_cohort.description,
-            colour_code=current_study_cohort.colour_code,
             number_of_subjects=current_study_cohort.number_of_subjects,
             branch_arm_uids=current_study_cohort.branch_arm_root_uids,
             arm_uids=current_study_cohort.arm_root_uids,
@@ -405,11 +461,10 @@ class StudyCohortSelectionService(StudySelectionMixin):
 
         return StudySelectionCohortVO.from_input_values(
             study_uid=current_study_cohort.study_uid,
-            name=request_study_cohort.name,
-            short_name=request_study_cohort.short_name,
+            name=request_study_cohort.name or "",
+            short_name=request_study_cohort.short_name or "",
             code=request_study_cohort.code,
             description=request_study_cohort.description,
-            colour_code=request_study_cohort.colour_code,
             number_of_subjects=request_study_cohort.number_of_subjects,
             branch_arm_root_uids=request_study_cohort.branch_arm_uids,
             arm_root_uids=request_study_cohort.arm_uids,
@@ -417,12 +472,13 @@ class StudyCohortSelectionService(StudySelectionMixin):
             author_id=self.author,
         )
 
-    @db.transaction
+    @ensure_transaction(db)
     def patch_selection(
         self,
         study_uid: str,
         study_selection_uid: str,
         selection_update_input: StudySelectionCohortEditInput,
+        validate: bool = True,
     ) -> StudySelectionCohort:
         repos = self._repos
         try:
@@ -446,20 +502,29 @@ class StudyCohortSelectionService(StudySelectionMixin):
                 current_study_cohort=current_vo,
             )
 
-            # let the aggregate update the value object
-            selection_aggregate.update_selection(
-                updated_study_cohort_selection=updated_selection,
-                study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
-                study_branch_arm_exists_callback=self._repos.study_branch_arm_repository.branch_arm_specific_exists_by_uid,
-                cohort_exists_callback_by=repos.study_cohort_repository.cohort_exists_by,
-            )
-            # sync with DB and save the update
-            repos.study_cohort_repository.save(selection_aggregate, self.author)
+            selection_vo: StudySelectionCohortVO
+            if updated_selection != current_vo:
+                # let the aggregate update the value object
+                selection_aggregate.update_selection(
+                    updated_study_cohort_selection=updated_selection,
+                    study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                    study_branch_arm_exists_callback=self._repos.study_branch_arm_repository.branch_arm_specific_exists_by_uid,
+                    cohort_exists_callback_by=repos.study_cohort_repository.cohort_exists_by,
+                    validate=validate,
+                )
+                # sync with DB and save the update
+                repos.study_cohort_repository.save(selection_aggregate, self.author)
 
-            # Fetch the new selection which was just updated
-            new_selection, order = selection_aggregate.get_specific_object_selection(
-                study_selection_uid
-            )
+                # Fetch the new selection which was just updated
+                new_selection, order = (
+                    selection_aggregate.get_specific_object_selection(
+                        study_selection_uid
+                    )
+                )
+                selection_vo = new_selection
+            else:
+                selection_vo = current_vo
+
             terms_at_specific_datetime = self._extract_study_standards_effective_date(
                 study_uid=study_uid,
             )
@@ -467,7 +532,7 @@ class StudyCohortSelectionService(StudySelectionMixin):
             # add the cohort and return
             return StudySelectionCohort.from_study_selection_cohort_ar_and_order(
                 study_uid=study_uid,
-                selection=new_selection,
+                selection=selection_vo,
                 order=order,
                 find_arm_root_by_uid=self._get_specific_arm_selection,
                 find_branch_arm_root_cohort_by_uid=self._get_specific_branch_arm_selection,
@@ -476,7 +541,6 @@ class StudyCohortSelectionService(StudySelectionMixin):
         finally:
             repos.close()
 
-    @db.transaction
     def get_specific_selection(
         self,
         study_uid: str,
@@ -503,3 +567,73 @@ class StudyCohortSelectionService(StudySelectionMixin):
             study_value_version=study_value_version,
             terms_at_specific_datetime=terms_at_specific_datetime,
         )
+
+    @ensure_transaction(db)
+    def handle_batch_operations(
+        self,
+        study_uid: str,
+        operations: list[StudySelectionCohortBatchInput],
+    ) -> list[StudySelectionCohortBatchOutput]:
+        results = []
+        try:
+            for operation in operations:
+                item = None
+                if operation.method == "PATCH":
+                    if isinstance(
+                        operation.content, StudySelectionCohortBatchUpdateInput
+                    ):
+                        item = self.patch_selection(
+                            study_uid=study_uid,
+                            study_selection_uid=operation.content.cohort_uid,
+                            selection_update_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_200_OK
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="PATCH operation requires StudySelectionCohortBatchUpdateInput as request payload."
+                        )
+                elif operation.method == "POST":
+                    if isinstance(operation.content, StudySelectionCohortCreateInput):
+                        item = self.make_selection(
+                            study_uid=study_uid,
+                            selection_create_input=operation.content,
+                            validate=False,
+                        )
+                        response_code = status.HTTP_201_CREATED
+                    else:
+                        raise exceptions.ValidationException(
+                            msg="POST operation requires StudySelectionCohortCreateInput as request payload."
+                        )
+                else:
+                    raise exceptions.MethodNotAllowedException(method=operation.method)
+                results.append(
+                    StudySelectionCohortBatchOutput(
+                        response_code=response_code,
+                        content=item,
+                    )
+                )
+
+            # For batch operations we need to perform validation/uniqueness checks after all requests are handled
+            study_cohort_ar: StudySelectionCohortAR = (
+                self._repos.study_cohort_repository.find_by_study(study_uid=study_uid)
+            )
+            modified_study_cohorts = {
+                study_cohort.content.cohort_uid for study_cohort in results
+            }
+            for study_cohort_vo in study_cohort_ar.study_cohorts_selection:
+                if study_cohort_vo.study_selection_uid in modified_study_cohorts:
+                    study_cohort_vo.validate(
+                        study_arm_exists_callback=self._repos.study_arm_repository.arm_specific_exists_by_uid,
+                        study_branch_arm_exists_callback=self._repos.study_branch_arm_repository.branch_arm_specific_exists_by_uid,
+                        cohort_exists_callback_by=self._repos.study_cohort_repository.cohort_exists_by,
+                    )
+        except exceptions.MDRApiBaseException as error:
+            results.append(
+                StudySelectionCohortBatchOutput.model_construct(
+                    response_code=error.status_code,
+                    content=BatchErrorResponse(message=str(error)),
+                )
+            )
+            raise error
+        return results

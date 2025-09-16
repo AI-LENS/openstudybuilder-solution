@@ -26,7 +26,6 @@ from clinical_mdr_api.services._utils import (
 )
 from common import exceptions
 from common.auth.user import user
-from common.config import settings
 
 
 class StudyStandardVersionService:
@@ -43,7 +42,7 @@ class StudyStandardVersionService:
     def _transform_all_to_response_model(
         self,
         standard_version: StudyStandardVersionVO,
-        find_footnote_by_uid: Callable[[str], CTPackage | None] | None = None,
+        find_footnote_by_uid: Callable[[str, bool], CTPackage | None] | None = None,
         study_value_version: str | None = None,
     ) -> StudyStandardVersion:
         return StudyStandardVersion.from_study_standard_version_vo(
@@ -64,11 +63,7 @@ class StudyStandardVersionService:
             self._transform_all_to_response_model(standard_version)
         )
         study_standard_version.change_type = standard_version.change_type
-        study_standard_version.end_date = (
-            standard_version.end_date.strftime(settings.date_time_format)
-            if standard_version.end_date
-            else None
-        )
+        study_standard_version.end_date = standard_version.end_date
         return study_standard_version
 
     @db.transaction
@@ -143,7 +138,7 @@ class StudyStandardVersionService:
     def _edit_study_standard_version_vo(
         self,
         study_standard_version_to_edit: StudyStandardVersionVO,
-        study_standard_version_edit_input: StudyStandardVersionInput,
+        study_standard_version_edit_input: StudyStandardVersionEditInput,
     ):
         if (
             study_standard_version_to_edit.ct_package_uid

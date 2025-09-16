@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from types import GenericAlias, NoneType, UnionType
-from typing import Any, Callable, Generic, TypeVar, get_args, get_origin
+from typing import Any, Callable, Generic, TypeVar, get_args, get_origin, overload
 
-import neo4j
+import neo4j.time
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
@@ -94,15 +94,13 @@ class BaseTimelineAR(Generic[StudyVisit]):
             elif visit.visit_class == VisitClass.SPECIAL_VISIT:
                 # SpecialVisits anchored to same StudyVisit have the same timing, in scope of the same anchor visit
                 # the early discontinuation visits should be ordered in the end of special visit set
-                all_special_visits_anchoring_visit = (
-                    special_visits_for_visit_anchor.get(
-                        visit.visit_sublabel_reference, []
-                    )
+                all_special_visits_anchoring_visit = special_visits_for_visit_anchor.get(
+                    visit.visit_sublabel_reference, []  # type: ignore[arg-type]
                 )
                 all_special_visits_anchoring_visit.append(visit)
                 special_visits_for_visit_anchor.setdefault(
                     visit.visit_sublabel_reference,
-                    sorted(
+                    sorted(  # type: ignore[call-overload]
                         all_special_visits_anchoring_visit,
                         key=lambda x: x.visit_type_name
                         == settings.study_visit_type_early_discontinuation_visit,
@@ -236,7 +234,7 @@ class BaseTimelineAR(Generic[StudyVisit]):
                     visits.append(Subvisit(visit, num))
             elif visit.visit_class == VisitClass.SPECIAL_VISIT:
                 special_visits_for_same_anchor_list: list[StudyVisit] = (
-                    special_visits_for_visit_anchor[visit.visit_sublabel_reference]
+                    special_visits_for_visit_anchor[visit.visit_sublabel_reference]  # type: ignore[assignment]
                 )
                 # Subvisit number should be derived for special visits pointed to the same anchor visit
                 # no matter what type of special visit it is (early_discontinuation or other special visit)
@@ -268,7 +266,7 @@ class BaseTimelineAR(Generic[StudyVisit]):
                 visit.subvisit_number = subvisit_index + 1
 
 
-def strtobool(value: str) -> int:
+def strtobool(value: str | None) -> int:
     """Convert a string representation of truth to integer 1 (true) or 0 (false).
 
     Returns 1 for True values: 'y', 'yes', 't', 'true', 'on', '1'.
@@ -280,6 +278,9 @@ def strtobool(value: str) -> int:
     Returns int to remain compatible with Python 3.7 distutils.util.strtobool().
     """
 
+    if value is None:
+        return 0
+
     val = value.lower()
     if val in ("y", "yes", "t", "true", "on", "1"):
         return 1
@@ -288,7 +289,7 @@ def strtobool(value: str) -> int:
     raise ValueError(f"invalid truth value: {value:s}")
 
 
-def booltostr(value: bool | str | int, true_format: str = "Yes") -> str:
+def booltostr(value: bool | str | int | None, true_format: str = "Yes") -> str:
     """
     Converts a boolean value to a string representation.
     True values are 'y', 'Y', 'Yes', 'yes', 't', 'true', 'on', and '1';
@@ -306,6 +307,8 @@ def booltostr(value: bool | str | int, true_format: str = "Yes") -> str:
     """
     if isinstance(value, str):
         value = bool(strtobool(value))
+    elif value is None:
+        value = False
 
     mapping = {
         "y": "n",
@@ -325,17 +328,25 @@ def booltostr(value: bool | str | int, true_format: str = "Yes") -> str:
     raise ValueError(f"Invalid true format {true_format}")
 
 
-def convert_to_datetime(value: "neo4j.time.DateTime") -> datetime | None:
+@overload
+def convert_to_datetime(value: neo4j.time.DateTime) -> datetime: ...
+@overload
+def convert_to_datetime(value: None) -> None: ...
+def convert_to_datetime(value: neo4j.time.DateTime | None) -> datetime | None:
     """
     Converts a neo4j.time.DateTime object from the database to a Python datetime object.
 
     Args:
-        value (neo4j.time.DateTime): The DateTime object to convert.
+        value (neo4j.time.DateTime | None): The DateTime object to convert or None.
 
     Returns:
-        datetime.datetime: The Python datetime object.
+        datetime.datetime: The Python datetime object or None if `value` is None.
     """
-    return value.to_native() if value is not None else None
+    if value is None:
+        return None
+    if not isinstance(value, neo4j.time.DateTime):
+        raise TypeError(f"Expected neo4j.time.DateTime, got {type(value)}")
+    return value.to_native()
 
 
 def validate_page_number_and_page_size(page_number: int, page_size: int):
@@ -366,12 +377,12 @@ def load_env(key: str, default: str | None = None):
     return default
 
 
-def get_field_type(tp: type[Any]) -> type[Any]:
+def get_field_type(tp: Any) -> type[Any]:
     """
     Determines the actual type of a given type hint, handling generic types and nested types.
 
     Args:
-        tp (type[Any]): The type hint to analyze.
+        tp (Any): The type hint to analyze.
 
     Returns:
         type[Any]: The resolved type. If the type hint is a generic type, it returns the type of the contained elements.

@@ -79,7 +79,10 @@ class OdmItemGroupService(OdmGenericService[OdmItemGroupAR]):
                 origin=concept_input.origin,
                 purpose=concept_input.purpose,
                 comment=concept_input.comment,
-                description_uids=concept_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_input.descriptions
+                ],
                 alias_uids=concept_input.alias_uids,
                 sdtm_domain_uids=concept_input.sdtm_domain_uids,
                 activity_subgroup_uids=[],
@@ -112,7 +115,10 @@ class OdmItemGroupService(OdmGenericService[OdmItemGroupAR]):
                 origin=concept_edit_input.origin,
                 purpose=concept_edit_input.purpose,
                 comment=concept_edit_input.comment,
-                description_uids=concept_edit_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_edit_input.descriptions
+                ],
                 alias_uids=concept_edit_input.alias_uids,
                 sdtm_domain_uids=concept_edit_input.sdtm_domain_uids,
                 activity_subgroup_uids=[],

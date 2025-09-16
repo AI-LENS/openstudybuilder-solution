@@ -38,7 +38,7 @@ nh3 = "~=0.2.21"
 neomodel = "==5.5.0"
 
 [dev-packages]
-pytest = "~=8.3.3"
+pytest = "~=8.4.1"
 pytest-bdd = "~=7.3.0"
 pytest-cov = "~=6.0.0"
 pylint = "~=3.3.1"
@@ -58,6 +58,8 @@ parameterized = "~=0.9.0"
 schemathesis = "~=3.38.5"
 allure-pytest = "==2.13.5"
 pre-commit = "~=4.2.0"
+opencensus-ext-zipkin = "*"
+uvicorn = {extras = ["standard"], version = "*"}
 
 [requires]
 python_version = "3.13.0"

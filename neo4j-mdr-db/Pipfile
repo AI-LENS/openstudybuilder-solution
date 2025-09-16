@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests = "*"
+requests = "=2.32.4"
 neo4j = "~=4.4"
 
 [dev-packages]
@@ -15,6 +15,7 @@ black = "*"
 python_version = "3.13.0"
 
 [scripts]
+lint = "pylint *.py"
 init_neo4j = "python init_neo4j.py"
 init_aura = "python init_aura.py"
 update_ct_stats = "python update_ct_stats.py"

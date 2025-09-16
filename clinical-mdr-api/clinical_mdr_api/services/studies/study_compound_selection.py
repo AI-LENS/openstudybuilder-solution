@@ -40,9 +40,12 @@ class StudyCompoundSelectionService(
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionCompoundsAR,
+        study_selection: StudySelectionCompoundsAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySelectionCompound]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -208,7 +211,7 @@ class StudyCompoundSelectionService(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudySelectionCompound]:
         repos = self._repos
@@ -246,20 +249,20 @@ class StudyCompoundSelectionService(
         study_value_version: str | None = None,
         project_name: str | None = None,
         project_number: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         repos = self._repos
 
         if study_uid:
-            compound_selection_ars = repos.study_compound_repository.find_by_study(
+            compound_selection_ar = repos.study_compound_repository.find_by_study(
                 study_uid, study_value_version
             )
 
             header_values = service_level_generic_header_filtering(
-                items=self._transform_all_to_response_model(compound_selection_ars),
+                items=self._transform_all_to_response_model(compound_selection_ar),
                 field_name=field_name,
                 search_string=search_string,
                 filter_by=filter_by,
@@ -302,7 +305,7 @@ class StudyCompoundSelectionService(
         study_uid: str,
         study_value_version: str | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_number: int = 1,
         page_size: int = 0,
         total_count: bool = False,
@@ -317,7 +320,7 @@ class StudyCompoundSelectionService(
                 compound_selection_ar, study_value_version=study_value_version
             )
             # Do filtering, sorting, pagination and count
-            selection = service_level_generic_filtering(
+            return service_level_generic_filtering(
                 items=selection,
                 filter_by=filter_by,
                 filter_operator=filter_operator,
@@ -325,7 +328,6 @@ class StudyCompoundSelectionService(
                 page_number=page_number,
                 page_size=page_size,
             )
-            return selection
         finally:
             repos.close()
 
@@ -427,6 +429,9 @@ class StudyCompoundSelectionService(
             medicinal_product,
             msg=f"There is no approved Medicinal Product with UID '{request_study_compound.medicinal_product_uid}'.",
         )
+
+        if request_study_compound.compound_alias_uid is None:
+            raise BusinessLogicException(msg="Compound Alias UID must be provided.")
 
         return StudySelectionCompoundVO.from_input_values(
             compound_uid=self._repos.compound_alias_repository.get_compound_uid_by_alias_uid(

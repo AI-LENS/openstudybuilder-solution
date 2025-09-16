@@ -127,6 +127,16 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
         terms_at_specific_datetime: datetime.datetime | None,
         study_value_version: str | None = None,
     ) -> StudyCompoundDosing:
+        if (
+            compound_dosing_vo.study_compound_uid is None
+            or compound_dosing_vo.compound_uid is None
+            or compound_dosing_vo.compound_alias_uid is None
+            or compound_dosing_vo.medicinal_product_uid is None
+            or compound_dosing_vo.study_element_uid is None
+        ):
+            raise exceptions.BusinessLogicException(
+                msg="Missing required fields in StudyCompoundDosingVO: study_compound_uid, compound_uid, compound_alias_uid, medicinal_product_uid or study_element_uid."
+            )
         return StudyCompoundDosing.from_vo(
             compound_dosing_vo,
             order,
@@ -145,17 +155,18 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
                 study_value_version=study_value_version,
                 terms_at_specific_datetime=terms_at_specific_datetime,
             ),
-            find_simple_term_model_name_by_term_uid=self.find_term_name_by_uid,
             find_numeric_value_by_uid=self._repos.numeric_value_with_unit_repository.find_by_uid_2,
             find_unit_by_uid=self._repos.unit_definition_repository.find_by_uid_2,
-            terms_at_specific_datetime=terms_at_specific_datetime,
         )
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionCompoundDosingsAR,
+        study_selection: StudySelectionCompoundDosingsAR | None,
         study_value_version: str | None = None,
     ) -> list[StudyCompoundDosing]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -181,7 +192,7 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
         study_uid: str,
         study_value_version: str | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_number: int = 1,
         page_size: int = 0,
         total_count: bool = False,
@@ -196,7 +207,7 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
                 selection_ar, study_value_version=study_value_version
             )
             # Do filtering, sorting, pagination and count
-            selection = service_level_generic_filtering(
+            return service_level_generic_filtering(
                 items=selection,
                 filter_by=filter_by,
                 filter_operator=filter_operator,
@@ -204,7 +215,6 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
                 page_number=page_number,
                 page_size=page_size,
             )
-            return selection
         finally:
             repos.close()
 
@@ -213,20 +223,20 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
         self,
         field_name: str,
         study_uid: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         repos = self._repos
 
         if study_uid:
-            selection_ars = repos.study_compound_dosing_repository.find_by_study(
+            selection_ar = repos.study_compound_dosing_repository.find_by_study(
                 study_uid
             )
 
             header_values = service_level_generic_header_filtering(
-                items=self._transform_all_to_response_model(selection_ars),
+                items=self._transform_all_to_response_model(selection_ar),
                 field_name=field_name,
                 search_string=search_string,
                 filter_by=filter_by,
@@ -282,7 +292,6 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
                         history.study_element_uid,
                         terms_at_specific_datetime=None,
                     ),
-                    find_simple_term_model_name_by_term_uid=self.find_term_name_by_uid,
                     find_numeric_value_by_uid=self._repos.numeric_value_with_unit_repository.find_by_uid_2,
                     find_unit_by_uid=self._repos.unit_definition_repository.find_by_uid_2,
                 )
@@ -412,6 +421,14 @@ class StudyCompoundDosingSelectionService(StudySelectionMixin):
         request_study_compound_dosing: StudyCompoundDosingInput,
         current_study_compound_dosing: StudyCompoundDosingVO,
     ) -> StudyCompoundDosingVO:
+        if (
+            current_study_compound_dosing.study_compound_uid is None
+            or current_study_compound_dosing.study_element_uid is None
+        ):
+            raise exceptions.BusinessLogicException(
+                msg="Current study compound dosing selection is missing required fields: study_compound_uid and study_element_uid."
+            )
+
         # transform current to input model
         transformed_current = StudyCompoundDosingInput(
             study_compound_uid=current_study_compound_dosing.study_compound_uid,

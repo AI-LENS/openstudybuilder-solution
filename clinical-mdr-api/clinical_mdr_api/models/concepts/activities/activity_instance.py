@@ -56,12 +56,68 @@ class ActivityInstanceGrouping(ActivityGrouping):
 
 
 class ActivityInstance(ActivityBase):
-    name: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
     nci_concept_id: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
     nci_concept_name: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+
+    topic_code: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
+        None
+    )
+    adam_param_code: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    is_research_lab: Annotated[bool, Field()] = False
+    molecular_weight: Annotated[
+        float | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    is_required_for_activity: Annotated[bool, Field()] = False
+    is_default_selected_for_activity: Annotated[bool, Field()] = False
+    is_data_sharing: Annotated[bool, Field()] = False
+    is_legacy_usage: Annotated[bool, Field()] = False
+    is_derived: Annotated[bool, Field()] = False
+    legacy_description: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    activity_groupings: Annotated[
+        list[ActivityInstanceHierarchySimpleModel] | None, Field()
+    ] = None
+    activity_name: Annotated[
+        str | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    activity_instance_class: Annotated[
+        CompactActivityInstanceClass,
+        Field(description="The uid and the name of the linked activity instance class"),
+    ]
+    activity_items: Annotated[
+        list[ActivityItem] | None,
+        Field(
+            description="List of activity items",
+        ),
+    ] = None
+    start_date: Annotated[datetime | None, Field()] = None
+    end_date: Annotated[
+        datetime | None, Field(json_schema_extra={"nullable": True})
+    ] = None
+    status: Annotated[str | None, Field()] = None
+    version: Annotated[str | None, Field()] = None
+    change_description: Annotated[str | None, Field()] = None
+    author_username: Annotated[
+        str | None,
+        Field(
+            json_schema_extra={"nullable": True},
+        ),
+    ] = None
+    possible_actions: Annotated[
+        list[str] | None,
+        Field(
+            description=(
+                "Holds those actions that can be performed on the ActivityInstances. "
+                "Actions are: 'approve', 'edit', 'new_version'."
+            ),
+        ),
     ] = None
 
     @classmethod
@@ -85,17 +141,17 @@ class ActivityInstance(ActivityBase):
                         uid=unit.uid, name=unit.name, dimension_name=unit.dimension_name
                     )
                 )
-            unit_definitions.sort(key=lambda x: x.uid)
+            unit_definitions.sort(key=lambda x: x.uid or "")
             for term in activity_item.ct_terms:
                 ct_terms.append(CompactCTTerm(uid=term.uid, name=term.name))
-            ct_terms.sort(key=lambda x: x.uid)
+            ct_terms.sort(key=lambda x: x.uid or "")
             for odm_form in activity_item.odm_forms:
                 odm_forms.append(
                     CompactOdmForm(
                         uid=odm_form.uid, oid=odm_form.oid, name=odm_form.name
                     )
                 )
-            odm_forms.sort(key=lambda x: x.uid)
+            odm_forms.sort(key=lambda x: x.uid or "")
             for odm_item_group in activity_item.odm_item_groups:
                 odm_item_groups.append(
                     CompactOdmItemGroup(
@@ -104,14 +160,14 @@ class ActivityInstance(ActivityBase):
                         name=odm_item_group.name,
                     )
                 )
-            odm_item_groups.sort(key=lambda x: x.uid)
+            odm_item_groups.sort(key=lambda x: x.uid or "")
             for odm_item in activity_item.odm_items:
                 odm_items.append(
                     CompactOdmItem(
                         uid=odm_item.uid, oid=odm_item.oid, name=odm_item.name
                     )
                 )
-            odm_items.sort(key=lambda x: x.uid)
+            odm_items.sort(key=lambda x: x.uid or "")
 
             activity_items.append(
                 ActivityItem(
@@ -142,7 +198,7 @@ class ActivityInstance(ActivityBase):
                         name=activity_grouping.activity_subgroup_name,
                     ),
                     activity=ActivityHierarchySimpleModel(
-                        uid=activity_grouping.activity_uid,
+                        uid=activity_grouping.activity_uid or "",
                         name=activity_grouping.activity_name,
                     ),
                 )
@@ -159,7 +215,7 @@ class ActivityInstance(ActivityBase):
                         version=activity_grouping.activity_subgroup_version,
                     ),
                     activity=ActivityHierarchySimpleModel.from_activity_uid(
-                        uid=activity_grouping.activity_uid,
+                        uid=activity_grouping.activity_uid or "",
                         find_activity_by_uid=find_activity_hierarchy_by_uid,
                         version=activity_grouping.activity_version,
                     ),
@@ -214,7 +270,7 @@ class ActivityInstance(ActivityBase):
                     CompactUnitDefinition(uid=unit.uid, name=unit.name)
                     for unit in activity_item.unit_definitions
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
 
             ct_terms = sorted(
@@ -222,7 +278,7 @@ class ActivityInstance(ActivityBase):
                     CompactCTTerm(uid=term.uid, name=term.name)
                     for term in activity_item.ct_terms
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
 
             odm_forms = sorted(
@@ -232,7 +288,7 @@ class ActivityInstance(ActivityBase):
                     )
                     for odm_form in activity_item.odm_forms
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
 
             odm_item_groups = sorted(
@@ -244,7 +300,7 @@ class ActivityInstance(ActivityBase):
                     )
                     for odm_item_group in activity_item.odm_item_groups
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
 
             odm_items = sorted(
@@ -254,7 +310,7 @@ class ActivityInstance(ActivityBase):
                     )
                     for odm_item in activity_item.odm_items
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
 
             activity_items.append(
@@ -283,7 +339,7 @@ class ActivityInstance(ActivityBase):
                     name=activity_instance_grouping_vo.activity_subgroup_name,
                 ),
                 activity=ActivityHierarchySimpleModel(
-                    uid=activity_instance_grouping_vo.activity_uid,
+                    uid=activity_instance_grouping_vo.activity_uid or "",
                     name=activity_instance_grouping_vo.activity_name,
                 ),
             )
@@ -334,65 +390,10 @@ class ActivityInstance(ActivityBase):
             ),
         )
 
-    topic_code: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = (
-        None
-    )
-    adam_param_code: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    is_research_lab: Annotated[bool, Field()] = False
-    molecular_weight: Annotated[
-        float | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    is_required_for_activity: Annotated[bool, Field()] = False
-    is_default_selected_for_activity: Annotated[bool, Field()] = False
-    is_data_sharing: Annotated[bool, Field()] = False
-    is_legacy_usage: Annotated[bool, Field()] = False
-    is_derived: Annotated[bool, Field()] = False
-    legacy_description: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    activity_groupings: Annotated[
-        list[ActivityInstanceHierarchySimpleModel] | None, Field()
-    ]
-    activity_name: Annotated[
-        str | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    activity_instance_class: Annotated[
-        CompactActivityInstanceClass,
-        Field(description="The uid and the name of the linked activity instance class"),
-    ]
-    activity_items: Annotated[
-        list[ActivityItem] | None,
-        Field(
-            description="List of activity items",
-        ),
-    ]
-    start_date: Annotated[datetime | None, Field()]
-    end_date: Annotated[
-        datetime | None, Field(json_schema_extra={"nullable": True})
-    ] = None
-    status: Annotated[str | None, Field()]
-    version: Annotated[str | None, Field()]
-    change_description: Annotated[str | None, Field()]
-    author_username: Annotated[
-        str | None,
-        Field(
-            json_schema_extra={"nullable": True},
-        ),
-    ] = None
-    possible_actions: Annotated[
-        list[str] | None,
-        Field(
-            description=(
-                "Holds those actions that can be performed on the ActivityInstances. "
-                "Actions are: 'approve', 'edit', 'new_version'."
-            ),
-        ),
-    ]
-
 
 class ActivityInstanceCreateInput(ExtendedConceptPostInput):
+    name: Annotated[str | None, Field(min_length=1)] = None
+    name_sentence_case: Annotated[str | None, Field(min_length=1)] = None
     nci_concept_id: Annotated[str | None, Field(min_length=1)] = None
     nci_concept_name: Annotated[str | None, Field(min_length=1)] = None
     topic_code: Annotated[str | None, Field(min_length=1)] = None
@@ -425,14 +426,14 @@ class ActivityInstanceEditInput(ExtendedConceptPatchInput):
     nci_concept_id: Annotated[str | None, Field(min_length=1)] = None
     nci_concept_name: Annotated[str | None, Field(min_length=1)] = None
     topic_code: Annotated[str | None, Field(min_length=1)] = None
-    is_research_lab: Annotated[bool | None, Field()] = None
+    is_research_lab: Annotated[bool, Field()] = False
     molecular_weight: Annotated[float | None, Field()] = None
     adam_param_code: Annotated[str | None, Field(min_length=1)] = None
-    is_required_for_activity: Annotated[bool | None, Field()] = None
-    is_default_selected_for_activity: Annotated[bool | None, Field()] = None
-    is_data_sharing: Annotated[bool | None, Field()] = None
-    is_legacy_usage: Annotated[bool | None, Field()] = None
-    is_derived: Annotated[bool | None, Field()] = None
+    is_required_for_activity: Annotated[bool, Field()] = False
+    is_default_selected_for_activity: Annotated[bool, Field()] = False
+    is_data_sharing: Annotated[bool, Field()] = False
+    is_legacy_usage: Annotated[bool, Field()] = False
+    is_derived: Annotated[bool, Field()] = False
     legacy_description: Annotated[str | None, Field(min_length=1)] = None
     activity_instance_class_uid: Annotated[str | None, Field(min_length=1)] = None
     activity_groupings: Annotated[list[ActivityInstanceGrouping] | None, Field()] = None
@@ -522,14 +523,14 @@ class ActivityInstanceOverview(BaseModel):
                     )
                     for unit in activity_item.get("unit_definitions", {})
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
             terms = sorted(
                 [
                     LibraryItem(name=term.get("name"), uid=term.get("uid"))
                     for term in activity_item.get("ct_terms", {})
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
             odm_forms = sorted(
                 [
@@ -540,7 +541,7 @@ class ActivityInstanceOverview(BaseModel):
                     )
                     for odm_form in activity_item.get("odm_forms", [])
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
             odm_item_groups = sorted(
                 [
@@ -551,7 +552,7 @@ class ActivityInstanceOverview(BaseModel):
                     )
                     for odm_item_group in activity_item.get("odm_item_groups", [])
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
             odm_items = sorted(
                 [
@@ -562,7 +563,7 @@ class ActivityInstanceOverview(BaseModel):
                     )
                     for odm_item in activity_item.get("odm_items", [])
                 ],
-                key=lambda x: x.uid,
+                key=lambda x: x.uid or "",
             )
             # Extract activity_item_class handling Neo4j node format
             aic = activity_item.get("activity_item_class", {})
@@ -696,7 +697,7 @@ class ActivityInstanceOverview(BaseModel):
                 molecular_weight=overview.get("activity_instance_value").get(
                     "molecular_weight"
                 ),
-                library_name=overview.get("instance_library_name"),
+                library_name=overview["instance_library_name"],
                 activity_instance_class=SimpleActivityInstanceClass(
                     name=overview.get("activity_instance_class").get("name")
                 ),
@@ -710,7 +711,7 @@ class ActivityInstanceOverview(BaseModel):
                 ),
             ),
             activity_items=activity_items,
-            all_versions=overview.get("all_versions"),
+            all_versions=overview["all_versions"],
         )
 
 
@@ -742,217 +743,3 @@ class ActivityInstanceDetail(BaseModel):
         str | None, Field(json_schema_extra={"nullable": True})
     ] = None
     children: Annotated[list[dict[Any, Any]] | None, Field()] = None
-
-
-class ActivityInstancePaginatedResponse(BaseModel):
-    """Paginated response for activity instances."""
-
-    items: list[ActivityInstanceDetail]
-    total: int
-    page: int
-    page_size: int
-
-    @classmethod
-    def from_repository_input(cls, overview: dict[str, Any]):
-        activity_items = []
-        for activity_item in overview.get("activity_items"):
-            units = sorted(
-                [
-                    CompactUnitDefinition(
-                        name=unit.get("name"),
-                        uid=unit.get("uid"),
-                        dimension_name=unit.get("dimension_name"),
-                    )
-                    for unit in activity_item.get("unit_definitions", {})
-                ],
-                key=lambda x: x.uid,
-            )
-            terms = sorted(
-                [
-                    LibraryItem(name=term.get("name"), uid=term.get("uid"))
-                    for term in activity_item.get("ct_terms", {})
-                ],
-                key=lambda x: x.uid,
-            )
-
-            odm_forms = sorted(
-                [
-                    CompactOdmForm(
-                        uid=odm_form.get("uid"),
-                        oid=odm_form.get("oid"),
-                        name=odm_form.get("name"),
-                    )
-                    for odm_form in activity_item.get("odm_forms", [])
-                ],
-                key=lambda x: x.uid,
-            )
-            odm_item_groups = sorted(
-                [
-                    CompactOdmItemGroup(
-                        uid=odm_item_group.get("uid"),
-                        oid=odm_item_group.get("oid"),
-                        name=odm_item_group.get("name"),
-                    )
-                    for odm_item_group in activity_item.get("odm_item_groups", [])
-                ],
-                key=lambda x: x.uid,
-            )
-            odm_items = sorted(
-                [
-                    CompactOdmItem(
-                        uid=odm_item.get("uid"),
-                        oid=odm_item.get("oid"),
-                        name=odm_item.get("name"),
-                    )
-                    for odm_item in activity_item.get("odm_items", [])
-                ],
-                key=lambda x: x.uid,
-            )
-            # Extract activity_item_class handling Neo4j node format
-            aic = activity_item.get("activity_item_class", {})
-            if "properties" in aic:
-                aic_name = aic["properties"].get("name", "")
-                aic_order = aic["properties"].get("order", 0)
-                if isinstance(aic_order, dict):
-                    aic_order = aic_order.get("low", 0)
-            else:
-                aic_name = aic.get("name", "")
-                aic_order = aic.get("order", 0)
-
-            activity_items.append(
-                SimplifiedActivityItem(
-                    ct_terms=terms,
-                    unit_definitions=units,
-                    odm_forms=odm_forms,
-                    odm_item_groups=odm_item_groups,
-                    odm_items=odm_items,
-                    activity_item_class=SimpleActivityItemClass(
-                        name=aic_name,
-                        order=aic_order,
-                        role_name=activity_item.get("activity_item_class_role"),
-                        data_type_name=activity_item.get(
-                            "activity_item_class_data_type"
-                        ),
-                    ),
-                    is_adam_param_specific=activity_item.get(
-                        "is_adam_param_specific", False
-                    ),
-                )
-            )
-
-        return cls(
-            activity_groupings=[
-                SimpleActivityInstanceGrouping(
-                    activity=SimpleActivity(
-                        uid=activity_grouping.get("uid"),
-                        name=activity_grouping.get("activity_value").get("name"),
-                        definition=activity_grouping.get("activity_value").get(
-                            "definition"
-                        ),
-                        nci_concept_id=activity_grouping.get("activity_value").get(
-                            "nci_concept_id"
-                        ),
-                        nci_concept_name=activity_grouping.get("activity_value").get(
-                            "nci_concept_name"
-                        ),
-                        synonyms=activity_grouping.get("activity_value").get(
-                            "synonyms", []
-                        ),
-                        is_data_collected=activity_grouping.get("activity_value").get(
-                            "is_data_collected", False
-                        ),
-                        is_multiple_selection_allowed=activity_grouping.get(
-                            "activity_value"
-                        ).get("is_multiple_selection_allowed", True),
-                        library_name=activity_grouping.get("activity_library_name"),
-                        version=(activity_grouping.get("version") or {}).get("version"),
-                        status=(activity_grouping.get("version") or {}).get("status"),
-                    ),
-                    activity_group=SimpleActivityGroup(
-                        uid=activity_grouping.get("activity_group_uid"),
-                        name=activity_grouping.get("activity_group_value").get("name"),
-                        definition=activity_grouping.get("activity_group_value").get(
-                            "definition"
-                        ),
-                        version=(
-                            activity_grouping.get("activity_group_version") or {}
-                        ).get("version"),
-                        status=(
-                            activity_grouping.get("activity_group_version") or {}
-                        ).get("status"),
-                    ),
-                    activity_subgroup=SimpleActivitySubGroup(
-                        uid=activity_grouping.get("activity_subgroup_uid"),
-                        name=activity_grouping.get("activity_subgroup_value").get(
-                            "name"
-                        ),
-                        definition=activity_grouping.get("activity_subgroup_value").get(
-                            "definition"
-                        ),
-                        version=(
-                            activity_grouping.get("activity_subgroup_version") or {}
-                        ).get("version"),
-                        status=(
-                            activity_grouping.get("activity_subgroup_version") or {}
-                        ).get("status"),
-                    ),
-                )
-                for activity_grouping in overview.get("hierarchy")
-            ],
-            activity_instance=SimpleActivityInstance(
-                uid=overview.get("activity_instance_root").get("uid"),
-                name=overview.get("activity_instance_value").get("name"),
-                name_sentence_case=overview.get("activity_instance_value").get(
-                    "name_sentence_case"
-                ),
-                abbreviation=overview.get("activity_instance_value").get(
-                    "abbreviation"
-                ),
-                definition=overview.get("activity_instance_value").get("definition"),
-                nci_concept_id=overview.get("activity_instance_value").get(
-                    "nci_concept_id"
-                ),
-                nci_concept_name=overview.get("activity_instance_value").get(
-                    "nci_concept_name"
-                ),
-                adam_param_code=overview.get("activity_instance_value").get(
-                    "adam_param_code"
-                ),
-                is_required_for_activity=overview.get("activity_instance_value").get(
-                    "is_required_for_activity", False
-                ),
-                is_default_selected_for_activity=overview.get(
-                    "activity_instance_value"
-                ).get("is_default_selected_for_activity", False),
-                is_data_sharing=overview.get("activity_instance_value").get(
-                    "is_data_sharing", False
-                ),
-                is_legacy_usage=overview.get("activity_instance_value").get(
-                    "is_legacy_usage", False
-                ),
-                is_derived=overview.get("activity_instance_value").get(
-                    "is_derived", False
-                ),
-                topic_code=overview.get("activity_instance_value").get("topic_code"),
-                is_research_lab=overview.get("activity_instance_value").get(
-                    "is_research_lab", False
-                ),
-                molecular_weight=overview.get("activity_instance_value").get(
-                    "molecular_weight"
-                ),
-                library_name=overview.get("instance_library_name"),
-                activity_instance_class=SimpleActivityInstanceClass(
-                    name=overview.get("activity_instance_class").get("name")
-                ),
-                status=overview.get("has_version", {}).get("status"),
-                version=overview.get("has_version", {}).get("version"),
-                start_date=convert_to_datetime(
-                    overview.get("has_version", {}).get("start_date")
-                ),
-                end_date=convert_to_datetime(
-                    overview.get("has_version", {}).get("end_date")
-                ),
-            ),
-            activity_items=activity_items,
-            all_versions=overview.get("all_versions"),
-        )

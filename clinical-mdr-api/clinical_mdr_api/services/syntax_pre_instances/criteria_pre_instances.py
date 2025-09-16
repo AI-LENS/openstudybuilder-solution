@@ -30,7 +30,7 @@ class CriteriaPreInstanceService(CriteriaService[CriteriaPreInstanceAR]):
         generate_uid_callback=None,
         study_uid: str | None = None,
         template_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
     ) -> CriteriaPreInstanceAR:
         item_ar = super().create_ar_from_input_values(
             template=template,

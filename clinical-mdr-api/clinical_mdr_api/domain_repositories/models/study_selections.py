@@ -262,7 +262,7 @@ class StudyCriteria(StudySelection):
 class StudySoAGroup(StudySelection):
     show_soa_group_in_protocol_flowchart = BooleanProperty(default=False)
     has_study_soa_group = RelationshipFrom(
-        ".study.StudyValue",
+        STUDY_VALUE_CLASS_NAME,
         "HAS_STUDY_SOA_GROUP",
         cardinality=ZeroOrMore,
     )
@@ -289,7 +289,7 @@ class StudySoAGroup(StudySelection):
 class StudyActivitySubGroup(StudySelection):
     show_activity_subgroup_in_protocol_flowchart = BooleanProperty(default=True)
     has_study_activity_sub_group = RelationshipFrom(
-        ".study.StudyValue",
+        STUDY_VALUE_CLASS_NAME,
         "HAS_STUDY_ACTIVITY_SUBGROUP",
         cardinality=ZeroOrMore,
     )
@@ -310,7 +310,7 @@ class StudyActivitySubGroup(StudySelection):
 class StudyActivityGroup(StudySelection):
     show_activity_group_in_protocol_flowchart = BooleanProperty(default=True)
     has_study_activity_group = RelationshipFrom(
-        ".study.StudyValue",
+        STUDY_VALUE_CLASS_NAME,
         "HAS_STUDY_ACTIVITY_GROUP",
         cardinality=ZeroOrMore,
     )
@@ -389,7 +389,7 @@ class StudyActivity(StudySelection):
 class StudyActivityInstance(StudySelection):
     keep_old_version = BooleanProperty(default=False)
     has_study_activity_instance = RelationshipFrom(
-        ".study.StudyValue",
+        STUDY_VALUE_CLASS_NAME,
         "HAS_STUDY_ACTIVITY_INSTANCE",
         cardinality=ZeroOrMore,
     )
@@ -475,8 +475,8 @@ class StudyArm(StudySelection):
     short_name = StringProperty()
     arm_code = StringProperty()
     description = StringProperty()
-    arm_colour = StringProperty()
     randomization_group = StringProperty()
+    merge_branch_for_this_arm_for_sdtm_adam = BooleanProperty(default=False)
     number_of_subjects = IntegerProperty()
 
     study_value = RelationshipFrom(
@@ -490,7 +490,7 @@ class StudyArm(StudySelection):
         CTTermRoot,
         "HAS_ARM_TYPE",
         model=ClinicalMdrRel,
-        cardinality=ZeroOrOne,
+        cardinality=One,
     )
     has_design_cell = RelationshipTo(
         StudyDesignCell,
@@ -573,7 +573,6 @@ class StudyBranchArm(StudySelection):
     short_name = StringProperty()
     branch_arm_code = StringProperty()
     description = StringProperty()
-    colour_code = StringProperty()
     randomization_group = StringProperty()
     number_of_subjects = IntegerProperty()
     order = StringProperty()
@@ -609,7 +608,6 @@ class StudyCohort(StudySelection):
     short_name = StringProperty()
     cohort_code = StringProperty()
     description = StringProperty()
-    colour_code = StringProperty()
     number_of_subjects = IntegerProperty()
 
     study_value = RelationshipFrom(
@@ -723,4 +721,25 @@ class StudySoAFootnote(StudySelection):
     )
     has_deleted = RelationshipFrom(
         Delete, "AFTER", model=ConjunctionRelation, cardinality=ZeroOrOne
+    )
+
+
+class StudyDesignClass(StudySelection):
+    value = StringProperty()
+    has_study_design_class = RelationshipFrom(
+        STUDY_VALUE_CLASS_NAME,
+        "HAS_STUDY_DESIGN_CLASS",
+        cardinality=ZeroOrMore,
+        model=ClinicalMdrRel,
+    )
+
+
+class StudySourceVariable(StudySelection):
+    source_variable = StringProperty()
+    source_variable_description = StringProperty()
+    has_study_source_variable = RelationshipFrom(
+        STUDY_VALUE_CLASS_NAME,
+        "HAS_STUDY_SOURCE_VARIABLE",
+        cardinality=ZeroOrMore,
+        model=ClinicalMdrRel,
     )

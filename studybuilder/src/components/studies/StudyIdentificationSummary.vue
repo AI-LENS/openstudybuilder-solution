@@ -15,6 +15,7 @@
         color="red"
         :title="$t('_global.delete')"
         icon="mdi-delete-outline"
+        :disabled="!accessGuard.checkPermission($roles.STUDY_WRITE)"
         @click.stop="deleteStudy"
       />
     </template>
@@ -39,12 +40,14 @@ import ConfirmDialog from '@/components/tools/ConfirmDialog.vue'
 import api from '@/api/study'
 import StudyForm from './StudyForm.vue'
 import StudyMetadataSummary from './StudyMetadataSummary.vue'
+import { useAccessGuard } from '@/composables/accessGuard'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
 
 const { t } = useI18n()
 const router = useRouter()
 const eventBusEmit = inject('eventBusEmit')
 const studiesGeneralStore = useStudiesGeneralStore()
+const accessGuard = useAccessGuard()
 
 const identification = ref({})
 

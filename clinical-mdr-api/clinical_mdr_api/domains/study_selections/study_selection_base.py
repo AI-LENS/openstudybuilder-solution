@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Iterable, Self, TypeVar
+from typing import Any, Callable, Iterable, Self
 
 from clinical_mdr_api.utils import normalize_string
 from common import exceptions
@@ -9,14 +9,10 @@ from common import exceptions
 class StudySelectionBaseVO:
     def validate(
         self,
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         raise NotImplementedError
-
-
-# pylint: disable=invalid-name
-TStudySelectionVO = TypeVar("TStudySelectionVO", bound="StudySelectionBaseVO")
 
 
 @dataclass
@@ -40,26 +36,26 @@ class StudySelectionBaseAR:
     )
     closure_from_other_ar: StudySelectionBaseVO | None = None
 
-    _object_type = None
-    _object_uid_field = None
-    _object_name_field = None
-    _order_field_name = None
+    _object_type: str | None = None
+    _object_uid_field: str | None = None
+    _object_name_field: str = ""
+    _order_field_name: str = ""
 
     @property
     def study_uid(self) -> str:
         return self._study_uid
 
     @property
-    def study_objects_selection(self) -> tuple[StudySelectionBaseVO, ...]:
+    def study_objects_selection(self) -> tuple[Any, ...]:
         return self._study_objects_selection
 
     @study_objects_selection.setter
-    def study_objects_selection(self, value: Iterable[type[StudySelectionBaseVO]]):
+    def study_objects_selection(self, value: Iterable[StudySelectionBaseVO]):
         self._study_objects_selection = tuple(value)
 
     def get_specific_object_selection(
         self, study_selection_uid: str
-    ) -> tuple[type[StudySelectionBaseVO], int]:
+    ) -> tuple[StudySelectionBaseVO, int]:
         for order, selection in enumerate(self.study_objects_selection, start=1):
             if selection.study_selection_uid == study_selection_uid:
                 return selection, order
@@ -67,9 +63,9 @@ class StudySelectionBaseAR:
 
     def add_object_selection(
         self,
-        study_object_selection: type[TStudySelectionVO],
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        study_object_selection: Any,
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         study_object_selection.validate(
             object_exist_callback, ct_term_level_exist_callback
@@ -97,8 +93,7 @@ class StudySelectionBaseAR:
             )
 
     def add_selection_to_closure_from_other_ar(
-        self,
-        study_object_selection: type[TStudySelectionVO],
+        self, study_object_selection: StudySelectionBaseVO
     ) -> None:
         self.closure_from_other_ar = study_object_selection
 
@@ -106,7 +101,7 @@ class StudySelectionBaseAR:
     def from_repository_values(
         cls,
         study_uid: str,
-        study_objects_selection: Iterable[type[StudySelectionBaseVO]],
+        study_objects_selection: Iterable[StudySelectionBaseVO],
     ) -> Self:
         return cls(
             _study_uid=normalize_string(study_uid),
@@ -145,9 +140,9 @@ class StudySelectionBaseAR:
 
     def update_selection(
         self,
-        updated_study_object_selection: type[TStudySelectionVO],
-        object_exist_callback: Callable[[str], bool] = (lambda _: True),
-        ct_term_level_exist_callback: Callable[[str], bool] = (lambda _: True),
+        updated_study_object_selection: Any,
+        object_exist_callback: Callable[[str], bool] = lambda _: True,
+        ct_term_level_exist_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         updated_study_object_selection.validate(
             object_exist_callback=object_exist_callback,
@@ -172,7 +167,7 @@ class StudySelectionBaseAR:
         if further_update:
             # The order is updated
             selection_inserted = False
-            updated_selections = []
+            updated_selections: list[StudySelectionBaseVO] = []
             for selection in updated_selection:
                 selection_order = getattr(selection, self._order_field_name)
                 updated_selection_order = getattr(

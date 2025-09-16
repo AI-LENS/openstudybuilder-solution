@@ -27,7 +27,7 @@ from clinical_mdr_api.domain_repositories.models.template_parameter import (
     TemplateParameterTermRoot,
 )
 from clinical_mdr_api.domains._utils import ObjectStatus
-from clinical_mdr_api.domains.concepts.concept_base import ConceptARBase
+from clinical_mdr_api.models.utils import BaseModel
 from clinical_mdr_api.repositories._utils import (
     CypherQueryBuilder,
     FilterDict,
@@ -42,7 +42,7 @@ class ConceptGenericRepository(
 ):
     root_class = type
     value_class = type
-    return_model = type
+    return_model: type = BaseModel
     filter_query_parameters: dict[Any, Any] = {}
 
     @abstractmethod
@@ -55,7 +55,7 @@ class ConceptGenericRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -76,7 +76,7 @@ class ConceptGenericRepository(
         return None
 
     def _create_new_value_node(self, ar: _AggregateRootType) -> VersionValue:
-        return self.value_class(
+        return self.value_class(  # type: ignore[call-overload]
             nci_concept_id=getattr(ar.concept_vo, "nci_concept_id", None),
             nci_concept_name=getattr(ar.concept_vo, "nci_concept_name", None),
             name=ar.concept_vo.name,
@@ -254,7 +254,7 @@ class ConceptGenericRepository(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         return_all_versions: bool = False,
         **kwargs,
@@ -299,7 +299,7 @@ class ConceptGenericRepository(
             sort_by=sort_by,
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=self.return_model,
@@ -348,10 +348,10 @@ class ConceptGenericRepository(
     def get_distinct_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         library: str | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         **kwargs,
     ) -> list[Any]:
@@ -390,7 +390,7 @@ class ConceptGenericRepository(
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -502,11 +502,13 @@ class ConceptGenericRepository(
         )
         return len(result) > 0 and len(result[0]) > 0
 
-    def _is_new_version_necessary(self, ar: ConceptARBase, value: VersionValue) -> bool:
+    def _is_new_version_necessary(
+        self, ar: _AggregateRootType, value: VersionValue
+    ) -> bool:
         return self._has_data_changed(ar, value)
 
     def _get_or_create_value(
-        self, root: VersionRoot, ar: ConceptARBase
+        self, root: VersionRoot, ar: _AggregateRootType
     ) -> VersionValue:
         for itm in root.has_version.all():
             if not self._has_data_changed(ar, itm):

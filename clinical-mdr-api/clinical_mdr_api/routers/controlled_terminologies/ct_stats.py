@@ -29,7 +29,7 @@ router = APIRouter()
 )
 def get_stats(
     latest_count: Annotated[
-        int | None, Query(description="Optional, number of latest codelists to return")
+        int, Query(description="Optional, number of latest codelists to return")
     ] = 3,
 ) -> CTStats:
     ct_stats_service = CTStatsService()

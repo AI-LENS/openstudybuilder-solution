@@ -80,6 +80,9 @@ class JWKService(KeySet):
     async def fetch_jwk_set(self) -> Mapping[str, Key]:
         log.debug("Fetching JWKs: %s", self.jwks_uri)
 
+        if not self.jwks_uri:
+            raise RuntimeError("JWKs URI is not set")
+
         payload = await self._fetch_json(self.jwks_uri)
         if not isinstance(payload, dict):
             raise RuntimeError(f"JWKS data is not dict, but {type(payload)}")
@@ -89,9 +92,7 @@ class JWKService(KeySet):
 
         return keys_dict
 
-    def update_keys(
-        self, keys: list[Mapping[str, str | list[str]]]
-    ) -> Mapping[str, Key]:
+    def update_keys(self, keys: list[Mapping[str, Any]]) -> dict[str, Key]:
         keys_dict = {}
 
         for key in keys:
@@ -132,7 +133,7 @@ class JWKService(KeySet):
 
         return False
 
-    async def _fetch_json(self, url: str) -> Any:
+    async def _fetch_json(self, url: str):
         # pylint: disable=protected-access
         resp = await self._http_client.request("GET", url)
         resp.raise_for_status()

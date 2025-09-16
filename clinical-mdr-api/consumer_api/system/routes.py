@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
-async def root(request: Request):
+def root(request: Request):
     return templating.templates.TemplateResponse(
         "pages/api-welcome.html",
         {
@@ -42,7 +42,7 @@ def get_system_information() -> service.SystemInformation:
     summary="Returns build id as plain text",
     status_code=200,
 )
-def get_build_id() -> str:
+async def get_build_id() -> str:
     return service.get_build_id()
 
 
@@ -51,7 +51,7 @@ def get_build_id() -> str:
     summary="Returns 200 OK status if the system is ready to serve requests",
     status_code=200,
 )
-def healthcheck() -> str:
+async def healthcheck() -> str:
     return "OK"
 
 
@@ -61,7 +61,7 @@ def healthcheck() -> str:
     response_class=FileResponse,
     status_code=200,
 )
-def get_sbom_md() -> FileResponse:
+async def get_sbom_md() -> FileResponse:
     filename = "sbom.md"
     filepath = os.path.join(settings.app_root_dir, filename)
     if not os.path.isfile(filepath):
@@ -75,7 +75,7 @@ def get_sbom_md() -> FileResponse:
     response_class=FileResponse,
     status_code=200,
 )
-def get_license_md() -> FileResponse:
+async def get_license_md() -> FileResponse:
     filename = "LICENSE.md"
     filepath = os.path.join(settings.app_root_dir, filename)
     if not os.path.isfile(filepath):

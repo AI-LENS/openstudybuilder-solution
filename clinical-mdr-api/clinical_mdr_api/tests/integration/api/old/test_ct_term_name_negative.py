@@ -45,8 +45,8 @@ def test_get_all_terms_from_non_existent_codelist1(api_client):
 
 def test_patch_term_name_non_draft_term(api_client):
     data = {
-        "sponsor_preferred_name": "sponsor_preferred_name",
-        "sponsor_preferred_name_sentence_case": "sponsor_preferred_name_sentence_case",
+        "sponsor_preferred_name": "Sponsor_preferred_name",
+        "sponsor_preferred_name_sentence_case": "sponsor_preferred_name",
         "change_description": "term change",
     }
     response = api_client.patch("/ct/terms/term_root_final/names", json=data)
@@ -57,6 +57,25 @@ def test_patch_term_name_non_draft_term(api_client):
 
     assert res["type"] == "BusinessLogicException"
     assert res["message"] == "The object isn't in draft status."
+
+
+def test_patch_non_matching_sentence_case(api_client):
+    data = {
+        "sponsor_preferred_name": "wrong version of name",
+        "definition": "definition",
+        "change_description": "Changing sponsor preferred name",
+    }
+    response = api_client.patch("/ct/terms/term_root_draft/names", json=data)
+
+    assert_response_status_code(response, 422)
+
+    res = response.json()
+
+    assert res["type"] == "ValidationException"
+    assert (
+        res["message"]
+        == "term_value_name_sentence_case isn't an independent case version of wrong version of name"
+    )
 
 
 def test_post_name_approve_non_draft_term(api_client):

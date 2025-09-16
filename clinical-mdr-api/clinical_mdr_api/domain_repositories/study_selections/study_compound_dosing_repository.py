@@ -372,7 +372,7 @@ class StudyCompoundDosingRepository:
 
     def find_selection_history(
         self, study_uid: str, selection_uid: str | None = None
-    ) -> list[dict | None]:
+    ) -> list[SelectionHistory]:
         kwargs = {}
         if selection_uid:
             kwargs["selection_uid"] = selection_uid
@@ -384,7 +384,7 @@ class StudyCompoundDosingRepository:
         study_value_version: str | None = None,
     ) -> tuple[StudyCompoundDosingVO]:
         query = ""
-        query_parameters = {}
+        query_parameters: dict[str, Any] = {}
         if study_uid:
             if study_value_version:
                 query = "MATCH (sr:StudyRoot {uid: $uid})-[l:HAS_VERSION {status:'RELEASED', version: $version}]->(sv:StudyValue)"
@@ -451,7 +451,7 @@ class StudyCompoundDosingRepository:
         study_value_version: str | None = None,
         for_update: bool = False,
         **filters,
-    ) -> StudySelectionCompoundDosingsAR | None:
+    ) -> StudySelectionCompoundDosingsAR:
         """
         Finds all the selected study compounds for a given study
         :param study_uid:

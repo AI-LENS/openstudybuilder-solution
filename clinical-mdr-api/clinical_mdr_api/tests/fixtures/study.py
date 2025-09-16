@@ -136,7 +136,6 @@ def study_arms(request, tst_study) -> list[StudySelectionArm]:
             short_name=f"Arm_Short_Name_{i}",
             code=f"Arm_code_{i}",
             description="desc...",
-            arm_colour="colour...",
             randomization_group=f"Randomization_Group_{i}",
             number_of_subjects=7 * i,
             arm_type_uid=TestUtils.create_ct_term(

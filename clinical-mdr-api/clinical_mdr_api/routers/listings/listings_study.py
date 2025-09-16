@@ -37,7 +37,7 @@ def get_study_metadata(
     project_id: Annotated[str, Query(description="Project ID of study requested")],
     study_number: Annotated[str, Query(description="Study number of study requested")],
     subpart_acronym: Annotated[
-        str, Query(description="subpart, if exists, of study requested")
+        str | None, Query(description="subpart, if exists, of study requested")
     ] = None,
     study_value_version: Annotated[
         str | None, _generic_descriptions.STUDY_VALUE_VERSION_QUERY

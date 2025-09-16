@@ -376,7 +376,7 @@ def filter_base_model_using_fields_directive(
 
 
 def create_duration_object_from_api_input(
-    value: int,
+    value: int | None,
     unit: str,
     find_duration_name_by_code: Callable[[str], UnitDefinitionAR | None],
 ) -> str | None:
@@ -384,7 +384,7 @@ def create_duration_object_from_api_input(
     Transforms the API duration input to the ISO duration format.
 
     Args:
-        value (int): The duration value.
+        value (int | None): The duration value.
         unit (str): The duration unit.
         find_duration_name_by_code (Callable[[str], UnitDefinitionAR | None]): A function that finds the duration name
             by its code.
@@ -479,7 +479,7 @@ def service_level_generic_filtering(
 
         span.add_attribute("call.num_output", len(filtered_items))
 
-    return GenericFilteringReturn.create(items=filtered_items, total=count)
+    return GenericFilteringReturn(items=filtered_items, total=count)
 
 
 def generic_item_filtering(
@@ -538,7 +538,7 @@ def generic_item_filtering(
         validate_is_dict("sort_by", sort_by)
         validate_is_dict("filter_by", filter_by)
 
-        filters = FilterDict(elements=filter_by)
+        filters = FilterDict.model_validate({"elements": filter_by})
         if filter_operator == FilterOperator.AND:
             # Start from full list, then only keep items that match filter elements, one by one
             filtered_items = items
@@ -546,14 +546,11 @@ def generic_item_filtering(
             for key in filters.elements:
                 _values = filters.elements[key].v
                 _operator = filters.elements[key].op
-                filtered_items = list(
-                    filter(
-                        lambda x, k=key, v=_values, o=_operator: filter_aggregated_items(
-                            x, k, v, o
-                        ),
-                        filtered_items,
-                    )
-                )
+                filtered_items = [
+                    item
+                    for item in filtered_items
+                    if filter_aggregated_items(item, key, _values, _operator)
+                ]
         elif filter_operator == FilterOperator.OR:
             # Start from empty list then add element one by one
             _filtered_items = []
@@ -561,14 +558,11 @@ def generic_item_filtering(
             for key in filters.elements:
                 _values = filters.elements[key].v
                 _operator = filters.elements[key].op
-                matching_items: list[Any] = list(
-                    filter(
-                        lambda x, k=key, v=_values, o=_operator: filter_aggregated_items(
-                            x, k, v, o
-                        ),
-                        items,
-                    )
-                )
+                matching_items: list[Any] = [
+                    item
+                    for item in items
+                    if filter_aggregated_items(item, key, _values, _operator)
+                ]
                 _filtered_items += matching_items
             # if passed filter dict is empty we should return all elements without any filtering
             if not filters.elements:
@@ -607,12 +601,12 @@ def generic_item_filtering(
         elif len(distinct_sort_orders) > 1:
             for sort_key, sort_order in sort_by.items():
                 filtered_items.sort(
-                    key=lambda x, s=sort_key: (
+                    key=lambda x, y=sort_key: (  # type: ignore[misc]
                         elm
-                        if (elm := extract_nested_key_value(x, s)) is not None
+                        if (elm := extract_nested_key_value(x, y)) is not None
                         else (
                             "-1"
-                            if issubclass(extract_nested_key_type(x, s), str)
+                            if issubclass(extract_nested_key_type(x, y), str)
                             else -1
                         )
                     ),
@@ -740,7 +734,7 @@ def service_level_generic_header_filtering(
                 "v": [search_string],
                 "op": ComparisonOperator.CONTAINS,
             }
-        filters = FilterDict(elements=filter_by)
+        filters = FilterDict.model_validate({"elements": filter_by})
         if filter_operator == FilterOperator.AND:
             # Start from full list, then only keep items that match filter elements, one by one
             filtered_items = items
@@ -748,14 +742,11 @@ def service_level_generic_header_filtering(
             for key in filters.elements:
                 _values = filters.elements[key].v
                 _operator = filters.elements[key].op
-                filtered_items = list(
-                    filter(
-                        lambda x, k=key, v=_values, o=_operator: filter_aggregated_items(
-                            x, k, v, o
-                        ),
-                        filtered_items,
-                    )
-                )
+                filtered_items = [
+                    item
+                    for item in filtered_items
+                    if filter_aggregated_items(item, key, _values, _operator)
+                ]
         else:
             # Start from full list, then add items that match filter elements, one by one
             _filtered_items = []
@@ -763,14 +754,11 @@ def service_level_generic_header_filtering(
             for key in filters.elements:
                 _values = filters.elements[key].v
                 _operator = filters.elements[key].op
-                matching_items: list[Any] = list(
-                    filter(
-                        lambda x, k=key, v=_values, o=_operator: filter_aggregated_items(
-                            x, k, v, o
-                        ),
-                        items,
-                    )
-                )
+                matching_items: list[Any] = [
+                    item
+                    for item in items
+                    if filter_aggregated_items(item, key, _values, _operator)
+                ]
                 _filtered_items += matching_items
             filtered_items = _filtered_items
 
@@ -996,9 +984,8 @@ def rgetattr_type(obj, attr):
             prop = obj.model_fields.get(attr)
             if prop:
                 return get_field_type(prop.annotation)
-            ValidationException.raise_if(
-                True,
-                msg=f"Cannot resolve a model field for attribute {attr}",
+            raise ValidationException(
+                msg=f"Cannot resolve a model field for attribute {attr}"
             )
         return inner_obj
 

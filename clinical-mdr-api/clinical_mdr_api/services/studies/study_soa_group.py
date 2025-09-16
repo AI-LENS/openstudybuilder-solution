@@ -16,12 +16,13 @@ from clinical_mdr_api.models.utils import BaseModel
 from clinical_mdr_api.services._meta_repository import MetaRepository
 from clinical_mdr_api.services.studies.study_activity_selection_base import (
     StudyActivitySelectionBaseService,
-    _VOType,
 )
 from common.exceptions import BusinessLogicException, ValidationException
 
 
-class StudySoAGroupService(StudyActivitySelectionBaseService):
+class StudySoAGroupService(
+    StudyActivitySelectionBaseService[StudySoAGroupAR, StudySoAGroupVO, StudySoAGroup]
+):
     _repos: MetaRepository
     repository_interface = StudySoAGroupRepository
     selected_object_repository_interface = None
@@ -39,9 +40,12 @@ class StudySoAGroupService(StudyActivitySelectionBaseService):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySoAGroupAR,
+        study_selection: StudySoAGroupAR | None,
         study_value_version: str | None = None,
     ) -> list[StudySoAGroup]:
+        if study_selection is None:
+            return []
+
         result = []
         for selection in study_selection.study_objects_selection:
             result.append(
@@ -55,13 +59,12 @@ class StudySoAGroupService(StudyActivitySelectionBaseService):
     def _transform_from_vo_to_response_model(
         self,
         study_uid: str,
-        specific_selection: _VOType,
+        specific_selection: StudySoAGroupVO,
         terms_at_specific_datetime: datetime | None = None,
         accepted_version: bool | None = None,
-    ) -> BaseModel:
+    ) -> StudySoAGroup:
         return StudySoAGroup.from_study_selection_activity_vo(
-            study_uid=study_uid,
-            specific_selection=specific_selection,
+            study_uid=study_uid, specific_selection=specific_selection
         )
 
     def _transform_history_to_response_model(

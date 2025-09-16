@@ -2,6 +2,7 @@ import time
 import re
 from mdr_standards_import.scripts.utils import (
     are_lists_equal,
+    create_user,
     get_sentence_case_string,
     REPLACEMENTS,
 )
@@ -1131,6 +1132,9 @@ def import_from_cdisc_db_into_mdr(
         print(f"==      Unchanged terms:     {summary['unchanged_terms']:6}")
 
         session.close()
+
+    with mdr_neo4j_driver.session(database=mdr_db_name) as session:
+        session.write_transaction(create_user, author_id)    
 
     end_time = time.time()
     elapsed_time = end_time - start_time

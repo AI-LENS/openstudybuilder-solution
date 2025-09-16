@@ -17,7 +17,7 @@ from common.utils import booltostr
 @dataclass(frozen=True)
 class OdmFormVO(ConceptVO):
     oid: str | None
-    repeating: str | None
+    repeating: str | int | None
     sdtm_version: str | None
     scope_uid: str | None
     description_uids: list[str]
@@ -34,7 +34,7 @@ class OdmFormVO(ConceptVO):
         oid: str | None,
         name: str,
         sdtm_version: str | None,
-        repeating: str | None,
+        repeating: str | int | None,
         scope_uid: str | None,
         description_uids: list[str],
         alias_uids: list[str],
@@ -128,12 +128,16 @@ class OdmFormAR(OdmARBase):
     def concept_vo(self) -> OdmFormVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmFormVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmFormVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -149,7 +153,7 @@ class OdmFormAR(OdmARBase):
         author_id: str,
         concept_vo: OdmFormVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
         odm_object_exists_callback: Callable = lambda _: True,
         find_term_callback: Callable[[str], CTTermAttributesAR | None] = lambda _: None,
         odm_description_exists_by_callback: Callable[
@@ -185,7 +189,7 @@ class OdmFormAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmFormVO,
         concept_exists_by_callback: Callable[
             [str, str, bool], bool

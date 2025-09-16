@@ -31,7 +31,7 @@ class NumericValueWithUnitService(SimpleConceptGenericService[NumericValueWithUn
     def _create_aggregate_root(
         self, concept_input: NumericValueWithUnitPostInput, library
     ) -> NumericValueWithUnitAR:
-        return self.aggregate_class.from_input_values(
+        return NumericValueWithUnitAR.from_input_values(
             author_id=self.author_id,
             simple_concept_vo=self.value_object_class.from_input_values(
                 value=concept_input.value,

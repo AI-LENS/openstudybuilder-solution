@@ -214,6 +214,7 @@ async def test_wrong_signing_key(jwk_service, jwk_wrong_key):
 @pytest.mark.asyncio
 async def test_invalid_signature(jwk_service, jwk_good_key):
     claims = mk_claims()
+    token: str | bytes | list[str]
     token = mk_jwt(claims, jwk_good_key)
 
     # change payload part of token #

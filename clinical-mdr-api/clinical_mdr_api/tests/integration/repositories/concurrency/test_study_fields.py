@@ -120,10 +120,11 @@ class StudyFieldsConcurrencyTest(unittest.TestCase):
                         investigational_device_exemption_ide_number_null_value_code=None,
                     ),
                 ),
-                project_exists_callback=(lambda _: True),
-                study_title_exists_callback=(lambda _, study_number: False),
-                study_short_title_exists_callback=(lambda _, study_number: False),
-                study_number_exists_callback=(lambda x, y: False),
+                project_exists_callback=lambda _: True,
+                study_title_exists_callback=lambda _, study_number: False,
+                study_short_title_exists_callback=lambda _, study_number: False,
+                study_number_exists_callback=lambda x, y: False,
+                author_id="unknown-user",
             )
 
             self.studies_repository.save(study_ar)
@@ -228,6 +229,7 @@ class StudyFieldsConcurrencyTest(unittest.TestCase):
             new_study_description=study_description,
             study_title_exists_callback=lambda _, study_number: False,
             study_short_title_exists_callback=lambda _, study_number: False,
+            author_id=self.author_id,
         )
 
     def save_study_ar(self):

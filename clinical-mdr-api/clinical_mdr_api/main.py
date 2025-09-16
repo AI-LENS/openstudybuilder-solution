@@ -13,10 +13,12 @@ from typing import Any
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace.print_exporter import PrintExporter
 from opencensus.trace.samplers import AlwaysOnSampler
 from pydantic import ValidationError
 from starlette.middleware import Middleware
@@ -28,36 +30,60 @@ from common.auth.discovery import reconfigure_with_openid_discovery
 from common.config import settings
 from common.exceptions import MDRApiBaseException
 from common.models.error import ErrorResponse
+from common.telemetry.request_metrics import patch_neomodel_database
 from common.telemetry.traceback_middleware import ExceptionTracebackMiddleware
+from common.telemetry.tracing_middleware import TracingMiddleware
 
 log = logging.getLogger(__name__)
 
-# Middlewares - please don't use app.add_middleware() as that inserts them to the beginning of the list
-middlewares = [
-    # Context middleware - must come before TracingMiddleware
-    Middleware(RawContextMiddleware)
-]
 
-# Azure Application Insights integration for tracing
-if settings.appinsights_connection:
-    _EXPORTER = AzureExporter(
-        connection_string=settings.appinsights_connection,
-        enable_local_storage=False,
+# Middlewares - please don't use app.add_middleware() as that inserts them to the beginning of the list
+middlewares = []
+
+# gzip compress responses
+if settings.gzip_response_min_size:
+    middlewares.append(
+        Middleware(
+            GZipMiddleware,
+            minimum_size=settings.gzip_response_min_size,
+            compresslevel=settings.gzip_level,
+        )
     )
-else:
-    _EXPORTER = None
+
+# Context middleware - must come before TracingMiddleware
+middlewares.append(Middleware(RawContextMiddleware))
 
 # Tracing middleware
 if settings.tracing_enabled:
-    from common.telemetry.request_metrics import patch_neomodel_database
-    from common.telemetry.tracing_middleware import TracingMiddleware
+
+    # Azure Application Insights integration for tracing
+    if settings.appinsights_connection:
+        tracing_exporter = AzureExporter(
+            connection_string=settings.appinsights_connection,
+            enable_local_storage=False,
+        )
+
+    elif settings.zipkin_host:
+        # opencensus-ext-zipkin is a dev-only package dependency
+        from opencensus.ext.zipkin.trace_exporter import ZipkinExporter
+
+        tracing_exporter = ZipkinExporter(
+            service_name="clinical-mdr-api",
+            host_name=settings.zipkin_host,
+            port=settings.zipkin_port,
+            endpoint=settings.zipkin_endpoint,
+            protocol=settings.zipkin_protocol,
+        )
+
+    else:
+        tracing_exporter = PrintExporter()
 
     middlewares.append(
         Middleware(
             TracingMiddleware,
             sampler=AlwaysOnSampler(),
-            exporter=_EXPORTER,
-            exclude_paths=["/system/healthcheck"],
+            exporter=tracing_exporter,
+            exclude_paths={"*/system/healthcheck"},
         )
     )
 
@@ -134,6 +160,7 @@ app.openapi_version = "3.0.2"
 @app.exception_handler(MDRApiBaseException)
 async def mdr_api_exception_handler(request: Request, exception: MDRApiBaseException):
     """Returns an HTTP error code associated to given exception."""
+
     await log_exception(request, exception)
 
     ExceptionTracebackMiddleware.add_traceback_attributes(exception)
@@ -146,9 +173,13 @@ async def mdr_api_exception_handler(request: Request, exception: MDRApiBaseExcep
 
 
 @app.exception_handler(ValidationError)
-def pydantic_validation_error_handler(request: Request, exception: ValidationError):
+async def pydantic_validation_error_handler(
+    request: Request, exception: ValidationError
+):
     """Returns `400 Bad Request` http error status code in case Pydantic detects validation issues
     with supplied payloads or parameters."""
+
+    await log_exception(request, exception)
 
     ExceptionTracebackMiddleware.add_traceback_attributes(exception)
 
@@ -159,8 +190,10 @@ def pydantic_validation_error_handler(request: Request, exception: ValidationErr
 
 
 @app.exception_handler(ValueError)
-def value_error_handler(request: Request, exception: ValueError):
+async def value_error_handler(request: Request, exception: ValueError):
     """Returns `400 Bad Request` http error status code in case ValueError is raised"""
+
+    await log_exception(request, exception)
 
     ExceptionTracebackMiddleware.add_traceback_attributes(exception)
 
@@ -594,4 +627,4 @@ def custom_openapi():
     return app.openapi_schema
 
 
-app.openapi = custom_openapi  # type: ignore[method-assign]
+setattr(app, "openapi", custom_openapi)

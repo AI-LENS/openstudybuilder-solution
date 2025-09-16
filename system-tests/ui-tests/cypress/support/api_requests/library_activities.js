@@ -1,4 +1,5 @@
 export let group_uid, subgroup_uid, activity_uid
+let groups_uids = []
 let activityInstance_uid, class_uid, requestedActivity_uid
 const activityInstanceClassUrl = '/activity-instance-classes'
 const baseUrl = '/concepts/activities'
@@ -37,8 +38,18 @@ Cypress.Commands.add('createGroup', (customName = '') => {
     cy.sendPostRequest(activityGroupUrl, createGroupBody(customName)).then(response => group_uid = response.body.uid)
 })
 
+Cypress.Commands.add('createTwoGroups', () => {
+    cy.sendPostRequest(activityGroupUrl, createGroupBody()).then(response => groups_uids.push(response.body.uid)).then(() => {
+        cy.sendPostRequest(activityGroupUrl, createGroupBody()).then(response => groups_uids.push(response.body.uid))
+    })
+})    
+
 Cypress.Commands.add('createSubGroup', (customName = '') => {
     cy.sendPostRequest(activitySubGroupUrl, createSubGroupBody(customName, group_uid)).then(response => subgroup_uid = response.body.uid)
+})
+
+Cypress.Commands.add('createSubGroupWithTwoGroups', () => {
+    cy.sendPostRequest(activitySubGroupUrl, createSubGroupWithGrouBody()).then(response => subgroup_uid = response.body.uid)
 })
 
 Cypress.Commands.add('createRequestedActivity', (customName = '') => {
@@ -50,6 +61,8 @@ Cypress.Commands.add('approveActivity', () => cy.sendPostRequest(approveActivity
 Cypress.Commands.add('approveActivityInstance', () => cy.sendPostRequest(approveActivityInstanceUrl(activityInstance_uid), {}))
 
 Cypress.Commands.add('approveGroup', () => cy.sendPostRequest(approveActivityGroupUrl(group_uid), {}))
+
+Cypress.Commands.add('approveTwoGroups', () => groups_uids.forEach(uid => cy.sendPostRequest(approveActivityGroupUrl(uid, {}))))
 
 Cypress.Commands.add('approveSubGroup', () => cy.sendPostRequest(approveActivitySubGroupUrl(subgroup_uid), {}))
 
@@ -90,6 +103,8 @@ Cypress.Commands.add('getActivityNameByUid', () => cy.getName(activityInfoUrl(ac
 Cypress.Commands.add('getActivityInstanceNameByUid', () => cy.getName(activityInstanceInfoUrl(activityInstance_uid)))
 
 Cypress.Commands.add('getGroupNameByUid', () => cy.getName(activityGroupInfoUrl(group_uid)))
+
+Cypress.Commands.add('getGroupNameFromListByUid', () => cy.getName(activityGroupInfoUrl(groups_uids[0])))
 
 Cypress.Commands.add('getSubGroupNameByUid', () => cy.getName(activitySubGroupInfoUrl(subgroup_uid)))
 
@@ -167,6 +182,17 @@ const createSubGroupBody = (customName = '', group_uid) => {
         name: name,
         name_sentence_case: name.toLowerCase(),
         activity_groups: [group_uid]
+    }
+}
+
+const createSubGroupWithGrouBody = () => {
+    const name = `API_SubGroup${Date.now()}`
+    return {
+        definition: "def",
+        library_name: "Sponsor",
+        name: name,
+        name_sentence_case: name.toLowerCase(),
+        activity_groups: groups_uids
     }
 }
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from common.auth.dependencies import dummy_user
@@ -8,7 +10,7 @@ user_obj = dummy_user()
 
 
 def test_user_model_constructor():
-    data = {
+    data: dict[str, Any] = {
         "sub": "xyz",
         "azp": "unknown-user",
         "oid": "unknown-user",

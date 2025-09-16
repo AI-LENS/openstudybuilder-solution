@@ -37,7 +37,7 @@ class VendorNamespaceRepository(OdmGenericRepository[OdmVendorNamespaceAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -59,7 +59,7 @@ class VendorNamespaceRepository(OdmGenericRepository[OdmVendorNamespaceAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -67,28 +67,28 @@ class VendorNamespaceRepository(OdmGenericRepository[OdmVendorNamespaceAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> OdmVendorNamespaceAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         odm_vendor_namespace_ar = OdmVendorNamespaceAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=OdmVendorNamespaceVO.from_repository_values(
-                name=input_dict.get("name"),
-                prefix=input_dict.get("prefix"),
-                url=input_dict.get("url"),
-                vendor_element_uids=input_dict.get("vendor_element_uids"),
-                vendor_attribute_uids=input_dict.get("vendor_attribute_uids"),
+                name=input_dict["name"],
+                prefix=input_dict["prefix"],
+                url=input_dict["url"],
+                vendor_element_uids=input_dict["vendor_element_uids"],
+                vendor_attribute_uids=input_dict["vendor_attribute_uids"],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),

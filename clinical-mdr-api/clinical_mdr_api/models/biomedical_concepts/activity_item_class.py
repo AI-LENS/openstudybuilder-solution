@@ -285,7 +285,7 @@ class CompactActivityItemClass(BaseModel):
 
 
 class ActivityInstanceClassRelInput(InputModel):
-    uid: Annotated[str | None, Field(min_length=1)] = None
+    uid: Annotated[str, Field(min_length=1)]
     is_adam_param_specific_enabled: Annotated[bool, Field()]
     mandatory: Annotated[bool, Field()]
 
@@ -310,7 +310,7 @@ class ActivityItemClassEditInput(PatchInputModel):
         default_factory=list
     )
     library_name: Annotated[str | None, Field(min_length=1)] = None
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    change_description: Annotated[str, Field(min_length=1)]
     role_uid: Annotated[str | None, Field(min_length=1)] = None
     data_type_uid: Annotated[str | None, Field(min_length=1)] = None
 

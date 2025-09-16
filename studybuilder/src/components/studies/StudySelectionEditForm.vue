@@ -44,21 +44,49 @@
         <v-alert density="compact" type="info">
           {{ templateEditWarning }}
         </v-alert>
+        <div class="text-secondary text-h8">
+          {{ $t('_global.name') }}
+        </div>
         <NNTemplateInputField
           v-model="templateForm.name"
           :label="$t('ObjectiveTemplateForm.name')"
           :items="parameterTypes"
           :show-drop-down-early="true"
-          :rules="[formRules.required]"
+        />
+        <div class="text-secondary text-h8 mt-2">
+          {{ $t('CriteriaTemplateForm.guidance_text') }}
+        </div>
+        <QuillEditor
+          v-if="guidanceText"
+          id="editor"
+          ref="editor"
+          v-model:content="templateForm.guidance_text"
+          content-type="html"
+          :toolbar="customToolbar"
+          :placeholder="$t('CriteriaTemplateForm.guidance_text')"
+          class="pt-4"
         />
       </v-form>
       <v-card v-else flat class="bg-parameterBackground">
         <v-card-text>
+          <div class="text-secondary text-h8">
+            {{ $t('_global.name') }}
+          </div>
           <NNParameterHighlighter
             :name="templateForm.name"
             default-color="orange"
             :tooltip="false"
           />
+          <div v-if="guidanceText">
+            <div class="text-secondary text-h8">
+              {{ $t('CriteriaTemplateForm.guidance_text') }}
+            </div>
+            <NNParameterHighlighter
+              :name="templateForm.guidance_text"
+              default-color="orange"
+              :tooltip="false"
+            />
+          </div>
         </v-card-text>
       </v-card>
       <v-form ref="observer_2">
@@ -103,6 +131,7 @@ import templateParameterTypes from '@/api/templateParameterTypes'
 import templates from '@/api/templates'
 import { useStudiesGeneralStore } from '@/stores/studies-general'
 import instances from '@/utils/instances'
+import { QuillEditor } from '@vueup/vue-quill'
 
 export default {
   components: {
@@ -110,6 +139,7 @@ export default {
     NNTemplateInputField,
     ParameterValueSelector,
     SimpleFormDialog,
+    QuillEditor,
   },
   inject: ['formRules'],
   props: {
@@ -150,6 +180,10 @@ export default {
     maxTemplateLength: {
       type: Boolean,
       default: null,
+    },
+    guidanceText: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ['close', 'initForm', 'submit'],

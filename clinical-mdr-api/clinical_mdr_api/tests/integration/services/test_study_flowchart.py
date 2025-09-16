@@ -2,8 +2,9 @@
 
 import logging
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
+import pydantic
 import pytest
 from docx.table import Table
 
@@ -40,7 +41,7 @@ from clinical_mdr_api.services.studies.study_flowchart import (
     NUM_OPERATIONAL_CODE_COLS,
     SOA_CHECK_MARK,
     StudyFlowchartService,
-    study_version,
+    get_study_version,
 )
 from clinical_mdr_api.services.studies.study_soa_footnote import StudySoAFootnoteService
 from clinical_mdr_api.services.studies.study_visit import StudyVisitService
@@ -73,8 +74,50 @@ def soa_test_data(temp_database_populated: TempDatabasePopulated) -> SoATestData
 
 @pytest.fixture(scope="module")
 def soa_test_data2(temp_database_populated: TempDatabasePopulated) -> SoATestData:
-    """Test data for SoA snapshot & versioning tests, as they modify the test study, may interfere with other tests"""
-    return SoATestData(project=temp_database_populated.project)
+    """Test data for SoA snapshot & versioning tests
+
+    Note: they modify the study, so they might interfere with other tests.
+    """
+
+    test_data = SoATestData(project=temp_database_populated.project)
+
+    TestUtils.lock_and_unlock_study(test_data.study.uid)
+
+    add_activity = {
+        "name": "C Reactive Protein",
+        "soa_group": "Safety",
+        "group": "Laboratory Assessments",
+        "subgroup": "Biochemistry",
+        "visits": ["V1", "V3", "V5"],
+        "show_soa_group": True,
+        "show_group": True,
+        "show_subgroup": True,
+        "show_activity": True,
+        "instances": [
+            {
+                "class": "NumericFindings",
+                "name": "C-Reactive Protein Plasma",
+                "topic_code": "C_REACT_PROT_PLASMA",
+                "adam_param_code": "CRPP",
+            },
+            {
+                "class": "NumericFindings",
+                "name": "C-Reactive Protein Serum",
+                "topic_code": "C_REACT_PROT_SERUM",
+                "adam_param_code": "CRPS2",
+            },
+        ],
+    }
+    test_data.create_activity(**add_activity)
+    test_data.create_study_activity(**add_activity)
+    test_data.create_instances_of_activity(
+        add_activity["name"], add_activity["instances"]
+    )
+    test_data.assign_instances_of_activity(add_activity["name"])
+
+    TestUtils.lock_and_unlock_study(test_data.study.uid)
+
+    return test_data
 
 
 @pytest.mark.parametrize(
@@ -599,7 +642,7 @@ def test_download_detailed_soa_content(
         study_visit = study_visits_map[sched.study_visit_uid]
 
         assert len(res.keys()) == 10, f"record #{i} property count mismatch"
-        assert res["study_version"] == study_version(soa_test_data.study) or res[
+        assert res["study_version"] == get_study_version(soa_test_data.study) or res[
             "study_version"
         ].startswith("LATEST on 20")
         assert (
@@ -1510,3 +1553,129 @@ def check_operational_soa_table(
         len(cells_by_ref[SoAItemType.STUDY_ACTIVITY_INSTANCE.value])
         == soa_test_data.NUM_ACTIVITY_INSTANCES
     ), "Unexpected number of study activity instances"
+
+
+def test_fetch_study_activities(soa_test_data2):
+    """Compare lite version StudySelectionActivities from StudyFlowchartService.fetch_study_activities
+    to fully populated objects from StudyActivitySelectionService.get_all_selection,
+    assuming the later one is already well-covered by tests."""
+
+    for study_version in _get_study_version_numbers(soa_test_data2.study.uid):
+        log.info(
+            "Comparing StudySelectionActivities of study [%s] version [%s]",
+            soa_test_data2.study.uid,
+            study_version,
+        )
+
+        expected = (
+            StudyActivitySelectionService()
+            .get_all_selection(
+                soa_test_data2.study.uid,
+                study_value_version=study_version,
+                sort_by=StudyActivitySelectionService.get_default_sorting(),
+            )
+            .items
+        )
+        items = StudyFlowchartService.fetch_study_activities(
+            study_uid=soa_test_data2.study.uid, study_value_version=study_version
+        )
+
+        expected = _to_list_of_dicts(expected)
+        items = _to_list_of_dicts(items)
+        assert len(items) == len(expected)
+        assert items == expected
+
+
+def test_fetch_study_activity_instances(soa_test_data2):
+    """Compare lite version StudySelectionActivityInstance from StudyFlowchartService.fetch_study_activity_instances
+    to fully populated objects from StudyActivityInstanceSelectionService.get_all_selection,
+    assuming the later one is already well-covered by tests."""
+
+    for study_version in _get_study_version_numbers(soa_test_data2.study.uid):
+        log.info(
+            "Comparing StudySelectionActivityInstances of study [%s] version [%s]",
+            soa_test_data2.study.uid,
+            study_version,
+        )
+
+        expected = (
+            StudyActivityInstanceSelectionService()
+            .get_all_selection(
+                soa_test_data2.study.uid,
+                study_value_version=study_version,
+                sort_by={"study_activity_instance_uid": True},
+                # omit activity placeholders
+                filter_by={
+                    "activity.library_name": {
+                        "v": [settings.requested_library_name],
+                        "op": "ne",
+                    }
+                },
+            )
+            .items
+        )
+        items = StudyFlowchartService.fetch_study_activity_instances(
+            study_uid=soa_test_data2.study.uid, study_value_version=study_version
+        )
+        items.sort(key=lambda x: x.study_activity_instance_uid)
+
+        expected = _to_list_of_dicts(expected)
+        items = _to_list_of_dicts(items)
+        assert items == expected
+
+
+def _get_study_version_numbers(study_uid: str) -> set[str | None]:
+    study_versions = {
+        study.current_metadata.version_metadata.version_number
+        and str(study.current_metadata.version_metadata.version_number)
+        for study in StudyService()
+        .get_study_snapshot_history(study_uid=study_uid)
+        .items
+    }
+    return study_versions
+
+
+def _to_list_of_dicts(items: Sequence[pydantic.BaseModel]) -> list[dict[str, Any]]:
+    """Converts a list of StudySelectionActivity or StudySelectionActivityInstance to a list of dicts
+    for easier Pytest compilation of lite and fully populated objects,
+    excluding some properties from the comparison."""
+
+    return [
+        item.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+            exclude={
+                "activity": {
+                    "activity_groupings",
+                    "activity_instances",
+                    "author_username",
+                    "change_description",
+                    "is_finalized",
+                    "is_used_by_legacy_instances",
+                    "possible_actions",
+                    "requester_study_id",
+                    "start_date",
+                    "status",
+                    "synonyms",
+                    "version",
+                },
+                "activity_instance": {
+                    "activity_groupings",
+                    "activity_items",
+                    "author_username",
+                    "change_description",
+                    "possible_actions",
+                    "start_date",
+                    "status",
+                    "version",
+                },
+                "author_username": True,
+                "start_date": True,
+                "study_activity_subgroup": {"order": True},
+                "study_activity_group": {"order": True},
+                "study_soa_group": {"order": True},
+                "study_version": True,
+            },
+        )
+        for item in items
+    ]

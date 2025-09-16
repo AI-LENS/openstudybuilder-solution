@@ -43,13 +43,13 @@ def get_packages(
         ),
     ] = None,
     standards_only: Annotated[
-        bool | None,
+        bool,
         Query(
             description="If set to True, only standard packages are returned. Defaults to True",
         ),
     ] = True,
     sponsor_only: Annotated[
-        bool | None,
+        bool,
         Query(
             description="If set to True, only sponsor packages are returned.",
         ),

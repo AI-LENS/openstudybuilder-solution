@@ -105,9 +105,7 @@ class StudySelectionRepository:
         """Must be defined by subclasses."""
         raise NotImplementedError
 
-    def find_selection_history(
-        self, study_uid: str, selection_uid: str | None = None
-    ) -> list[dict | None]:
+    def find_selection_history(self, study_uid: str, selection_uid: str | None = None):
         kwargs = {}
         if selection_uid:
             kwargs["selection_uid"] = selection_uid

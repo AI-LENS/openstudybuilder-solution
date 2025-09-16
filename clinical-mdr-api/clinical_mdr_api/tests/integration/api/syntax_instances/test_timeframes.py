@@ -794,7 +794,6 @@ def test_cannot_update_timeframe_without_change_description(api_client):
 
 def test_cannot_update_timeframe_in_final_status(api_client):
     data = {
-        "name": "test name [TextValue]",
         "parameter_terms": [
             {
                 "position": 1,

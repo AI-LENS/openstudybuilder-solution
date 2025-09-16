@@ -40,7 +40,9 @@ from clinical_mdr_api.domains.versioned_object_aggregate import (
     LibraryItemMetadataVO,
     LibraryVO,
 )
-from clinical_mdr_api.models.controlled_terminologies.ct_term import SimpleTermModel
+from clinical_mdr_api.models.controlled_terminologies.ct_term import (
+    TermWithCodelistMetadata,
+)
 from clinical_mdr_api.models.utils import GenericFilteringReturn
 from clinical_mdr_api.repositories._utils import (
     CypherQueryBuilder,
@@ -49,7 +51,7 @@ from clinical_mdr_api.repositories._utils import (
 )
 
 
-class CTTermNameRepository(
+class CTTermNameRepository(  # type: ignore[misc]
     CTTermGenericRepository[CTTermNameAR], CTTermAggregatedRepository
 ):
     root_class = CTTermNameRoot
@@ -58,7 +60,7 @@ class CTTermNameRepository(
 
     def _create_simple_term_instances_from_cypher_result(
         self, term_dict: dict[str, Any]
-    ) -> tuple[SimpleTermModel]:
+    ) -> TermWithCodelistMetadata:
         """
         Method creates a tuple of CTTermNameAR and CTTermAttributesAR objects for one CTTermRoot node.
         The term_dict is a find_all_aggregated_result method result for one CTTermRoot node.
@@ -80,9 +82,9 @@ class CTTermNameRepository(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
-    ) -> GenericFilteringReturn[SimpleTermModel]:
+    ) -> GenericFilteringReturn[TermWithCodelistMetadata]:
         """
         Method runs a cypher query to fetch all data related to the CTTermName* and CTTermAttributes*.
         It allows to filter the query output by codelist_uid, codelist_name, library and package.
@@ -129,7 +131,7 @@ class CTTermNameRepository(
             implicit_sort_by="term_uid",
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             wildcard_properties_list=list_term_wildcard_properties(),
@@ -156,7 +158,7 @@ class CTTermNameRepository(
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=terms_ars, total=total)
+        return GenericFilteringReturn(items=terms_ars, total=total)
 
     def term_specific_exists_by_name_in_codelists(
         self, term_name: str, codelist_uids: list[str]
@@ -190,7 +192,7 @@ class CTTermNameRepository(
     def _create_ar(
         self,
         root: CTTermNameRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: CTTermNameValue,
         study_count: int = 0,
@@ -221,7 +223,7 @@ class CTTermNameRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -229,7 +231,7 @@ class CTTermNameRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: CTTermNameRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: CTTermNameValue,
         **_kwargs,
@@ -260,7 +262,7 @@ class CTTermNameRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

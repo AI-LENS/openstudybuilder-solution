@@ -2085,42 +2085,6 @@ def test_only_placeholder_study_activity_can_have_subgroup_and_group_not_specifi
     )
 
 
-def test_delete_activity_placeholder_with_not_finalized_request_retires_the_request(
-    api_client,
-):
-    activity_request = TestUtils.create_activity(
-        name="Activity request for placeholder deletion",
-        activity_subgroups=[body_measurements_activity_subgroup.uid],
-        activity_groups=[general_activity_group.uid],
-        is_request_final=True,
-        library_name=settings.requested_library_name,
-    )
-    response = api_client.post(
-        f"/studies/{study.uid}/study-activities",
-        json={
-            "activity_uid": activity_request.uid,
-            "activity_subgroup_uid": body_measurements_activity_subgroup.uid,
-            "activity_group_uid": general_activity_group.uid,
-            "soa_group_term_uid": term_efficacy_uid,
-        },
-    )
-    assert_response_status_code(response, 201)
-    res = response.json()
-    activity_placeholder_uid = res["study_activity_uid"]
-
-    response = api_client.delete(
-        f"/studies/{study.uid}/study-activities/{activity_placeholder_uid}",
-    )
-    assert_response_status_code(response, 204)
-
-    response = api_client.get(
-        f"/concepts/activities/activities/{activity_request.uid}",
-    )
-    assert_response_status_code(response, 200)
-    res = response.json()
-    assert res["status"] == "Retired"
-
-
 def test_study_activity_delete_underlying_objects(
     api_client,
 ):

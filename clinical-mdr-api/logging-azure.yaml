@@ -68,6 +68,8 @@ loggers:
   neo4j:
     # Traces communication contents on debug severity
     level: INFO
+  neo4j.notifications:
+    level: ERROR
 
   urllib3.connectionpool:
     # Logs opening of HTTPS connections (as DEBUG), which is also triggered by Azure log exporter on delivery,

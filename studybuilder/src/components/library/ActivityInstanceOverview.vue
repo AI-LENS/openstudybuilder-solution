@@ -218,11 +218,7 @@ const groupingsHeaders = [
 
 // Methods for ActivitySummary component
 function refreshData() {
-  // Refresh the base activity overview
-  if (overview.value) {
-    overview.value.refreshData()
-  }
-  // Also refresh the separate endpoint data
+  // Refresh the activity groupings
   fetchActivityGroupings()
   emit('refresh')
 }
@@ -295,7 +291,7 @@ function adaptActivityInstanceForSummary(
 // Get all versions for the version selector
 function allVersions(item) {
   if (!item || !item.all_versions) return []
-  return [...item.all_versions].sort().reverse()
+  return item.all_versions
 }
 
 // Handle manual version changes

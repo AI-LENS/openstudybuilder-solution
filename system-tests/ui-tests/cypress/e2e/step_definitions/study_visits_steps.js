@@ -108,10 +108,11 @@ When('The user tries to update last treatment visit epoch to Screening without u
 
 When('[API] Study vists uids are fetched for study {string}', (study_uid) => cy.getExistingStudyVisits(study_uid).then(uids => studyVisits_uid = uids))
 
-When('[API] Study visits in study {string} are cleaned-up', (study_uid) => {
-    const studyVisitsSorted_uid = studyVisits_uid.sort().reverse()
-    studyVisitsSorted_uid.forEach(visit_uid => cy.deleteVisitByUid(study_uid, visit_uid))
-})
+When('[API] Study vists uids are fetched for current study', () => cy.getExistingStudyVisits(`${Cypress.env('TEST_STUDY_UID')}`).then(uids => studyVisits_uid = uids))
+
+When('[API] Study visits in study {string} are cleaned-up', (study_uid) => deleteVisits(study_uid))
+
+When('[API] Study visits in current study are cleaned-up', () => deleteVisits(`${Cypress.env('TEST_STUDY_UID')}`))
 
 Given('[API] The epoch with type {string} and subtype {string} exists in selected study', (type, subtype) => {
     createEpochViaAPI(type, subtype)
@@ -129,8 +130,8 @@ Given('[API] The visit with following attributes is created: isGlobalAnchor {int
     createVisitViaAPI(isGlobalAnchorVisit, visitWeek)
 })
 
-Given('[API] The visit with following attributes is created: isGlobalAnchor {int}, visitWeek {int}, maxVisitWindow {int}', (isGlobalAnchorVisit, visitWeek, maxVisitWindow) => {
-    createVisitViaAPI(isGlobalAnchorVisit, visitWeek, maxVisitWindow)
+Given('[API] The visit with following attributes is created: isGlobalAnchor {int}, visitWeek {int}, minVisitWindow {int}, maxVisitWindow {int}', (isGlobalAnchorVisit, visitWeek, minVisitWindow, maxVisitWindow) => {
+    createVisitViaAPI(isGlobalAnchorVisit, visitWeek, minVisitWindow, maxVisitWindow)
 })
 
 Given('[API] Visits group {string} is removed', (group) => cy.deleteVisitsGroup(getCurrStudyUid(), group))
@@ -155,6 +156,11 @@ function getVisitDynamicData(contactMode, timeReference, visitType, epochName) {
     cy.getEpochUid(getCurrStudyUid(), epochName)
 }
 
-function createVisitViaAPI(isGlobalAnchorVisit, visitWeek, maxVisitWindowValue = 0) {
-    cy.createVisit(getCurrStudyUid(), isGlobalAnchorVisit, visitWeek, maxVisitWindowValue)
+function createVisitViaAPI(isGlobalAnchorVisit, visitWeek, minVisitWindow = 0, maxVisitWindowValue = 0) {
+    cy.createVisit(getCurrStudyUid(), isGlobalAnchorVisit, visitWeek, minVisitWindow, maxVisitWindowValue)
+}
+
+function deleteVisits(study_uid) {
+    const studyVisitsSorted_uid = studyVisits_uid.sort().reverse()
+    studyVisitsSorted_uid.forEach(visit_uid => cy.deleteVisitByUid(study_uid, visit_uid))
 }

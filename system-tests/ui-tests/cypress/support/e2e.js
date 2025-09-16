@@ -10,6 +10,7 @@ import './api_requests/library_syntax_templates'
 import './api_requests/library_units'
 import './api_requests/rest_client'
 import './api_requests/study_requests'
+import './api_requests/study_activities_requests'
 import './api_requests/study_arm_requests'
 import './api_requests/study_criteria_requests'
 import './api_requests/study_epochs_requests'
@@ -40,4 +41,5 @@ Cypress.on('uncaught:exception', (err, runnable) => {
 before(function() {
     cy.prepareAuthTokens()
     cy.createAndSetMainTestStudy('9876')
+    cy.createTestStudy('9877', 'Study structure testing')
 });

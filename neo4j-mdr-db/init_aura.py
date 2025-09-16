@@ -3,11 +3,10 @@ from os import environ
 from neo4j.work.transaction import Transaction
 from db_schema import build_schema_queries, drop_indexes_and_constraints
 
-from datetime import datetime
-
 DATABASE = environ.get("NEO4J_MDR_DATABASE")
 NEO4J_MDR_CLEAR_DATABASE = environ.get("NEO4J_MDR_CLEAR_DATABASE", "false")
 CLEAR_DATABASE = NEO4J_MDR_CLEAR_DATABASE.lower() == "true"
+DEFAULT_AUTHOR_ID = environ.get("NEO4J_MDR_DEFAULT_AUTHOR_ID", "fd909732-bc9e-492b-a1ed-6e27757a4f00")
 
 uri = "neo4j+s://{}".format(environ.get("NEO4J_MDR_HOST"))
 driver = GraphDatabase.driver(
@@ -126,15 +125,15 @@ def pre_load_template_parameter_tree(tx: Transaction):
 # using merge so it wont fail if init is run multiple times.
 def create_special_template_parameters(tx: Transaction):
     # (re)-creates the NA template parameter value, which is an instance of every template parameter
-    cypher = """
-    MERGE (r:TemplateParameterValueRoot{uid: "NA"})
+    cypher = f"""
+    MERGE (r:TemplateParameterValueRoot{{uid: "NA"}})
     WITH r
     OPTIONAL MATCH (r)-[x:HAS_VERSION|LATEST|LATEST_FINAL]->()
     DELETE x
     WITH r
-    MERGE (r)-[:LATEST]->(v:TemplateParameterValue{name: "NA"})
+    MERGE (r)-[:LATEST]->(v:TemplateParameterValue{{name: "NA"}})
     MERGE (r)-[:LATEST_FINAL]->(v)
-    MERGE (r)-[:HAS_VERSION{change_description: "Initial version", start_date: datetime(), end_date: datetime(), status: "Final", author_id: "sb-import", version: "1.0"}]->(v)
+    MERGE (r)-[:HAS_VERSION{{change_description: "Initial version", start_date: datetime(), end_date: datetime(), status: "Final", author_id: "{DEFAULT_AUTHOR_ID}", version: "1.0"}}]->(v)
     WITH r
     MATCH (n:TemplateParameter) 
     MERGE (n)-[:HAS_VALUE]->(r)

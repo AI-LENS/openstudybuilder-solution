@@ -316,7 +316,7 @@ class SponsorModels(BaseImporter):
                             self.parse_bool(row[headers.index("isnotcdiscstd")])
                         )
                         if "isnotcdiscstd" in headers
-                        else None
+                        else self.parse_bool(row[headers.index("basic_std")])
                     ),
                     "source_ig": (
                         row[headers.index("cdiscstd")]
@@ -353,6 +353,34 @@ class SponsorModels(BaseImporter):
                     logfile_name=self.logfile_name,
                 )
             )
+
+            # If relevant, add a sponsor term to the Domain codelist
+            if data["body"]["is_basic_std"] is False:
+                term_data = {
+                    "body": {
+                        "catalogue_name": "SDTM CT",
+                        "codelist_uid": "C66734",
+                        "code_submission_value": data["body"]["dataset_uid"],
+                        "name_submission_value": data["body"]["label"],
+                        "nci_preferred_name": "UNK",
+                        "definition": data["body"]["comment"],
+                        "sponsor_preferred_name": data["body"]["label"],
+                        "sponsor_preferred_name_sentence_case": data["body"][
+                            "label"
+                        ].lower(),
+                        "order": data["body"]["enrich_build_order"],
+                        "library_name": "Sponsor",
+                    },
+                }
+                api_tasks.append(
+                    self.api.post_to_api_async(
+                        url="/ct/terms",
+                        body=term_data["body"],
+                        session=session,
+                        logfile_name=self.logfile_name,
+                    )
+                )
+
         await asyncio.gather(*api_tasks)
 
     # Get all terms from a codelist
@@ -476,10 +504,12 @@ class SponsorModels(BaseImporter):
                         if row[headers.index("qualifiers")]
                         else None
                     ),
-                    "is_cdisc_std": self.reverse_bool(
-                        self.parse_bool(row[headers.index("isnotcdiscstd")])
+                    "is_cdisc_std": (
+                        self.reverse_bool(
+                            self.parse_bool(row[headers.index("isnotcdiscstd")])
+                        )
                         if "isnotcdiscstd" in headers
-                        else None
+                        else self.parse_bool(row[headers.index("basic_std")])
                     ),
                     "comment": row[headers.index("comment")] or None,
                     "ig_comment": row[headers.index("IGcomment")] or None,

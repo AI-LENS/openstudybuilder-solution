@@ -48,7 +48,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
     version_class: type
     repository_interface: type
     _repos: MetaRepository
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -69,13 +69,13 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
     def get_by_uid(
         self,
         uid: str,
-        status: str | None = None,
+        status: LibraryItemStatus | None = None,
         version: str | None = None,
-        return_study_count: bool | None = True,
+        return_study_count: bool = True,
     ) -> BaseModel:
         item = self.repository.find_by_uid(
             uid,
-            status=LibraryItemStatus(status) if status is not None else None,
+            status=status,
             version=version,
             return_study_count=return_study_count,
         )
@@ -83,7 +83,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
 
     @db.transaction
     def get_specific_version(
-        self, uid: str, version: str, return_study_count: bool | None = True
+        self, uid: str, version: str, return_study_count: bool = True
     ) -> BaseModel:
         item = self.repository.find_by_uid(
             uid, return_study_count=return_study_count, version=version
@@ -97,7 +97,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
         version: str | None = None,
         status: LibraryItemStatus | None = None,
         for_update: bool = False,
-        return_study_count: bool | None = True,
+        return_study_count: bool = True,
     ) -> _AggregateRootType:
         item = self.repository.find_by_uid(
             uid,
@@ -127,18 +127,18 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
 
         all_items = [self._transform_aggregate_root_to_pydantic_model(ar) for ar in ars]
 
-        return GenericFilteringReturn.create(items=all_items, total=total)
+        return GenericFilteringReturn(items=all_items, total=total)
 
     @db.transaction
     def get_all(
         self,
-        status: str | None = None,
-        return_study_count: bool | None = True,
+        status: LibraryItemStatus | None = None,
+        return_study_count: bool = True,
         sort_by: dict[str, bool] | None = None,
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.OR,
+        filter_operator: FilterOperator = FilterOperator.OR,
         total_count: bool = False,
         for_audit_trail: bool = False,
     ) -> GenericFilteringReturn[BaseModel]:
@@ -154,7 +154,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
             for_audit_trail=for_audit_trail,
         )
 
-        return GenericFilteringReturn.create(
+        return GenericFilteringReturn(
             items=[
                 self._transform_aggregate_root_to_pydantic_model(item)
                 for item in all_items
@@ -165,16 +165,16 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
     def get_distinct_values_for_header(
         self,
         field_name: str,
-        status: str | None = None,
-        search_string: str | None = "",
+        status: LibraryItemStatus | None = None,
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         return self.repository.get_headers(
             field_name=field_name,
             search_string=search_string,
-            status=LibraryItemStatus(status) if status else None,
+            status=status,
             filter_by=filter_by,
             filter_operator=filter_operator,
             page_size=page_size,
@@ -235,7 +235,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
 
     @db.transaction
     def get_version_history(
-        self, uid: str, return_study_count: bool | None = True
+        self, uid: str, return_study_count: bool = True
     ) -> list[BaseModel]:
         if self.version_class is not None:
             all_versions = self.repository.find_by_uid(
@@ -252,7 +252,7 @@ class GenericSyntaxService(Generic[_AggregateRootType], abc.ABC):
 
     @db.transaction
     def get_releases(
-        self, uid: str, return_study_count: bool | None = True
+        self, uid: str, return_study_count: bool = True
     ) -> list[BaseModel]:
         releases = self.repository.find_by_uid(
             uid=uid,

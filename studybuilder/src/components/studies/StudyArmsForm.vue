@@ -104,18 +104,6 @@
           readonly
           density="compact"
         />
-        <div class="mt-4">
-          <label class="v-label">{{ $t('StudyBranchArms.colour') }}</label>
-          <v-color-picker
-            v-model="colorHash"
-            data-cy="arm-color-hash"
-            clearable
-            show-swatches
-            hide-canvas
-            hide-sliders
-            swatches-max-height="300px"
-          />
-        </div>
       </v-form>
     </template>
   </SimpleFormDialog>
@@ -163,7 +151,6 @@ export default {
         'StudyArmsForm.description',
       ],
       armTypes: [],
-      colorHash: null,
       editMode: false,
       armCodeEnable: false,
       branches: [],
@@ -189,9 +176,6 @@ export default {
             delete this.form.arm_connected_branch_arms
           }
           this.form.arm_type_uid = value.arm_type.term_uid
-          if (value.arm_colour) {
-            this.colorHash = this.editedArm.arm_colour
-          }
           this.formStore.save(this.form)
         })
       }
@@ -208,9 +192,6 @@ export default {
         delete this.form.arm_connected_branch_arms
       }
       this.form.arm_type_uid = this.editedArm.arm_type.term_uid
-      if (this.editedArm.arm_colour) {
-        this.colorHash = this.editedArm.arm_colour
-      }
       this.formStore.save(this.form)
     }
   },
@@ -232,11 +213,6 @@ export default {
       }
     },
     create() {
-      if (this.colorHash) {
-        this.form.arm_colour = this.colorHash
-      } else {
-        this.form.arm_colour = '#BDBDBD'
-      }
       arms.create(this.selectedStudy.uid, this.form).then(
         () => {
           this.eventBusEmit('notification', {
@@ -250,11 +226,6 @@ export default {
       )
     },
     edit() {
-      if (this.colorHash) {
-        this.form.arm_colour = this.colorHash
-      } else {
-        this.form.arm_colour = '#BDBDBD'
-      }
       arms.edit(this.selectedStudy.uid, this.form, this.editedArm.arm_uid).then(
         () => {
           this.eventBusEmit('notification', {
@@ -269,7 +240,6 @@ export default {
     },
     close() {
       this.form = {}
-      this.colorHash = null
       this.armCodeEnable = false
       this.$refs.observer.reset()
       this.$emit('close')

@@ -61,7 +61,7 @@ class OdmXmlExporterService:
     odm: ODM
     used_vendor_namespaces: dict[str, dict[str, Any]]
     allowed_namespaces: list[str]
-    pdf: bool | None
+    pdf: bool
     stylesheet: str | None
 
     mapper_file: UploadFile | None = None
@@ -78,7 +78,7 @@ class OdmXmlExporterService:
         target_type: TargetType,
         status: ObjectStatus,
         allowed_namespaces: list[str],
-        pdf: bool | None,
+        pdf: bool,
         stylesheet: str | None,
         mapper_file: UploadFile | None,
     ):
@@ -140,6 +140,11 @@ class OdmXmlExporterService:
 
         if self.pdf:
             try:
+                if self.stylesheet is None:
+                    raise BusinessLogicException(
+                        msg="Stylesheet is required for PDF generation."
+                    )
+
                 stylesheet_filename = OdmXmlStylesheetService.get_xml_filename_by_name(
                     self.stylesheet
                 )
@@ -324,6 +329,7 @@ class OdmXmlExporterService:
                         for vendor_element_attribute in target.vendor_element_attributes
                         if vendor_element_attribute.vendor_element_uid
                         == vendor_element.uid
+                        and isinstance(vendor_element_attribute.name, str)
                     },
                 )
 
@@ -401,7 +407,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -440,8 +447,6 @@ class OdmXmlExporterService:
                             **self._get_vendor_attributes_or_empty_dict(
                                 self._get_dict_of_attributes(
                                     item_group.vendor.attributes
-                                    if item_group.vendor
-                                    else {}
                                 )
                             ),
                         )
@@ -464,15 +469,17 @@ class OdmXmlExporterService:
                     domain=(
                         Attribute(
                             "Domain",
-                            "|".join(
-                                [
-                                    f"{sdtm_domain.code_submission_value}:{sdtm_domain.preferred_term}"
-                                    for sdtm_domain in item_group.sdtm_domains
-                                ]
+                            (
+                                "|".join(
+                                    [
+                                        f"{sdtm_domain.code_submission_value}:{sdtm_domain.preferred_term}"
+                                        for sdtm_domain in item_group.sdtm_domains
+                                    ]
+                                )
+                                if item_group.sdtm_domains
+                                else ""
                             ),
                         )
-                        if item_group.sdtm_domains
-                        else ""
                     ),
                     **self._get_vendor_attributes_or_empty_dict(
                         {
@@ -526,7 +533,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -562,9 +570,7 @@ class OdmXmlExporterService:
                                 item.collection_exception_condition_oid,
                             ),
                             **self._get_vendor_attributes_or_empty_dict(
-                                self._get_dict_of_attributes(
-                                    item.vendor.attributes if item.vendor else {}
-                                )
+                                self._get_dict_of_attributes(item.vendor.attributes)
                             ),
                         )
                         for item in item_group.items
@@ -634,7 +640,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -656,7 +663,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -732,7 +740,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -791,7 +800,8 @@ class OdmXmlExporterService:
                                 lang=Attribute(
                                     self.XML_LANG,
                                     get_iso_lang_data(
-                                        query=description.language, return_key="639-1"
+                                        query=description.language or "en",
+                                        return_key="639-1",
                                     ),
                                 ),
                                 **self._get_vendor_attributes_or_empty_dict(
@@ -814,6 +824,9 @@ class OdmXmlExporterService:
             codelists = []
 
             for codelist in self.odm_data_extractor.codelists:
+                if codelist.codelist_uid is None:
+                    continue
+
                 items = self.odm_data_extractor.get_items_by_codelist_uid(
                     codelist.codelist_uid
                 )

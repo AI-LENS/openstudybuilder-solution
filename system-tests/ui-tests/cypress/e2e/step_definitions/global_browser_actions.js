@@ -23,3 +23,10 @@ Given('The homepage is opened', () => {
 Given('The studies page is opened', () => {
     cy.visit('/studies')
 })
+
+Given('User goes back to the previous page', () => {
+    cy.go(-1); // Go back to the previous page
+    cy.wait(1000)
+})
+
+Given('The page is reloaded', () => cy.reload())

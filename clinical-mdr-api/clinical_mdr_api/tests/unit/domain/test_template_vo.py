@@ -42,7 +42,7 @@ def test__template_vo_from_input_values__success(
     parameter_list = template_and_parameter_list[1]
     # when
     template_vo = TemplateVO.from_input_values_2(
-        template_name=template_string, parameter_name_exists_callback=(lambda _: True)
+        template_name=template_string, parameter_name_exists_callback=lambda _: True
     )
 
     # then
@@ -57,7 +57,7 @@ def test__template_vo_from_input_values__invalid_syntax__failure(template_string
         # when
         TemplateVO.from_input_values_2(
             template_name=template_string,
-            parameter_name_exists_callback=(lambda _: True),
+            parameter_name_exists_callback=lambda _: True,
         )
 
 
@@ -71,5 +71,5 @@ def test__template_vo_from_input_values__invalid_parameters__failure(
         # when
         TemplateVO.from_input_values_2(
             template_name=template_string,
-            parameter_name_exists_callback=(lambda _: False),
+            parameter_name_exists_callback=lambda _: False,
         )

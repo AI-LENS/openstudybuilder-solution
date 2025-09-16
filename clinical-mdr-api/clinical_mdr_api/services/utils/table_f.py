@@ -261,7 +261,7 @@ def table_to_docx(
                 x_para.text = t_cell.text
 
             # resolve style name and apply to paragraph
-            style_name = styles.get(t_cell.style, [None])[0] if styles else None
+            style_name = styles.get(t_cell.style, [None])[0] if styles else None  # type: ignore[arg-type]
             if style_name:
                 x_para.style = style_name
 

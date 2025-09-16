@@ -157,7 +157,7 @@ class CTConfigAR(VersioningActionMixin):
         cls,
         *,
         author_id: str,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         ct_config_value: CTConfigValueVO,
         ct_configuration_exists_by_name_callback: Callable[[str], bool],
     ) -> Self:

@@ -23,30 +23,26 @@ def compare_versions(version1: str, version2: str) -> int:
     Returns:
         int: The result of the comparison.
     """
-    # Split the version strings into their components
-    version1 = version1.split(".")
-    version2 = version2.split(".")
-
-    # Convert the components to integers
-    version1 = [int(x) for x in version1]
-    version2 = [int(x) for x in version2]
+    # Split the version strings into their components and convert the components to integers
+    _version1 = [int(x) for x in version1.split(".")]
+    _version2 = [int(x) for x in version2.split(".")]
 
     # Compare the major versions
-    if version1[0] < version2[0]:
+    if _version1[0] < _version2[0]:
         return -1
-    if version1[0] > version2[0]:
+    if _version1[0] > _version2[0]:
         return 1
 
     # Compare the minor versions
-    if version1[1] < version2[1]:
+    if _version1[1] < _version2[1]:
         return -1
-    if version1[1] > version2[1]:
+    if _version1[1] > _version2[1]:
         return 1
 
     # Compare the patch versions
-    if version1[2] < version2[2]:
+    if _version1[2] < _version2[2]:
         return -1
-    if version1[2] > version2[2]:
+    if _version1[2] > _version2[2]:
         return 1
 
     # The versions are equal

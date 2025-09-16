@@ -19,29 +19,27 @@ class StudySelectionCohortVO:
     short_name: str
     code: str | None
     description: str | None
-    colour_code: str | None
     number_of_subjects: int | None
     branch_arm_root_uids: list[str] | None
     arm_root_uids: list[str] | None
-    start_date: datetime.datetime
+    start_date: datetime.datetime = field(compare=False)
     author_id: str
     end_date: datetime.datetime | None
     status: str | None
     change_type: str | None
-    accepted_version: bool = False
     author_username: str | None = None
+    accepted_version: bool = False
 
     @classmethod
     def from_input_values(
         cls,
         author_id: str,
+        name: str,
+        short_name: str,
         study_selection_uid: str | None = None,
         study_uid: str | None = None,
-        name: str | None = None,
-        short_name: str | None = None,
         code: str | None = None,
         description: str | None = None,
-        colour_code: str | None = None,
         number_of_subjects: int | None = 0,
         branch_arm_root_uids: list[str] | None = None,
         arm_root_uids: list[str] | None = None,
@@ -49,8 +47,8 @@ class StudySelectionCohortVO:
         end_date: datetime.datetime | None = None,
         status: str | None = None,
         change_type: str | None = None,
-        accepted_version: bool | None = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        accepted_version: bool = False,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         """
         Factory method
@@ -60,7 +58,6 @@ class StudySelectionCohortVO:
         :param short_name
         :param code
         :param description
-        :param colour_code
         :param number_of_subjects
         :param start_date
         :param author_id
@@ -85,7 +82,6 @@ class StudySelectionCohortVO:
             short_name=short_name,
             code=code,
             description=description,
-            colour_code=colour_code,
             number_of_subjects=number_of_subjects,
             branch_arm_root_uids=branch_arm_root_uids,
             arm_root_uids=arm_root_uids,
@@ -100,9 +96,13 @@ class StudySelectionCohortVO:
 
     def validate(
         self,
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_branch_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        cohort_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_branch_arm_exists_callback: Callable[
+            [str, str], bool
+        ] = lambda x, y: True,
+        cohort_exists_callback_by: Callable[
+            [str, str, "StudySelectionCohortVO"], bool
+        ] = lambda x, y, z: True,
     ) -> None:
         """
         Validating business logic for a VO
@@ -114,9 +114,10 @@ class StudySelectionCohortVO:
         # Check if there exist a StudyBranchArm with the selected uid
         if self.branch_arm_root_uids:
             for branch_arm_root_uid in self.branch_arm_root_uids:
-                exceptions.ValidationException.raise_if_not(
-                    study_branch_arm_exists_callback(
-                        study_uid=self.study_uid, branch_arm_uid=branch_arm_root_uid
+                exceptions.ValidationException.raise_if(
+                    self.study_uid
+                    and not study_branch_arm_exists_callback(
+                        self.study_uid, branch_arm_root_uid
                     ),
                     msg=f"There is no approved Branch Arm with UID '{branch_arm_root_uid}'.",
                 )
@@ -130,21 +131,20 @@ class StudySelectionCohortVO:
 
         # check if the specified Name is already used
         exceptions.ValidationException.raise_if(
-            self.name and cohort_exists_callback_by("name", "name", cohort_vo=self),
+            self.name and cohort_exists_callback_by("name", "name", self),
             msg=f"Value '{self.name}' in field Cohort Name is not unique for the study.",
         )
 
         # check if the specified Short Name is already used
         exceptions.ValidationException.raise_if(
             self.short_name
-            and cohort_exists_callback_by("short_name", "short_name", cohort_vo=self),
+            and cohort_exists_callback_by("short_name", "short_name", self),
             msg=f"Value '{self.short_name}' in field Cohort Short Name is not unique for the study.",
         )
 
         # check if the specified code is already used
         exceptions.ValidationException.raise_if(
-            self.code
-            and cohort_exists_callback_by("cohort_code", "code", cohort_vo=self),
+            self.code and cohort_exists_callback_by("cohort_code", "code", self),
             msg=f"Value '{self.code}' in field Cohort code is not unique for the study.",
         )
 
@@ -152,7 +152,7 @@ class StudySelectionCohortVO:
 @dataclass
 class StudySelectionCohortAR:
     _study_uid: str
-    _study_cohorts_selection: tuple[StudySelectionCohortVO]
+    _study_cohorts_selection: tuple[StudySelectionCohortVO, ...]
     # a dataclass feature that has Any value with a type field NOT included on the
     # generated init method, NOT included con copare generated methods, included on
     # the string returned by the generated method, and its default is None
@@ -176,12 +176,12 @@ class StudySelectionCohortAR:
         return self._study_uid
 
     @property
-    def study_cohorts_selection(self) -> tuple[StudySelectionCohortVO]:
+    def study_cohorts_selection(self) -> tuple[StudySelectionCohortVO, ...]:
         return self._study_cohorts_selection
 
     def get_specific_cohort_selection(
         self, study_cohort_uid: str
-    ) -> tuple[StudySelectionCohortVO, int] | None:
+    ) -> tuple[StudySelectionCohortVO, int]:
         exceptions.NotFoundException.raise_if(
             study_cohort_uid
             not in [x.study_selection_uid for x in self.study_cohorts_selection],
@@ -203,9 +203,14 @@ class StudySelectionCohortAR:
     def add_cohort_selection(
         self,
         study_cohort_selection: StudySelectionCohortVO,
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_branch_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        cohort_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_branch_arm_exists_callback: Callable[
+            [str, str], bool
+        ] = lambda x, y: True,
+        cohort_exists_callback_by: Callable[
+            [str, str, StudySelectionCohortVO], bool
+        ] = lambda x, y, z: True,
+        validate: bool = True,
     ) -> None:
         """
         Adding a new study cohort to the _study_cohort_selection
@@ -215,11 +220,12 @@ class StudySelectionCohortAR:
         :param cohort_exists_callback_by:
         :return:
         """
-        study_cohort_selection.validate(
-            study_arm_exists_callback=study_arm_exists_callback,
-            study_branch_arm_exists_callback=study_branch_arm_exists_callback,
-            cohort_exists_callback_by=cohort_exists_callback_by,
-        )
+        if validate:
+            study_cohort_selection.validate(
+                study_arm_exists_callback=study_arm_exists_callback,
+                study_branch_arm_exists_callback=study_branch_arm_exists_callback,
+                cohort_exists_callback_by=cohort_exists_callback_by,
+            )
         self._add_selection(study_cohort_selection)
 
     @classmethod
@@ -295,9 +301,14 @@ class StudySelectionCohortAR:
     def update_selection(
         self,
         updated_study_cohort_selection: StudySelectionCohortVO,
-        study_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        study_branch_arm_exists_callback: Callable[[str], bool] = (lambda _: True),
-        cohort_exists_callback_by: Callable[[str], bool] = (lambda _: True),
+        study_arm_exists_callback: Callable[[str], bool] = lambda _: True,
+        study_branch_arm_exists_callback: Callable[
+            [str, str], bool
+        ] = lambda x, y: True,
+        cohort_exists_callback_by: Callable[
+            [str, str, StudySelectionCohortVO], bool
+        ] = lambda x, y, z: True,
+        validate: bool = True,
     ) -> None:
         """
         Used when a study cohort is patched
@@ -307,11 +318,12 @@ class StudySelectionCohortAR:
         :param cohort_exists_callback_by:
         :return:
         """
-        updated_study_cohort_selection.validate(
-            study_branch_arm_exists_callback=study_branch_arm_exists_callback,
-            study_arm_exists_callback=study_arm_exists_callback,
-            cohort_exists_callback_by=cohort_exists_callback_by,
-        )
+        if validate:
+            updated_study_cohort_selection.validate(
+                study_branch_arm_exists_callback=study_branch_arm_exists_callback,
+                study_arm_exists_callback=study_arm_exists_callback,
+                cohort_exists_callback_by=cohort_exists_callback_by,
+            )
         # Check if study cohort or level have changed
         updated_selection = []
         for selection in self.study_cohorts_selection:

@@ -38,7 +38,7 @@ from common.telemetry import trace_calls
 
 
 def get_ctlist_terms_by_name(
-    codelist_names: str, effective_date: datetime.datetime | None = None
+    codelist_names: list[str], effective_date: datetime.datetime | None = None
 ) -> dict[str, list[str]]:
     if not effective_date:
         ctterm_name_match = "(:CTTermNameRoot)-[:LATEST_FINAL]->(ctnv:CTTermNameValue) WHERE codelist_name_value.name IN $codelist_names"
@@ -74,7 +74,7 @@ class StudyEpochRepository:
         self.author_id = user().id()
 
     def fetch_ctlist(
-        self, codelist_names: str, effective_date: datetime.datetime | None = None
+        self, codelist_names: list[str], effective_date: datetime.datetime | None = None
     ):
         return get_ctlist_terms_by_name(codelist_names, effective_date=effective_date)
 
@@ -132,7 +132,7 @@ class StudyEpochRepository:
     ) -> StudyEpochVO | StudyEpochHistoryVO:
         study_epoch_vo = StudyEpochVO(
             uid=input_dict.get("study_epoch").get("uid"),
-            study_uid=input_dict.get("study_uid"),
+            study_uid=input_dict["study_uid"],
             start_rule=input_dict.get("study_epoch").get("start_rule"),
             end_rule=input_dict.get("study_epoch").get("end_rule"),
             description=input_dict.get("study_epoch").get("description"),
@@ -155,9 +155,9 @@ class StudyEpochRepository:
             status=StudyStatus(input_dict.get("study_epoch").get("status")),
             start_date=input_dict.get("study_action").get("date"),
             author_id=input_dict.get("study_action").get("author_id"),
-            author_username=input_dict.get("author_username"),
+            author_username=input_dict["author_username"],
             color_hash=input_dict.get("study_epoch").get("color_hash"),
-            number_of_assigned_visits=input_dict.get("count_vists"),
+            number_of_assigned_visits=input_dict["count_vists"],
         )
         if not audit_trail:
             return study_epoch_vo
@@ -306,8 +306,7 @@ class StudyEpochRepository:
         else:
             query.append("RETURN * ORDER BY study_epoch.order")
 
-        query = "\n".join(query)
-        return query, params
+        return "\n".join(query), params
 
     @classmethod
     @trace_calls

@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Callable, Iterable, Self
+from typing import Annotated, Any, Callable, Self
 
 from pydantic import ConfigDict, Field
 
@@ -24,7 +24,7 @@ class DurationJsonModel(BaseModel):
     def from_duration_object(
         cls,
         duration: Any,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
     ) -> Self:
         duration_value, duration_unit = from_duration_object_to_value_and_unit(
             duration, find_all_study_time_units

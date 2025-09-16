@@ -1,5 +1,5 @@
 @REQ_ID:1074254
-Feature: Studies - Define Study - Study Structure - Study Arms
+Feature: Studies - Define Study - Study Structure - Manually Defined Study Arms
 
     As a system user,
     I want the system to ensure [Scenario],

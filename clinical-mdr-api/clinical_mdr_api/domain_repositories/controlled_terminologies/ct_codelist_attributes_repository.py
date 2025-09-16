@@ -76,12 +76,12 @@ class CTCodelistAttributesRepository(
         major, minor = rel_data.get("version").split(".")
 
         return CTCodelistAttributesAR.from_repository_values(
-            uid=codelist_dict.get("codelist_uid"),
+            uid=codelist_dict["codelist_uid"],
             ct_codelist_attributes_vo=CTCodelistAttributesVO.from_repository_values(
                 name=codelist_dict.get("value_node").get("name"),
-                catalogue_name=codelist_dict.get("catalogue_name"),
+                catalogue_name=codelist_dict["catalogue_name"],
                 parent_codelist_uid=codelist_dict.get("parent_codelist_uid"),
-                child_codelist_uids=codelist_dict.get("child_codelist_uids"),
+                child_codelist_uids=codelist_dict["child_codelist_uids"],
                 submission_value=codelist_dict.get("value_node").get(
                     "submission_value"
                 ),
@@ -90,9 +90,9 @@ class CTCodelistAttributesRepository(
                 extensible=codelist_dict.get("value_node").get("extensible"),
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=codelist_dict.get("library_name"),
+                library_name=codelist_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: codelist_dict.get("is_library_editable")
+                    lambda _: codelist_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
@@ -112,7 +112,7 @@ class CTCodelistAttributesRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: CTCodelistAttributesRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: CTCodelistAttributesValue,
         **_kwargs,
@@ -138,7 +138,7 @@ class CTCodelistAttributesRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

@@ -36,7 +36,7 @@ from clinical_mdr_api.models.standard_data_models.sponsor_model_dataset_variable
 from common.exceptions import BusinessLogicException
 
 
-class SponsorModelDatasetVariableRepository(
+class SponsorModelDatasetVariableRepository(  # type: ignore[misc]
     NeomodelExtBaseRepository,
     LibraryItemRepositoryImplBase[SponsorModelDatasetVariableAR],
 ):
@@ -256,7 +256,7 @@ class SponsorModelDatasetVariableRepository(
         dataset_uid = None
         sponsor_model_name = None
         sponsor_model_version = None
-        ordinal = None
+        ordinal = 0
         if dataset_value is not None:
             # Get parent dataset uid
             dataset: Dataset = dataset_value.has_sponsor_model_instance.single()
@@ -318,7 +318,7 @@ class SponsorModelDatasetVariableRepository(
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

@@ -84,10 +84,10 @@ Feature: Studies - Define Study - Study Structure - Study Visits
     Scenario: [Create][Mandatory fields] User must not be able to create an visit without epoch selected
         Given The study with uid 'Study_000001' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
+        And User waits for 3 seconds
         And The '/studies/Study_000001/study_structure/visits' page is opened
         And User waits for epochs to load
         When Add visit button is clicked
-        And Visit scheduling type is selected as 'SINGLE_VISIT'
         And Form continue button is clicked
         And Form continue button is clicked
         Then The validation appears for missing study period
@@ -98,7 +98,6 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         And The '/studies/Study_000001/study_structure/visits' page is opened
         And User waits for epochs to load
         When Add visit button is clicked
-        And Visit scheduling type is selected as 'SINGLE_VISIT'
         And Form continue button is clicked
         And First available epoch is selected
         And Form continue button is clicked
@@ -118,10 +117,10 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         And [API] Study visits in study 'Study_000003' are cleaned-up
         And The study with uid 'Study_000003' is selected
         And [API] The epoch with type 'Pre Treatment' and subtype 'Screening' exists in selected study
+        And User waits for 3 seconds
         And The '/studies/Study_000003/study_structure/visits' page is opened
         And User waits for epochs to load
         When Add visit button is clicked
-        And Visit scheduling type is selected as 'SINGLE_VISIT'
         And Form continue button is clicked
         And Epoch 'Screening' is selected for the visit
         And Form continue button is clicked
@@ -134,7 +133,6 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         And The '/studies/Study_000003/study_structure/visits' page is opened
         And User waits for epochs to load
         When Add visit button is clicked
-        And Visit scheduling type is selected as 'SINGLE_VISIT'
         And Form continue button is clicked
         And Epoch 'Screening' is selected for the visit
         And Form continue button is clicked
@@ -160,7 +158,6 @@ Feature: Studies - Define Study - Study Structure - Study Visits
         And The '/studies/Study_000003/study_structure/visits' page is opened
         And User waits for epochs to load
         When Add visit button is clicked
-        And Visit scheduling type is selected as 'SINGLE_VISIT'
         And Form continue button is clicked
         And Epoch 'Screening' is selected for the visit
         And Form continue button is clicked

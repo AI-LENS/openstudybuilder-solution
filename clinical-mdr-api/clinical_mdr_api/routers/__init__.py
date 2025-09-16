@@ -182,6 +182,9 @@ from clinical_mdr_api.routers.studies.study_days import router as study_days_rou
 from clinical_mdr_api.routers.studies.study_design_cell import (
     router as study_design_cell_router,
 )
+from clinical_mdr_api.routers.studies.study_design_classes import (
+    router as study_design_classes_router,
+)
 from clinical_mdr_api.routers.studies.study_design_figure import (
     router as study_design_figure,
 )
@@ -203,6 +206,9 @@ from clinical_mdr_api.routers.studies.study_interventions import (
 )
 from clinical_mdr_api.routers.studies.study_soa_footnotes import (
     router as study_soa_footnotes_router,
+)
+from clinical_mdr_api.routers.studies.study_source_variables import (
+    router as study_source_variables_router,
 )
 from clinical_mdr_api.routers.studies.study_standard_version import (
     router as study_standard_version_router,

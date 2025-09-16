@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Self
 
 from clinical_mdr_api.domains.libraries.object import ParametrizedTemplateVO
@@ -17,28 +17,28 @@ class ActivityInstructionPreInstanceAR(PreInstanceAR):
     Implementation of ActivityInstructionPreInstanceAR. Solely based on Parametrized Template.
     """
 
-    _indications: list[SimpleTermModel] | None = None
+    _indications: list[SimpleTermModel] = field(default_factory=list)
 
-    _activities: list[SimpleNameModel] | None = None
+    _activities: list[SimpleNameModel] = field(default_factory=list)
 
-    _activity_groups: list[SimpleNameModel] | None = None
+    _activity_groups: list[SimpleNameModel] = field(default_factory=list)
 
-    _activity_subgroups: list[SimpleNameModel] | None = None
+    _activity_subgroups: list[SimpleNameModel] = field(default_factory=list)
 
     @property
-    def indications(self) -> list[SimpleTermModel] | None:
+    def indications(self) -> list[SimpleTermModel]:
         return self._indications
 
     @property
-    def activities(self) -> list[SimpleNameModel] | None:
+    def activities(self) -> list[SimpleNameModel]:
         return self._activities
 
     @property
-    def activity_groups(self) -> list[SimpleNameModel] | None:
+    def activity_groups(self) -> list[SimpleNameModel]:
         return self._activity_groups
 
     @property
-    def activity_subgroups(self) -> list[SimpleNameModel] | None:
+    def activity_subgroups(self) -> list[SimpleNameModel]:
         return self._activity_subgroups
 
     @classmethod
@@ -61,10 +61,10 @@ class ActivityInstructionPreInstanceAR(PreInstanceAR):
             _item_metadata=item_metadata,
             _library=library,
             _template=template,
-            _indications=indications,
-            _activities=activities,
-            _activity_groups=activity_groups,
-            _activity_subgroups=activity_subgroups,
+            _indications=indications or [],
+            _activities=activities or [],
+            _activity_groups=activity_groups or [],
+            _activity_subgroups=activity_subgroups or [],
             _study_count=study_count,
         )
 
@@ -74,10 +74,8 @@ class ActivityInstructionPreInstanceAR(PreInstanceAR):
         author_id: str,
         library: LibraryVO,
         template: ParametrizedTemplateVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        next_available_sequence_id_callback: Callable[[str], str | None] = (
-            lambda _: None
-        ),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        next_available_sequence_id_callback: Callable[..., str] = lambda _: "",
         indications: list[SimpleTermModel] | None = None,
         activities: list[SimpleNameModel] | None = None,
         activity_groups: list[SimpleNameModel] | None = None,
@@ -96,9 +94,9 @@ class ActivityInstructionPreInstanceAR(PreInstanceAR):
             _template=template,
             _item_metadata=item_metadata,
         )
-        ar._indications = indications
-        ar._activities = activities
-        ar._activity_groups = activity_groups
-        ar._activity_subgroups = activity_subgroups
+        ar._indications = indications or []
+        ar._activities = activities or []
+        ar._activity_groups = activity_groups or []
+        ar._activity_subgroups = activity_subgroups or []
 
         return ar

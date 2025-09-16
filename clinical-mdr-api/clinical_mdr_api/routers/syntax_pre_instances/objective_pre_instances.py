@@ -83,10 +83,10 @@ def objective_pre_instances(
         Json | None, Query(description=_generic_descriptions.SORT_BY)
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -101,10 +101,10 @@ def objective_pre_instances(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[ObjectivePreInstance]:
     results = ObjectivePreInstanceService().get_all(
@@ -118,7 +118,7 @@ def objective_pre_instances(
         sort_by=sort_by,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 
@@ -152,7 +152,7 @@ def get_distinct_values_for_header(
         ),
     ] = None,
     search_string: Annotated[
-        str | None, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
+        str, Query(description=_generic_descriptions.HEADER_SEARCH_STRING)
     ] = "",
     filters: Annotated[
         Json | None,
@@ -162,10 +162,10 @@ def get_distinct_values_for_header(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     page_size: Annotated[
-        int | None, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
+        int, Query(description=_generic_descriptions.HEADER_PAGE_SIZE)
     ] = settings.default_header_page_size,
 ) -> list[Any]:
     return Service().get_distinct_values_for_header(
@@ -189,10 +189,10 @@ def get_distinct_values_for_header(
 )
 def retrieve_audit_trail(
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -207,10 +207,10 @@ def retrieve_audit_trail(
         ),
     ] = None,
     operator: Annotated[
-        str | None, Query(description=_generic_descriptions.FILTER_OPERATOR)
+        str, Query(description=_generic_descriptions.FILTER_OPERATOR)
     ] = settings.default_filter_operator,
     total_count: Annotated[
-        bool | None, Query(description=_generic_descriptions.TOTAL_COUNT)
+        bool, Query(description=_generic_descriptions.TOTAL_COUNT)
     ] = False,
 ) -> CustomPage[ObjectivePreInstance]:
     results = Service().get_all(
@@ -222,7 +222,7 @@ def retrieve_audit_trail(
         for_audit_trail=True,
     )
 
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 
@@ -289,7 +289,7 @@ def edit(
         Body(
             description="The new parameter terms for the Objective Pre-Instance, its indexings and the change description.",
         ),
-    ] = None,
+    ],
 ) -> ObjectivePreInstance:
     return Service().edit_draft(
         uid=objective_pre_instance_uid, template=objective_pre_instance
@@ -324,7 +324,7 @@ def patch_indexings(
         Body(
             description="The lists of UIDs for the new indexings to be set, grouped by indexings to be updated.",
         ),
-    ] = None,
+    ],
 ) -> ObjectivePreInstance:
     return Service().patch_indexings(
         uid=objective_pre_instance_uid, indexings=indexings

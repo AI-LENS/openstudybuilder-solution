@@ -433,7 +433,7 @@ class StudyObjectivesService:
                         num_rows += 1
                         # Merge first column to previous row
                         docx.merge_cells(
-                            [table.rows[num_rows - 2].cells[0], row.cells[0]]
+                            (table.rows[num_rows - 2].cells[0], row.cells[0])
                         )
 
                     docx.replace_content(
@@ -452,7 +452,7 @@ class StudyObjectivesService:
 
                         # Merge first column to previous row
                         docx.merge_cells(
-                            [table.rows[num_rows - 2].cells[0], row.cells[0]]
+                            (table.rows[num_rows - 2].cells[0], row.cells[0])
                         )
 
                         docx.add_html(

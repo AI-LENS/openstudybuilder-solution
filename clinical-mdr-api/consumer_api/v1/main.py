@@ -33,7 +33,7 @@ router = APIRouter()
         },
     },
 )
-async def get_studies(
+def get_studies(
     request: Request,
     sort_by: models.SortByStudies = models.SortByStudies.UID,
     sort_order: models.SortOrder = models.SortOrder.ASC,
@@ -42,7 +42,7 @@ async def get_studies(
     ] = settings.default_page_size,
     page_number: Annotated[int, Query(ge=1)] = 1,
     id: Annotated[
-        str,
+        str | None,
         Query(
             description="Filter by study ID (case-insensitive partial match), for example `NN1234-5678`."
         ),
@@ -92,7 +92,7 @@ async def get_studies(
         },
     },
 )
-async def get_study_visits(
+def get_study_visits(
     request: Request,
     uid: Annotated[str, Path(description="Study UID")],
     sort_by: models.SortByStudyVisits = models.SortByStudyVisits.UNIQUE_VISIT_NUMBER,
@@ -158,7 +158,7 @@ async def get_study_visits(
         },
     },
 )
-async def get_study_activities(
+def get_study_activities(
     request: Request,
     uid: Annotated[str, Path(description="Study UID")],
     sort_by: models.SortByStudyActivities = models.SortByStudyActivities.UID,
@@ -224,7 +224,7 @@ async def get_study_activities(
         },
     },
 )
-async def get_study_activity_instances(
+def get_study_activity_instances(
     request: Request,
     uid: Annotated[str, Path(description="Study UID")],
     sort_by: models.SortByStudyActivityInstances = models.SortByStudyActivityInstances.UID,
@@ -290,7 +290,7 @@ async def get_study_activity_instances(
         },
     },
 )
-async def get_study_detailed_soa(
+def get_study_detailed_soa(
     request: Request,
     uid: Annotated[str, Path(description="Study UID")],
     sort_by: models.SortByStudyDetailedSoA = models.SortByStudyDetailedSoA.ACTIVITY_NAME,
@@ -357,7 +357,7 @@ async def get_study_detailed_soa(
         },
     },
 )
-async def get_study_operational_soa(
+def get_study_operational_soa(
     request: Request,
     uid: Annotated[str, Path(description="Study UID")],
     sort_by: models.SortByStudyOperationalSoA = models.SortByStudyOperationalSoA.ACTIVITY_NAME,
@@ -424,7 +424,7 @@ async def get_study_operational_soa(
         },
     },
 )
-async def get_library_activities(
+def get_library_activities(
     request: Request,
     sort_by: Annotated[
         models.SortByLibraryItem, Query()
@@ -483,7 +483,7 @@ async def get_library_activities(
         },
     },
 )
-async def get_library_activity_instances(
+def get_library_activity_instances(
     request: Request,
     sort_by: Annotated[
         models.SortByLibraryItem, Query()
@@ -549,7 +549,7 @@ async def get_library_activity_instances(
         },
     },
 )
-async def get_papillons_soa(
+def get_papillons_soa(
     project: Annotated[str, Query(description="Project")],
     study_number: Annotated[str, Query(description="Study Number")],
     subpart: Annotated[

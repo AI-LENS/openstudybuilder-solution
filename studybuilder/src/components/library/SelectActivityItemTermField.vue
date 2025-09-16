@@ -114,6 +114,15 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => props.dataDomain,
+  (value) => {
+    if (value) {
+      fetchTerms()
+    }
+  }
+)
+
 defineExpose({
   allowedValues,
 })

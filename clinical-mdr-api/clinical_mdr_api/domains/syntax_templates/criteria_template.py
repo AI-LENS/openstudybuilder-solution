@@ -84,10 +84,8 @@ class CriteriaTemplateAR(TemplateAggregateRootBase):
         author_id: str,
         template: TemplateVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        next_available_sequence_id_callback: Callable[
-            [str, str | None, str | None, LibraryVO | None], str | None
-        ] = (lambda uid, prefix, type_uid, library: None),
+        next_available_sequence_id_callback: Callable[..., str] = lambda x, y, z, w: "",
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         criteria_type: SimpleCTTermNameAndAttributes | None = None,
         indications: list[SimpleTermModel] | None = None,
         categories: list[SimpleCTTermNameAndAttributes] | None = None,

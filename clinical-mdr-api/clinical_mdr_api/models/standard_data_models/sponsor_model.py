@@ -55,13 +55,10 @@ class SponsorModel(SponsorModelBase, VersionProperties):
             version=sponsor_model_ar.item_metadata.version,
             change_description=sponsor_model_ar.item_metadata.change_description,
             author_username=sponsor_model_ar.item_metadata.author_username,
-            possible_actions=sorted(
-                [_.value for _ in sponsor_model_ar.get_possible_actions()]
-            ),
         )
 
 
-class SponsorModelInput(InputModel):
+class SponsorModelCreateInput(InputModel):
     ig_uid: Annotated[
         str,
         Field(
@@ -83,10 +80,12 @@ class SponsorModelInput(InputModel):
             min_length=1,
         ),
     ]
-    change_description: Annotated[
-        str | None,
-        Field(description="Optionally, provide a change description."),
-    ] = "Imported new version"
     library_name: Annotated[
         str | None, Field(description="Defaults to CDISC", min_length=1)
     ] = "CDISC"
+
+
+class SponsorModelEditInput(SponsorModelCreateInput):
+    change_description: Annotated[
+        str, Field(description="Optionally, provide a change description.")
+    ] = "Imported new version"

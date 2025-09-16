@@ -374,7 +374,7 @@ async function deleteStudyFootnote(studyFootnote) {
     : '(unnamed)'
 
   if (
-    await confirm.value.open(
+    await confirm.value.openHtml(
       t('StudyFootnoteTable.confirm_delete', { footnote }),
       options
     )

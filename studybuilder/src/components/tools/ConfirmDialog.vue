@@ -2,6 +2,7 @@
   <v-dialog
     :model-value="dialog"
     :max-width="options.width"
+    persistent
     :style="{ zIndex: options.zIndex }"
     @keydown.esc="cancel"
   >
@@ -83,7 +84,9 @@ const cardClasses = computed(() => {
   return btnClasses.value + ' lg opacity-100'
 })
 const btnClasses = computed(() => {
-  if (options.value.type === 'warning') {
+  if (options.value.type === 'error') {
+    return 'error'
+  } else if (options.value.type === 'warning') {
     return 'warning'
   } else if (options.value.type === 'info') {
     return 'info'

@@ -111,11 +111,11 @@ def test_data(api_client):
             activity_subgroups=[activity_subgroup.uid],
             approve=True,
         )
-        activities.append(activity)
+        activities.append(activity)  # type: ignore[arg-type]
 
         activity_instance = TestUtils.create_activity_instance(
             name=f"Activity instance {idx} - Final",
-            activity_instance_class_uid=activity_instance_class.uid,
+            activity_instance_class_uid=activity_instance_class.uid,  # type: ignore[arg-type]
             name_sentence_case=f"activity instance {idx} - final",
             topic_code=f"TC {idx} final",
             adam_param_code=f"randomized adam_param_code {idx} final",
@@ -126,13 +126,13 @@ def test_data(api_client):
             activity_items=[],
             approve=True,
         )
-        activity_instances.append(activity_instance)
+        activity_instances.append(activity_instance)  # type: ignore[arg-type]
 
         # Create Draft Activity Instance
         # (This is to ensure that we have both Final and Draft activities)
         activity_instance = TestUtils.create_activity_instance(
             name=f"Activity instance {idx} - Draft",
-            activity_instance_class_uid=activity_instance_class.uid,
+            activity_instance_class_uid=activity_instance_class.uid,  # type: ignore[arg-type]
             name_sentence_case=f"activity instance {idx} - draft",
             topic_code=f"TC {idx} draft",
             adam_param_code=f"randomized adam_param_code {idx} draft",
@@ -143,7 +143,7 @@ def test_data(api_client):
             activity_items=[],
             approve=False,
         )
-        activity_instances.append(activity_instance)
+        activity_instances.append(activity_instance)  # type: ignore[arg-type]
 
         # Create Draft Activity
         activity_draft = TestUtils.create_activity(
@@ -152,7 +152,7 @@ def test_data(api_client):
             activity_subgroups=[activity_subgroup.uid],
             approve=False,
         )
-        activities.append(activity_draft)
+        activities.append(activity_draft)  # type: ignore[arg-type]
 
     # sort activities by name
     activities.sort(key=lambda x: x.name)

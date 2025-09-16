@@ -22,20 +22,21 @@ Figure 1: Study Overview for 2-arms, parallel study
 
 ## Study Arms
 
-The Study Arms section is designed to support different types of studies. The user can create a study with one single arm or a study with multiple arms. There is no limitation in the number of arms from a StudyBuilder perspective. 
+The Study Arms section is designed to support different types of study design classes. The user can create a study with arms only or a study with cohorts, branches and subpopulations. There is no limitation in the number of arms from a StudyBuilder perspective.
 
 A Study arm must be created with the following mandatory items:
 
+-	A **Study arm type** describing the main purpose of the arm. The current arm types are a subset of the CDISC Protocol Study Arm type code list (C174222)
 -	An **Arm name**
 -	An **Arm short name**
 
 Optional choices for study arms:
 
--	An **Arm type** describing the main purpose of the arm. The current arm types are a subset of the CDISC Protocol Study Arm type code list (C174222)
--	An **arm code**. The arm code can be reused as randomization code, but it is also possible to write another randomization code or leave randomization code blank.
--	Add the number of subjects planned to participate in the arm. This information will also be used to calculate the total planned number of subjects for the study structure overview.
--	A free text description
--	As a specific feature across all the study structure pages, it is possible to assign an RGB colour to every part created, to make a more eye-friendly drawing for the protocol or other places (Figure 1).
+-	The **Number of participants** (for studies with arms only). This information will also be used to calculate the total planned number of subjects for the study structure overview. 
+> When creating studies with cohorts, branches and subpopulations, the number of participants will be allocated to each arm after creating the individual branch arms. 
+-	A **Randomisation group**
+-	A free text **Description**
+-	An **Arm code**. The arm code can be reused as randomisation code, but it is also possible to write another randomisation code or leave randomisation code blank.
 
 ![Screenshot - Trial Design with colours](~@source/images/user_guides/guide_sstruct_02.png)
 
@@ -43,21 +44,55 @@ Figure 2: Trial Design with colours
 
 ## Study Branches
 
-A study Branch is a split of an arm into two or more branches. Branches can be either considered as independent arms with a link to a study arm or as sub-arms, where participants in the main study arm to some extent follow the same path, but deviate on indication, dosing, or another parameter.
+A branch arm (study branch) is a sub-division of a study arm and can be used when participants within a study arm deviate on dosing, indication or another parameter. Branch arms can be created in one of two ways in OpenStudyBuilder: 
+1. Using the cohort stepper, which will be available when selecting the “Study with cohorts, branches and subpopulations” design class. 
+1. Manual creation of branch arms after selecting the “Study with arms only” design class. 
 
-The options in a branch are like the ones for the Study arm, but it is mandatory to select a related study arm.
+When using the cohort stepper, branch arms must be created with the following mandatory items:
+-	The **Number of participants**
+> If there is no connection or no participants in a cohort/subpop-arm relation, then leave the participant number at 0. When the number of participants is set to greater then 0, the system will automatically create the branch relation between cohorts/subpop and arms.
+-	A **Branch name**
+> The Branch name is automatically generated based on the name of the arm and cohort the branch is related to but can be edited manually. 
+-	A **Branch short name**
+> The Branch short name is automatically generated based on the short name of the arm and cohort the branch is related to but can be edited manually. 
+
+When creating manually defined branch arms (Requires the “Study with arms only” design class), all branch arms must be created with the following mandatory items:
+-   A **Study Arm** 
+-   A **Study Branch Arm Name**
+-   A **Study Branch Arm Short Name**
+
+Optional choices for manually defined branch arms include:
+-   A **Random. group**
+-   The **Planned number of subjects in branch**
+-   A free text **Description**
 
 ## Study Cohorts
 
-The Study Cohorts section is created to support creation of cohorts 
+Study cohorts can be created in one of two ways in OpenStudyBuilder: 
+1. Using the cohort stepper, which will be available when selecting the “Study with cohorts, branches and subpopulations” design class. 
+1. Manual creation of study cohorts after selecting the “Study with arms only” design class. 
 
--	With subjects from multiple arms or branches
--	With subjects from only one arm or branch
--	or simply without any relation to any arm or branch.
+When using the cohort stepper, all cohorts must be created with the following mandatory items:
+-   A **Cohort/subpop. code**
+-   A **Cohort/subpop. name** 
+-   A **Cohort/subpop. short name**
 
-Cohort name, short name and cohort code are always required. 
+Optional choices for cohorts created using the cohort stepper include:
+-   A **Source variable** field with the option to select either **Cohort**, **Subgroup** or **Stratum**
+-   A free text **Source variable description**
+-   A free text **Description**
 
-In the case of a missing relation to an arm, it is not possible to add planned number of subjects expected for the cohort. The reason for this is that OpenStudyBuilder is validating the number of participants in a cohort against the number of subjects in related arms. If no arm is assigned, then the validation cannot take place. 
+When creating manually defined cohorts (Requires the “Study with arms only” design class), all cohorts must be created with the following mandatory items:
+-   A **Cohort Name**
+-   A **Short Name**
+-   A **Cohort Code**
+
+Optional choices for manually defined cohorts include:
+-   A **Study Arm** 
+-   A **Study Branch Arm**
+-   The **No. of subjects** 
+> In the case of a missing relation to an arm, it is not possible to add planned number of subjects expected for the cohort. The reason for this is that OpenStudyBuilder is validating the number of participants in a cohort against the number of subjects in related arms. If no arm is assigned, then the validation cannot take place.
+-   A free text **Description**
 
 ## Study Epochs
 

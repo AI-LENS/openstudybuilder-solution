@@ -155,6 +155,7 @@ def test_post_dataset(api_client):
         "sponsor_model_version_number": sponsor_model.version,
         "implemented_dataset_class": dataset_classes[0].uid,
         "is_basic_std": True,
+        "is_cdisc_std": True,
         "enrich_build_order": 10,
     }
 
@@ -238,6 +239,7 @@ def test_post_dataset_variable(api_client):
         "implemented_variable_class": variable_classes[0].uid,
         "implemented_parent_dataset_class": dataset_classes[0].uid,
         "is_basic_std": True,
+        "is_cdisc_std": True,
         "order": 20,
         "references_codelists": [CT_CODELIST_UIDS.default],
         "references_terms": [term.term_uid],

@@ -260,7 +260,7 @@ class SponsorModelDatasetInput(InputModel):
             min_length=1,
         ),
     ]
-    is_basic_std: Annotated[bool | None, Field()] = None
+    is_basic_std: Annotated[bool, Field()]
     implemented_dataset_class: Annotated[
         str | None,
         Field(
@@ -274,7 +274,7 @@ class SponsorModelDatasetInput(InputModel):
     purpose: Annotated[str | None, Field()] = None
     keys: Annotated[list[str] | None, Field()] = None
     sort_keys: Annotated[list[str] | None, Field()] = None
-    is_cdisc_std: Annotated[bool | None, Field()] = True
+    is_cdisc_std: Annotated[bool, Field()]
     source_ig: Annotated[
         str | None,
         Field(
@@ -284,10 +284,10 @@ class SponsorModelDatasetInput(InputModel):
     standard_ref: Annotated[str | None, Field()] = None
     comment: Annotated[str | None, Field()] = None
     ig_comment: Annotated[str | None, Field()] = None
-    map_domain_flag: Annotated[bool | None, Field()] = None
-    suppl_qual_flag: Annotated[bool | None, Field()] = None
-    include_in_raw: Annotated[bool | None, Field()] = None
-    gen_raw_seqno_flag: Annotated[bool | None, Field()] = None
+    map_domain_flag: Annotated[bool, Field()] = False
+    suppl_qual_flag: Annotated[bool, Field()] = False
+    include_in_raw: Annotated[bool, Field()] = False
+    gen_raw_seqno_flag: Annotated[bool, Field()] = False
     enrich_build_order: Annotated[int | None, Field()] = None
     label: Annotated[str | None, Field()] = None
     state: Annotated[str | None, Field()] = None

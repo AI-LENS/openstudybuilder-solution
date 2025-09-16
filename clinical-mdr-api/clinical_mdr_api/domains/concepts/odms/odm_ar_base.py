@@ -11,6 +11,8 @@ from common.exceptions import BusinessLogicException
 
 @dataclass
 class OdmARBase(ConceptARBase):
+    _uid: str
+
     def get_possible_actions(self) -> AbstractSet[ObjectAction]:
         """
         Returns list of possible actions

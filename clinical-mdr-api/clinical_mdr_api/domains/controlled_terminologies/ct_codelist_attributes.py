@@ -18,27 +18,29 @@ class CTCodelistAttributesVO:
     The CTCodelistAttributesVO acts as the value object for a single CTCodelist attribute
     """
 
-    name: str | None
+    name: str
     catalogue_name: str
     parent_codelist_uid: str | None
-    child_codelist_uids: list[str] | None
-    submission_value: str | None
+    child_codelist_uids: list[str]
+    submission_value: str
     preferred_term: str | None
-    definition: str | None
-    extensible: bool | None
+    definition: str
+    extensible: bool
 
     @classmethod
     def from_repository_values(
         cls,
-        name: str | None,
+        name: str,
         catalogue_name: str,
         parent_codelist_uid: str | None,
-        child_codelist_uids: list[str] | None,
-        submission_value: str | None,
+        child_codelist_uids: list[str],
+        submission_value: str,
         preferred_term: str | None,
-        definition: str | None,
-        extensible: bool | None,
+        definition: str,
+        extensible: bool,
     ) -> Self:
+        if child_codelist_uids is None:
+            child_codelist_uids = []
         ct_codelist_attribute_vo = cls(
             name=name,
             catalogue_name=catalogue_name,
@@ -55,24 +57,26 @@ class CTCodelistAttributesVO:
     @classmethod
     def from_input_values(
         cls,
-        name: str | None,
+        name: str,
         catalogue_name: str,
         parent_codelist_uid: str | None,
-        submission_value: str | None,
+        submission_value: str,
         preferred_term: str | None,
-        definition: str | None,
-        extensible: bool | None,
+        definition: str,
+        extensible: bool,
         catalogue_exists_callback: Callable[[str], bool],
         codelist_exists_by_uid_callback: Callable[[str], bool] = lambda _: False,
         codelist_exists_by_name_callback: Callable[[str], bool] = lambda _: False,
         codelist_exists_by_submission_value_callback: Callable[
             [str], bool
         ] = lambda _: False,
-        child_codelist_uids: str | None = None,
+        child_codelist_uids: list[str] | None = None,
     ) -> Self:
+        if child_codelist_uids is None:
+            child_codelist_uids = []
         BusinessLogicException.raise_if(
-            not codelist_exists_by_uid_callback(parent_codelist_uid)
-            and parent_codelist_uid,
+            parent_codelist_uid
+            and not codelist_exists_by_uid_callback(parent_codelist_uid),
             msg=f"Codelist with Parent Codelist UID '{parent_codelist_uid}' doesn't exist.",
         )
 
@@ -81,13 +85,14 @@ class CTCodelistAttributesVO:
             msg=f"Catalogue with Name '{catalogue_name}' doesn't exist.",
         )
         AlreadyExistsException.raise_if(
-            codelist_exists_by_name_callback(name),
+            name and codelist_exists_by_name_callback(name),
             "CT Codelist Attributes",
             name,
             "Name",
         )
         AlreadyExistsException.raise_if(
-            codelist_exists_by_submission_value_callback(submission_value),
+            submission_value
+            and codelist_exists_by_submission_value_callback(submission_value),
             "CT Codelist Attributes",
             submission_value,
             "Submission Value",
@@ -124,7 +129,7 @@ class CTCodelistAttributesAR(LibraryItemAggregateRootBase):
         cls,
         uid: str,
         ct_codelist_attributes_vo: CTCodelistAttributesVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         ct_codelist_ar = cls(
@@ -143,7 +148,7 @@ class CTCodelistAttributesAR(LibraryItemAggregateRootBase):
         ct_codelist_attributes_vo: CTCodelistAttributesVO,
         library: LibraryVO,
         start_date: datetime | None = None,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id, start_date=start_date
@@ -162,7 +167,7 @@ class CTCodelistAttributesAR(LibraryItemAggregateRootBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         ct_codelist_vo: CTCodelistAttributesVO,
         codelist_exists_by_name_callback: Callable[[str], bool],
         codelist_exists_by_submission_value_callback: Callable[[str], bool],
@@ -172,14 +177,16 @@ class CTCodelistAttributesAR(LibraryItemAggregateRootBase):
         """
         # if codelist_exists_by_name_callback(ct_codelist_vo.name, self.uid):
         AlreadyExistsException.raise_if(
-            codelist_exists_by_name_callback(ct_codelist_vo.name)
+            ct_codelist_vo.name
+            and codelist_exists_by_name_callback(ct_codelist_vo.name)
             and self.name != ct_codelist_vo.name,
             "CT Codelist Attributes",
             ct_codelist_vo.name,
             "Name",
         )
         AlreadyExistsException.raise_if(
-            codelist_exists_by_submission_value_callback(
+            ct_codelist_vo.submission_value
+            and codelist_exists_by_submission_value_callback(
                 ct_codelist_vo.submission_value
             )
             and self.ct_codelist_vo.submission_value != ct_codelist_vo.submission_value,

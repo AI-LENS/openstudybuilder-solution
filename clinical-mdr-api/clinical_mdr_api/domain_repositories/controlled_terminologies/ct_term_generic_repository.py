@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Generic, Iterable, cast
+from typing import Any, Generic, cast
 
 from cachetools import cached
 from cachetools.keys import hashkey
@@ -55,7 +55,7 @@ class CTTermGenericRepository(
 ):
     root_class = type
     value_class = type
-    relationship_from_root = type
+    relationship_from_root: str
 
     generic_alias_clause = """
         DISTINCT term_root, term_ver_root, term_ver_value, codelist_root, rel_term
@@ -106,11 +106,14 @@ class CTTermGenericRepository(
     def generate_uid(self) -> str:
         return CTTermRoot.get_next_free_uid_and_increment_counter()
 
-    def term_specific_exists_by_uid(self, uid: str) -> bool:
+    def term_specific_exists_by_uid(self, uid: str | None) -> bool:
         """
         Returns True or False depending on if there exists a term with a final version for a given uid
         :return:
         """
+        if uid is None:
+            return False
+
         query = """
             MATCH (term_ver_root:CTTermRoot {uid: $uid})
             RETURN term_ver_root
@@ -136,7 +139,7 @@ class CTTermGenericRepository(
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: ControlledTerminology,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: ControlledTerminology,
         **_kwargs,
@@ -198,7 +201,7 @@ class CTTermGenericRepository(
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         **_kwargs,
     ) -> GenericFilteringReturn[_AggregateRootType]:
@@ -251,7 +254,7 @@ class CTTermGenericRepository(
             implicit_sort_by="term_uid",
             page_number=page_number,
             page_size=page_size,
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             total_count=total_count,
             return_model=_return_model,
@@ -271,7 +274,7 @@ class CTTermGenericRepository(
             if len(count_result) > 0:
                 total = count_result[0][0]
 
-        return GenericFilteringReturn.create(items=extracted_items, total=total)
+        return GenericFilteringReturn(items=extracted_items, total=total)
 
     def get_distinct_headers(
         self,
@@ -280,9 +283,9 @@ class CTTermGenericRepository(
         codelist_name: str | None = None,
         library: str | None = None,
         package: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ) -> list[Any]:
         """
@@ -317,7 +320,7 @@ class CTTermGenericRepository(
 
         # Use Cypher query class to use reusable helper methods
         query = CypherQueryBuilder(
-            filter_by=FilterDict(elements=filter_by),
+            filter_by=FilterDict.model_validate({"elements": filter_by}),
             filter_operator=filter_operator,
             match_clause=match_clause,
             alias_clause=alias_clause,
@@ -340,12 +343,12 @@ class CTTermGenericRepository(
 
     def _retrieve_term_from_cypher_res(
         self, result_array, attribute_names
-    ) -> Iterable[_AggregateRootType]:
+    ) -> list[_AggregateRootType]:
         """
         Method maps the result of the cypher query into real aggregate objects.
         :param result_array:
         :param attribute_names:
-        :return Iterable[_AggregateRootType]:
+        :return list[_AggregateRootType]:
         """
         terms_ars = []
         for term in result_array:
@@ -428,7 +431,7 @@ class CTTermGenericRepository(
             self.relationship_from_root
         ).single()
         if issubclass(ct_term_version_root_node.__class__, CTTermNameRoot):
-            term_ar = self.find_by_uid_optimized(
+            term_ar = self.find_by_uid_optimized(  # type: ignore[call-overload]
                 ct_term_version_root_node.element_id,
                 version=version,
                 status=status,
@@ -477,7 +480,7 @@ class CTTermGenericRepository(
 
         return term_ars
 
-    def get_all_versions(self, term_uid: str) -> Iterable[_AggregateRootType] | None:
+    def get_all_versions(self, term_uid: str) -> list[_AggregateRootType] | None:
         ct_term_root: CTTermRoot = CTTermRoot.nodes.get_or_none(uid=term_uid)
         if ct_term_root is not None:
             # pylint: disable=unnecessary-dunder-call

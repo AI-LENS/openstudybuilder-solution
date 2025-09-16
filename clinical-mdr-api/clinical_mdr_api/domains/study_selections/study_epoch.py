@@ -13,23 +13,17 @@ from common.config import settings
 from common.telemetry import trace_calls
 from common.utils import BaseTimelineAR
 
-StudyEpochType: dict[str, SimpleCTTermNameWithConflictFlag] = {}
-
-StudyEpochSubType: dict[str, SimpleCTTermNameWithConflictFlag] = {}
-
-StudyEpochEpoch: dict[str, SimpleCTTermNameWithConflictFlag] = {}
-
 
 @dataclass
 class StudyEpochVO:
     study_uid: str
-    start_rule: str
-    end_rule: str
+    start_rule: str | None
+    end_rule: str | None
 
-    epoch: SimpleCTTermNameWithConflictFlag
-    subtype: SimpleCTTermNameWithConflictFlag
-    epoch_type: SimpleCTTermNameWithConflictFlag
-    description: str
+    epoch: SimpleCTTermNameWithConflictFlag | None
+    subtype: SimpleCTTermNameWithConflictFlag | None
+    epoch_type: SimpleCTTermNameWithConflictFlag | None
+    description: str | None
 
     order: int
 
@@ -48,7 +42,7 @@ class StudyEpochVO:
     short_name: str = "TBD"
 
     accepted_version: bool = False
-    number_of_assigned_visits: int | None = 0
+    number_of_assigned_visits: int = 0
 
     uid: str | None = None
     _is_deleted: bool = False
@@ -60,12 +54,12 @@ class StudyEpochVO:
 
     def edit_core_properties(
         self,
-        start_rule: str,
-        end_rule: str,
-        description: str,
-        epoch: SimpleCTTermNameWithConflictFlag,
-        subtype: SimpleCTTermNameWithConflictFlag,
-        epoch_type: SimpleCTTermNameWithConflictFlag,
+        start_rule: str | None,
+        end_rule: str | None,
+        description: str | None,
+        epoch: SimpleCTTermNameWithConflictFlag | None,
+        subtype: SimpleCTTermNameWithConflictFlag | None,
+        epoch_type: SimpleCTTermNameWithConflictFlag | None,
         order: int,
         change_description: str,
         color_hash: str | None,
@@ -171,7 +165,7 @@ class StudyEpochVO:
         return self._next_visit
 
     def set_next_visit(
-        self, visit: StudyVisitVO, is_next_visit_in_next_epoch: bool = True
+        self, visit: StudyVisitVO | None, is_next_visit_in_next_epoch: bool = True
     ):
         self._next_visit = visit
         self._is_next_visit_in_next_epoch = is_next_visit_in_next_epoch
@@ -181,7 +175,9 @@ class StudyEpochVO:
         return self._previous_visit
 
     def set_previous_visit(
-        self, visit: StudyVisitVO, is_previous_visit_in_previous_epoch: bool = True
+        self,
+        visit: StudyVisitVO | None,
+        is_previous_visit_in_previous_epoch: bool = True,
     ):
         self._previous_visit = visit
         self._is_previous_visit_in_previous_epoch = is_previous_visit_in_previous_epoch
@@ -311,7 +307,7 @@ class TimelineAR(BaseTimelineAR):
         self._visits = new_visits
 
     @property
-    def ordered_study_visits(self):
+    def ordered_study_visits(self) -> list[StudyVisitVO]:
         """
         Accessor for generated order
         """

@@ -40,8 +40,8 @@ Cypress.Commands.add('getEpochUid', (study_uid, epochName) => {
     cy.sendGetRequest(studyEpochsUrl(study_uid)).then((response) => epochUid = response.body.items.find(term => term.epoch_name == epochName).uid)
 })
 
-Cypress.Commands.add('createVisit', (study_uid, isGlobalAnchorVisit, visitWeek, max_visit_window_value = 0) => {
-    cy.sendPostRequest(studyVisitsUrl(study_uid), createVisitBody(isGlobalAnchorVisit, visitWeek, max_visit_window_value)).then(response => {
+Cypress.Commands.add('createVisit', (study_uid, isGlobalAnchorVisit, visitWeek, minVisitWindow = 0, maxVisitWindow = 0) => {
+    cy.sendPostRequest(studyVisitsUrl(study_uid), createVisitBody(isGlobalAnchorVisit, visitWeek, minVisitWindow, maxVisitWindow)).then(response => {
         if (!isGlobalAnchorVisit) studyVisitUids.push(response.body.uid)
     })
 })
@@ -82,14 +82,14 @@ Cypress.Commands.add('createAnchorVisit', (study_uid, epoch) => {
   })
 })
 
-const createVisitBody = (isGlobalAnchorVisit, visitWeek, maxVisitWindowValue) => {
+const createVisitBody = (isGlobalAnchorVisit, visitWeek, minVisitWindow, maxVisitWindow) => {
     const visitDay = isGlobalAnchorVisit ? 0 : visitWeek * 7 + 1
     return {
         "is_global_anchor_visit": isGlobalAnchorVisit,
         "visit_class": "SINGLE_VISIT",
         "show_visit": true,
-        "min_visit_window_value": 0,
-        "max_visit_window_value": maxVisitWindowValue,
+        "min_visit_window_value": minVisitWindow,
+        "max_visit_window_value": maxVisitWindow,
         "visit_subclass": "SINGLE_VISIT",
         "visit_window_unit_uid": daysUnitUid,
         "study_epoch_uid": `${epochUid}`,

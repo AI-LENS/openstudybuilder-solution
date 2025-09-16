@@ -170,7 +170,6 @@ class TestServiceUtils(unittest.TestCase):
         [
             (True, AttributeError),
             (False, AttributeError),
-            (None, AttributeError),
             (0, AttributeError),
             (1, AttributeError),
             (-1, AttributeError),

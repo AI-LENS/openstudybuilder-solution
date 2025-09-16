@@ -324,15 +324,12 @@ class SponsorModelDatasetVariable(SponsorModelBase):
         return cls(
             uid=sponsor_model_dataset_variable_ar.uid,
             is_basic_std=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.is_basic_std,
-            implemented_dataset_variable=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.implemented_variable_class,
             label=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.label,
             order=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.order,
             variable_type=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.variable_type,
             length=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.length,
             display_format=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.display_format,
             xml_datatype=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.xml_datatype,
-            references_codelists=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.references_codelists,
-            references_terms=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.references_terms,
             core=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.core,
             origin=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.origin,
             origin_type=sponsor_model_dataset_variable_ar.sponsor_model_dataset_variable_vo.origin_type,
@@ -386,7 +383,7 @@ class SponsorModelDatasetVariableInput(InputModel):
             min_length=1,
         ),
     ]
-    is_basic_std: Annotated[bool | None, Field()] = None
+    is_basic_std: Annotated[bool, Field()]
     implemented_parent_dataset_class: Annotated[
         str | None,
         Field(
@@ -417,15 +414,15 @@ class SponsorModelDatasetVariableInput(InputModel):
     term: Annotated[str | None, Field()] = None
     algorithm: Annotated[str | None, Field()] = None
     qualifiers: Annotated[list[str] | None, Field()] = None
-    is_cdisc_std: Annotated[bool | None, Field()] = True
+    is_cdisc_std: Annotated[bool, Field()]
     comment: Annotated[str | None, Field()] = None
     ig_comment: Annotated[str | None, Field()] = None
     class_table: Annotated[str | None, Field()] = None
     class_column: Annotated[str | None, Field()] = None
     map_var_flag: Annotated[str | None, Field()] = None
     fixed_mapping: Annotated[str | None, Field()] = None
-    include_in_raw: Annotated[bool | None, Field()] = None
-    nn_internal: Annotated[bool | None, Field()] = None
+    include_in_raw: Annotated[bool, Field()] = False
+    nn_internal: Annotated[bool, Field()] = False
     value_lvl_where_cols: Annotated[str | None, Field()] = None
     value_lvl_label_col: Annotated[str | None, Field()] = None
     value_lvl_collect_ct_val: Annotated[str | None, Field()] = None

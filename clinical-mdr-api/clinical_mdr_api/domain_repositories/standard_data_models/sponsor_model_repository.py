@@ -36,7 +36,7 @@ from common.config import settings
 from common.exceptions import BusinessLogicException
 
 
-class SponsorModelRepository(
+class SponsorModelRepository(  # type: ignore[misc]
     NeomodelExtBaseRepository, LibraryItemRepositoryImplBase[SponsorModelAR]
 ):
     root_class = DataModelIGRoot
@@ -81,7 +81,7 @@ class SponsorModelRepository(
         """
         Overrides generic LibraryItemRepository method
         """
-        relation_data: SponsorModelMetadataVO = item.item_metadata
+        relation_data = item.item_metadata
         root = DataModelIGRoot.nodes.get_or_none(uid=item.uid)
 
         BusinessLogicException.raise_if(root is None, "Implementation Guide", item.uid)
@@ -175,11 +175,11 @@ class SponsorModelRepository(
                 ig_uid=root.uid,
                 ig_version_number=relationship.version,
                 name=value.name,
-                version_number=None,
+                version_number="",
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )

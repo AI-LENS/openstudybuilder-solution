@@ -1,4 +1,5 @@
 import logging
+from fnmatch import fnmatch
 from typing import Iterable
 
 from opencensus.log import get_log_attrs
@@ -36,6 +37,7 @@ class TracingMiddleware:
         app: ASGIApp,
         exclude_paths: Iterable[str] | None = None,
         exclude_hosts: Iterable[str] | None = None,
+        exclude_clients: Iterable[str] | None = None,
         sampler: Sampler | None = None,
         exporter: Exporter | None = None,
         propagator=None,
@@ -43,6 +45,7 @@ class TracingMiddleware:
         self.app = app
         self.exclude_paths = tuple(exclude_paths or [])
         self.exclude_hosts = set(exclude_hosts or [])
+        self.exclude_clients = set(exclude_clients or [])
         self.sampler = sampler or AlwaysOnSampler()
         self.exporter = exporter or PrintExporter()
         self.propagator = propagator or TraceContextPropagator()
@@ -59,13 +62,15 @@ class TracingMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # Skip tracing if service host is in the exclusion list (mind value also can be host:port)
         headers = Headers(scope=scope)
-        host: str = headers.get("host")  # always lowercase, may contain :port
+        host: str | None = headers.get(
+            "host", None
+        )  # always lowercase, may contain :port
 
-        # Skip tracing if hostname is in the exclusion list
         if host in self.exclude_hosts or host.split(":", 1)[0] in self.exclude_hosts:
             log.debug(
-                "Bypassing middleware %s because '%s' is in exclude list: %s",
+                "Bypassing middleware %s because host '%s' is in exclude list: %s",
                 type(self).__name__,
                 host,
                 self.exclude_hosts,
@@ -73,10 +78,28 @@ class TracingMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # Skip tracing if client IPv4 or IPv6 is in the exclusion list
+        client_ip = scope.get("client", [None])[0]
+        if client_ip and client_ip in self.exclude_clients:
+            log.debug(
+                "Bypassing middleware %s because client '%s' is in exclude list: %s",
+                type(self).__name__,
+                client_ip,
+                self.exclude_clients,
+            )
+            await self.app(scope, receive, send)
+            return
+
         # Skip tracing if URL matches the exclusion list
         path = scope.get("path", "")
         for exclude_path in self.exclude_paths:
-            if path.startswith(exclude_path):
+            if fnmatch(path, exclude_path):
+                log.debug(
+                    "Bypassing middleware %s because '%s' matches exclude path: %s",
+                    type(self).__name__,
+                    path,
+                    exclude_path,
+                )
                 await self.app(scope, receive, send)
                 return
 
@@ -196,8 +219,8 @@ class TracingMiddleware:
                 and status_code >= settings.trace_request_body_min_status_code
                 and request_body is not None
             ):
-                request_body = request_body.decode("utf-8", errors="replace")
-                span.add_attribute("http.request_body", request_body)
+                _request_body = request_body.decode("utf-8", errors="replace")
+                span.add_attribute("http.request_body", _request_body)
 
     @staticmethod
     def add_attributes_from_response(
@@ -208,12 +231,13 @@ class TracingMiddleware:
         if not span:
             span = execution_context.get_current_span()
 
+        headers: Headers | MutableHeaders
         if isinstance(response, Response):
             headers = response.headers
             status_code = response.status_code
         else:
             headers = Headers(raw=response.get("headers", []))
-            status_code = response.get("status")
+            status_code = response["status"]
 
         # noinspection PyTypeChecker
         span.add_attribute(COMMON_ATTRIBUTES["HTTP_STATUS_CODE"], int(status_code))
@@ -231,12 +255,13 @@ class TracingMiddleware:
     def log_access(scope: Scope, response: Response | Message) -> None:
         """Logs an access-log style line"""
 
+        headers: Headers | MutableHeaders
         if isinstance(response, Response):
             headers = response.headers
             status = response.status_code
         else:
             headers = Headers(raw=response.get("headers", []))
-            status = response.get("status")
+            status = response["status"]
 
         client = scope.get("client", "")
         if len(client) == 2:

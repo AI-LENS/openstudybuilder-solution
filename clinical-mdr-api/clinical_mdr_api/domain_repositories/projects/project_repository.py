@@ -216,7 +216,7 @@ class ProjectRepository:
                 name=p.name,
                 clinical_programme_uid=p.holds_project.single().uid,
                 description=p.description,
-                generate_uid_callback=lambda x=p: x.uid,
+                generate_uid_callback=lambda x=p: x.uid,  # type: ignore[misc]
                 clinical_programme_exists_callback=lambda _: True,
             )
             for p in projects

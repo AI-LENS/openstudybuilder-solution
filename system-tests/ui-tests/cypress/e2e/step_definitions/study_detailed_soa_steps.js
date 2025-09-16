@@ -1,8 +1,10 @@
 import { activityName } from "./library_activities_steps";
+import { activity_activity } from "./study_activities_steps";
 
 const {Given, When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 const { closeSync } = require("fs");
 
+let groupName, subgroupName
 let current_activity
 let new_activity_name
 let first_in_order
@@ -59,6 +61,11 @@ Then('The Activity is no longer visible in the SoA', () => {
     cy.reload()
     cy.contains('.v-selection-control', 'Expand table').click()
     cy.contains(current_activity).should('not.exist')
+})
+
+Then('The Activity is visible in the SoA', () => {
+    cy.contains('.v-selection-control', 'Expand table').click()
+    cy.contains(activity_activity.substring(0, 40)).should('be.visible')
 })
 
 When('The user selects rows in SoA table', () => {
@@ -204,6 +211,98 @@ Then('Visit group delete button is clicked', () => cy.get('button[title="Delete 
 
 Then('Error message is displayed for collapsing visits with different epochs', () => cy.checkSnackbarMessage("Given Visits can't be collapsed as they exist in different Epochs"))
 
+Then('Footnotes table is available with options', (options) => {
+    options.rows().forEach((option) => {
+        cy.contains('.page-title', 'Footnotes').parent().within(() => {
+            const locator = option == 'search-field' ? `[data-cy="${option}"]` : `[title="${option}"]`
+            cy.get(locator).should('be.visible')
+        })
+    })
+})
+
+Then('SoA table is available with Bulk actions, Export and Show version history', () => {
+    cy.get('button[title="Bulk actions"]').should('be.visible')
+        .siblings('button[title="Export"]').should('be.visible')
+            .siblings('button[title="Show version history"]').should('be.visible')
+})
+
+Then('Search is available in SoA table', () => cy.contains('.v-label', 'Search Activities').parent().within(() => cy.get('input').should('exist')))
+
+Then('Button for Expanding SoA table is available', () => cy.contains('.v-selection-control', 'Expand table').should('be.visible'))
+
+Then('SoA table is visible with following headers', (options) => {
+    options.rows().forEach(option => cy.contains('table tr th.header.zindex25', `${option}`).should('be.visible'))
+})
+
+Then('Group and subgroup names are fetch to be used in SoA', () => {
+    cy.getGroupNameByUid().then(name => groupName = name)
+    cy.getSubGroupNameByUid().then(name => subgroupName = name)
+})
+
+Then('Group is visible in the protocol SoA', () => cy.contains('th.group', groupName).should('be.visible'))
+
+Then('Subgroup is visible in the protocol SoA', () => cy.contains('th.subGroup', subgroupName).should('be.visible'))
+
+Then('Activity is visible in the protocol SoA', () => cy.contains('th.activity', activityName).should('be.visible'))
+
+Then('Group is not visible in the protocol SoA', () => cy.contains('th.group', groupName).should('not.exist'))
+
+Then('Subgroup is not visible in the protocol SoA', () => cy.contains('th.subGroup', subgroupName).should('not.exist'))
+
+Then('Activity is not visible in the protocol SoA', () => cy.contains('th.activity', activityName).should('not.exist'))
+
+When('User switches to the {string} view', (view) => cy.get(`button[value="${view}"]`).click())
+
+When('User clicks eye icon on SoA group level for {string}', (flowchart) => cy.contains('tr.flowchart', flowchart).find('[title^="Show/hide SoA"]').click())
+
+When('User clicks eye icon on group level', () => cy.contains('tr.group', groupName).find('[title^="Show/hide SoA"]').click())
+
+When('User clicks eye icon on subgroup level', () => cy.contains('tr.subgroup', subgroupName).find('[title^="Show/hide SoA"]').click())
+
+When('User clicks eye icon on activity level', () => cy.contains('tr[id*="StudyActivity_"]', activityName).find('[title^="Show/hide SoA"]').click())
+
+When('User waits for the protocol SoA table to load', () => cy.get('[id="protocolFlowchart"]').should('be.visible'))
+
+Then('Activity SoA group, group, subgroup and name are visible in the detailed view', () => verifySoATable('table[aria-label="SoA table"] tbody tr'))
+
+Then('Epoch {string} and epoch {string} are visible in the detailed view', (epoch1, epoch2) => {
+    cy.contains('table[aria-label="SoA table"] thead tr th', 'Epoch').should('be.visible')
+        .next().should('contain.text', epoch1).should('be.visible')
+            .next().next().should('contain.text', epoch2).should('be.visible')
+})
+
+Then('Visits {string}, {string}, {string} are visible in the detailed view', (visit1, visit2, visit3) => {
+    verifySoATableHeaders('table[aria-label="SoA table"] thead tr th', 'Visit', visit1, visit2, visit3)
+})
+
+Then('Study weeks {int}, {int}, {int} are visible in the detailed view', (week1, week2, week3) => {
+    verifySoATableHeaders('table[aria-label="SoA table"] thead tr th', 'Study week', week1, week2, week3)
+})
+
+Then('Study visit windows {string}, {string}, {string} are visible in the detailed view', (window1, window2, window3) => {
+    verifySoATableHeaders('table[aria-label="SoA table"] thead tr th', 'Visit window (days)', window1, window2, window3)
+})
+
+Then('Activity SoA group, group, subgroup and name are visible in the protocol view', () => verifySoATable('[id="protocolFlowchart"] table tbody tr'))
+
+Then('Epoch {string} and epoch {string} are visible in the protocol view', (epoch1, epoch2) => {
+    cy.contains('[id="protocolFlowchart"] table thead tr th', 'Procedure').should('be.visible')
+        .next().should('contain.text', epoch1).should('be.visible')
+            .next().should('contain.text', epoch2).should('be.visible')
+})
+
+Then('Visits {string}, {string}, {string} are visible in the protocol view', (visit1, visit2, visit3) => {
+    verifySoATableHeaders('[id="protocolFlowchart"] table thead tr th', 'Visit short name', visit1, visit2, visit3)
+})
+
+Then('Study weeks {int}, {int}, {int} are visible in the protocol view', (week1, week2, week3) => {
+    verifySoATableHeaders('[id="protocolFlowchart"] table thead tr th', 'Study week', week1, week2, week3)
+})
+
+Then('Study visit windows {string}, {string}, {string} are visible in the protocol view', (window1, window2, window3) => {
+    verifySoATableHeaders('[id="protocolFlowchart"] table thead tr th', 'Visit window (days)', window1, window2, window3)
+})
+
 function bulkAction(action) {
     cy.request(`api/studies/${Cypress.env('TEST_STUDY_UID')}/study-activities?total_count=true`).then((req) => {
         current_activity = req.body.items[0].activity.name.substring(0, 40)
@@ -263,4 +362,18 @@ function prepareActivitesInSameGroup(number_of_activities, subgroup, group) {
         }
     })
 
+}
+
+function verifySoATable(tableLocator) {
+    cy.contains(`${tableLocator}`, 'INFORMED CONSENT').should('be.visible')
+        .next().should('contain.text', groupName).should('be.visible')
+            .next().should('contain.text', subgroupName).should('be.visible')
+                .next().should('contain.text', activityName).should('be.visible')
+}
+
+function verifySoATableHeaders(tableLocator, key, v1, v2, v3) {
+    cy.contains(tableLocator, key).should('be.visible')
+        .next().should('contain.text', v1).should('be.visible')
+            .next().should('contain.text', v2).should('be.visible')
+                    .next().should('contain.text', v3).should('be.visible')
 }

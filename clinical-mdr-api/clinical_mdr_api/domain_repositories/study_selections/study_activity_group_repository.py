@@ -144,7 +144,10 @@ class StudySelectionActivityGroupRepository(
         """
 
     def get_selection_history(
-        self, selection: dict[Any, Any], change_type: str, end_date: datetime.datetime
+        self,
+        selection: dict[Any, Any],
+        change_type: str,
+        end_date: datetime.datetime | None,
     ):
         return SelectionHistory(
             study_selection_uid=selection["study_selection_uid"],
@@ -165,7 +168,7 @@ class StudySelectionActivityGroupRepository(
             order=selection["order"],
         )
 
-    def get_audit_trail_query(self, study_selection_uid: str):
+    def get_audit_trail_query(self, study_selection_uid: str | None):
         if study_selection_uid:
             audit_trail_cypher = """
             MATCH (sr:StudyRoot { uid: $study_uid})-[:AUDIT_TRAIL]->(:StudyAction)-[:BEFORE|AFTER]->(sa:StudyActivityGroup {uid: $study_selection_uid})

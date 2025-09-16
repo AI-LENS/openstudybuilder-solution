@@ -1,6 +1,6 @@
 import datetime
 
-import neo4j
+import neo4j.time
 from neomodel import (
     BooleanProperty,
     DateTimeProperty,
@@ -207,8 +207,8 @@ class VersionRelationship(ClinicalMdrRel):
     `LATEST_DRAFT` or `LATEST_FINAL`.
     """
 
-    start_date = ZonedDateTimeProperty()
-    end_date = ZonedDateTimeProperty()
+    start_date: datetime.datetime = ZonedDateTimeProperty()
+    end_date: datetime.datetime | None = ZonedDateTimeProperty()
     change_description = StringProperty()
     version = StringProperty()
     status = StringProperty()
@@ -301,7 +301,7 @@ class VersionRoot(ClinicalMdrNodeWithUID):
             return past_retired_versions[0]
         return None
 
-    def get_value_for_version(self, version: str):
+    def get_value_for_version(self, version: str | None):
         matching_values = self.has_version.match(version=version)
         if len(matching_values) > 0:
             return matching_values[0]

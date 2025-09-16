@@ -12,10 +12,10 @@ class MDRApiBaseException(Exception):
     A base exception class for the MDR API.
 
     Attributes:
-        status_code (int, optional): The HTTP status code for the exception. Defaults to None.
+        status_code (int): The HTTP status code for the exception. Defaults to 500.
     """
 
-    status_code: int | None = None
+    status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
 
     def __init__(self, msg):
         self.msg = msg
@@ -33,7 +33,7 @@ class InternalServerError(MDRApiBaseException):
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def __init__(self, msg: str | None = None):
+    def __init__(self, msg: str | Exception | None = None):
         """
         Default message is: Something went wrong on our end.
 

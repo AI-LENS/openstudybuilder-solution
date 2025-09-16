@@ -19,7 +19,7 @@ class SortByType(Enum):
 
 def query(
     cypher_query,
-    params: dict[Any, Any] = None,
+    params: dict[Any, Any] | None = None,
     handle_unique: bool = True,
     retry_on_session_expire: bool = False,
     resolve_objects: bool = False,
@@ -32,6 +32,9 @@ def query(
     list[dict] | tuple: If `to_dict_list` is True, returns a list of dictionaries representing the query results.
                         If `to_dict_list` is False, returns a tuple containing the rows and columns from the query.
     """
+    if params is None:
+        params = {}
+
     rows, columns = db.cypher_query(
         query=cypher_query,
         params=params,

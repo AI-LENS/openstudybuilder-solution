@@ -19,7 +19,7 @@ from common.auth.user import user
 
 
 class ProjectService:
-    author_id: str | None
+    author_id: str
 
     def __init__(self):
         self.author_id = user().id()
@@ -30,7 +30,7 @@ class ProjectService:
         page_number: int = 1,
         page_size: int = 10,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[Project]:
         repos = MetaRepository()
@@ -52,8 +52,8 @@ class ProjectService:
                 page_number=page_number,
                 page_size=page_size,
             )
-            return GenericFilteringReturn.create(
-                filtered_items.items, filtered_items.total
+            return GenericFilteringReturn(
+                items=filtered_items.items, total=filtered_items.total
             )
         finally:
             repos.close()
@@ -61,9 +61,9 @@ class ProjectService:
     def get_project_headers(
         self,
         field_name: str,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
     ):
         repos = MetaRepository()

@@ -53,8 +53,8 @@ class StudySelectionElementVO:
         end_date: datetime.datetime | None = None,
         status: str | None = None,
         change_type: str | None = None,
-        accepted_version: bool | None = False,
-        generate_uid_callback: Callable[[], str] | None = None,
+        accepted_version: bool = False,
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ):
         """
         Factory method
@@ -108,7 +108,7 @@ class StudySelectionElementVO:
         )
 
     def validate(
-        self, ct_term_exists_callback: Callable[[str], bool] = (lambda _: True)
+        self, ct_term_exists_callback: Callable[[str], bool] = lambda _: True
     ) -> None:
         """
         Validating business logic for a VO
@@ -126,7 +126,7 @@ class StudySelectionElementVO:
 @dataclass
 class StudySelectionElementAR:
     _study_uid: str
-    _study_elements_selection: tuple[StudySelectionElementVO]
+    _study_elements_selection: tuple[StudySelectionElementVO, ...]
     repository_closure_data: Any = field(
         init=False, compare=False, repr=True, default=None
     )
@@ -137,7 +137,7 @@ class StudySelectionElementAR:
 
     # return a list of all study element selection object
     @property
-    def study_elements_selection(self) -> tuple[StudySelectionElementVO]:
+    def study_elements_selection(self) -> tuple[StudySelectionElementVO, ...]:
         return self._study_elements_selection
 
     def get_specific_object_selection(
@@ -172,7 +172,7 @@ class StudySelectionElementAR:
     def add_element_selection(
         self,
         study_element_selection: StudySelectionElementVO,
-        ct_term_exists_callback: Callable[[str], bool] = (lambda _: True),
+        ct_term_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         """
         Adding a new study element to the _study_element_selection
@@ -213,7 +213,7 @@ class StudySelectionElementAR:
     def update_selection(
         self,
         updated_study_element_selection: StudySelectionElementVO,
-        ct_term_exists_callback: Callable[[str], bool] = (lambda _: True),
+        ct_term_exists_callback: Callable[[str], bool] = lambda _: True,
     ) -> None:
         """
         Used when a study endpoint is patched

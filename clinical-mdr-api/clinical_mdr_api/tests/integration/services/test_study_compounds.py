@@ -132,10 +132,10 @@ class TestStudyCompoundsService(unittest.TestCase):
                 study_uid=STUDY_UID,
                 medicinal_product_uid=medicinal_product1.uid,
                 compound_alias_uid=compound_alias1a.uid,
-                dose_frequency_uid="dose_frequency_uid1",
-                delivery_device_uid="delivery_device_uid1",
-                dispenser_uid="dispenser_uid1",
-                dose_value_uid="NumericValueWithUnit_000001",
+                # dose_frequency_uid="dose_frequency_uid1",
+                # delivery_device_uid="delivery_device_uid1",
+                # dispenser_uid="dispenser_uid1",
+                # dose_value_uid="NumericValueWithUnit_000001",
             )
         )
         assert study_compound_created1.study_compound_uid == "StudyCompound_000001"
@@ -148,10 +148,6 @@ class TestStudyCompoundsService(unittest.TestCase):
             selection_create_input=StudySelectionCompoundCreateInput(
                 medicinal_product_uid=medicinal_product2.uid,
                 compound_alias_uid=compound_alias2a.uid,
-                dose_frequency_uid="dose_frequency_uid1",
-                delivery_device_uid="delivery_device_uid1",
-                dispenser_uid="dispenser_uid1",
-                dose_value_uid="NumericValueWithUnit_000001",
             ),
         )
         assert study_compound_created2.study_compound_uid == "StudyCompound_000003"
@@ -163,8 +159,6 @@ class TestStudyCompoundsService(unittest.TestCase):
             study_uid=STUDY_UID,
             selection_create_input=StudyCompoundDosingInput(
                 study_compound_uid=study_compound_created1.study_compound_uid,
-                dose_frequency_uid="dose_frequency_uid1",
-                dose_value_uid="NumericValueWithUnit_000001",
                 study_element_uid=study_selection_element.element_uid,
             ),
         )
@@ -181,8 +175,6 @@ class TestStudyCompoundsService(unittest.TestCase):
             study_uid=STUDY_UID,
             selection_create_input=StudyCompoundDosingInput(
                 study_compound_uid=study_compound_created2.study_compound_uid,
-                dose_frequency_uid="dose_frequency_uid1",
-                dose_value_uid="NumericValueWithUnit_000001",
                 study_element_uid=study_selection_element.element_uid,
             ),
         )

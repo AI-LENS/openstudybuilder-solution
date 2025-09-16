@@ -89,8 +89,8 @@ class CTCodelist(BaseModel):
 class CTCodelistTermInput(PostInputModel):
     term_uid: Annotated[str, Field(min_length=1)]
     order: Annotated[
-        int | None,
-        Field(json_schema_extra={"nullable": True}, gt=0, lt=settings.max_int_neo4j),
+        int,
+        Field(gt=0, lt=settings.max_int_neo4j),
     ] = 999999
 
 

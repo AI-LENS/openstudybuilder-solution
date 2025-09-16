@@ -94,7 +94,6 @@ def test_adding_selection_1st1(api_client):
         "short_name": "BranchArm_Short_Name_1",
         "code": "BranchArm_code_1",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_1",
         "number_of_subjects": 1,
         "arm_uid": "StudyArm_000001",
@@ -152,12 +151,10 @@ def test_adding_selection_1st1(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 1
     assert res["randomization_group"] == "Randomization_Group_1"
     assert res["author_username"] == "unknown-user@example.com"
@@ -169,7 +166,6 @@ def test_adding_selection_2nd1(api_client):
         "short_name": "BranchArm_Short_Name_2",
         "code": "BranchArm_code_2",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_2",
         "number_of_subjects": 2,
         "arm_uid": "StudyArm_000001",
@@ -182,7 +178,7 @@ def test_adding_selection_2nd1(api_client):
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000003"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000002"
     assert res["order"] == 2
     assert res["name"] == "BranchArm_Name_2"
     assert res["short_name"] == "BranchArm_Short_Name_2"
@@ -227,12 +223,10 @@ def test_adding_selection_2nd1(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_2"
     assert res["author_username"] == "unknown-user@example.com"
@@ -244,7 +238,6 @@ def test_adding_selection_3rd(api_client):
         "short_name": "BranchArm_Short_Name_3",
         "code": "BranchArm_code_3",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_3",
         "number_of_subjects": 2,
         "arm_uid": "StudyArm_000001",
@@ -257,7 +250,7 @@ def test_adding_selection_3rd(api_client):
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000005"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000003"
     assert res["order"] == 3
     assert res["name"] == "BranchArm_Name_3"
     assert res["short_name"] == "BranchArm_Short_Name_3"
@@ -302,12 +295,10 @@ def test_adding_selection_3rd(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_3"
     assert res["author_username"] == "unknown-user@example.com"
@@ -319,7 +310,6 @@ def test_adding_selection_4th(api_client):
         "short_name": "BranchArm_Short_Name_4",
         "code": "BranchArm_code_4",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_4",
         "number_of_subjects": 2,
         "arm_uid": "StudyArm_000001",
@@ -332,7 +322,7 @@ def test_adding_selection_4th(api_client):
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000007"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000004"
     assert res["order"] == 4
     assert res["name"] == "BranchArm_Name_4"
     assert res["short_name"] == "BranchArm_Short_Name_4"
@@ -377,12 +367,10 @@ def test_adding_selection_4th(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_4"
     assert res["author_username"] == "unknown-user@example.com"
@@ -390,7 +378,7 @@ def test_adding_selection_4th(api_client):
 
 def test_adding_selection_1st_studydesigncell(api_client):
     data = {
-        "study_branch_arm_uid": "StudyBranchArm_000003",
+        "study_branch_arm_uid": "StudyBranchArm_000002",
         "study_epoch_uid": "StudyEpoch_000001",
         "study_element_uid": "StudyElement_000001",
         "transition_rule": "Transition_Rule_1",
@@ -625,7 +613,7 @@ def test_batch_patch_studydesigncell_selection(api_client):
             "method": "PATCH",
             "content": {
                 "study_design_cell_uid": "StudyDesignCell_000002",
-                "study_branch_arm_uid": "StudyBranchArm_000007",
+                "study_branch_arm_uid": "StudyBranchArm_000004",
                 "study_element_uid": "StudyElement_000001",
             },
         },
@@ -656,7 +644,7 @@ def test_get_all_within_an_arm_list_non_empty1(api_client):
 
 def test_get_all_within_a_branch_arm_list_non_empty(api_client):
     response = api_client.get(
-        "/studies/study_root/study-design-cells/branch-arm/StudyBranchArm_000007"
+        "/studies/study_root/study-design-cells/branch-arm/StudyBranchArm_000004"
     )
 
     assert_response_status_code(response, 200)

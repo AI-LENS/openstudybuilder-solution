@@ -70,7 +70,7 @@ class CTTermName(BaseModel):
             date_conflict=ct_term_name_ar.ct_term_vo.date_conflict,
         )
 
-    term_uid: Annotated[str | None, Field(json_schema_extra={"nullable": True})] = None
+    term_uid: Annotated[str, Field()] = ""
 
     catalogue_name: Annotated[
         str | None, Field(json_schema_extra={"nullable": True})
@@ -139,4 +139,4 @@ class CTTermNameEditInput(PatchInputModel):
     sponsor_preferred_name_sentence_case: Annotated[str | None, Field(min_length=1)] = (
         None
     )
-    change_description: Annotated[str | None, Field(min_length=1)] = None
+    change_description: Annotated[str, Field(min_length=1)]

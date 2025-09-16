@@ -7,6 +7,7 @@ from clinical_mdr_api.domains.concepts.odms.form import OdmFormAR, OdmFormVO
 from clinical_mdr_api.domains.concepts.utils import (
     RelationType,
     VendorAttributeCompatibleType,
+    VendorElementCompatibleType,
 )
 from clinical_mdr_api.domains.versioned_object_aggregate import LibraryItemStatus
 from clinical_mdr_api.models.concepts.odms.odm_common_models import (
@@ -72,7 +73,10 @@ class OdmFormService(OdmGenericService[OdmFormAR]):
                 sdtm_version=concept_input.sdtm_version,
                 repeating=strtobool(concept_input.repeating),
                 scope_uid=concept_input.scope_uid,
-                description_uids=concept_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_input.descriptions
+                ],
                 alias_uids=concept_input.alias_uids,
                 activity_group_uids=[],
                 item_group_uids=[],
@@ -101,7 +105,10 @@ class OdmFormService(OdmGenericService[OdmFormAR]):
                 sdtm_version=concept_edit_input.sdtm_version,
                 repeating=strtobool(concept_edit_input.repeating),
                 scope_uid=concept_edit_input.scope_uid,
-                description_uids=concept_edit_input.descriptions,
+                description_uids=[
+                    description if isinstance(description, str) else description.uid
+                    for description in concept_edit_input.descriptions
+                ],
                 alias_uids=concept_edit_input.alias_uids,
                 activity_group_uids=[],
                 item_group_uids=[],
@@ -309,7 +316,7 @@ class OdmFormService(OdmGenericService[OdmFormAR]):
         )
 
         self.are_elements_vendor_compatible(
-            odm_vendor_relation_post_input, VendorAttributeCompatibleType.FORM_DEF
+            odm_vendor_relation_post_input, VendorElementCompatibleType.FORM_DEF
         )
 
         if override:

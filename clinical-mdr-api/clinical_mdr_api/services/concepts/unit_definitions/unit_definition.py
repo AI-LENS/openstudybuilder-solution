@@ -79,7 +79,7 @@ class UnitDefinitionService(ConceptGenericService[UnitDefinitionAR]):
             author_id=self.author_id,
             change_description=concept_edit_input.change_description,
             new_unit_definition_value=UnitDefinitionValueVO.from_input_values(
-                name=concept_edit_input.name,
+                name=concept_edit_input.name or item.name,
                 definition=concept_edit_input.definition,
                 ct_units=concept_edit_input.ct_units,
                 unit_subsets=concept_edit_input.unit_subsets,
@@ -124,7 +124,7 @@ class UnitDefinitionService(ConceptGenericService[UnitDefinitionAR]):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[UnitDefinitionModel]:
         # for unit-definitions we want to return the shortest unit-definitions first

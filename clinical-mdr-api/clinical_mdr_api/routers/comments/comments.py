@@ -46,17 +46,17 @@ def get_comment_topics(
         ),
     ] = None,
     topic_path_partial_match: Annotated[
-        bool | None,
+        bool,
         Query(
             description="""If `false`, only topics whose topic path is equal to the specified `topic_path` are returned.
         If `true`, topics whose topic path partially matches the specified `topic_path` are returned.""",
         ),
     ] = False,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -70,7 +70,7 @@ def get_comment_topics(
         page_number=page_number,
         page_size=page_size,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 
@@ -94,7 +94,7 @@ def get_comment_threads(
         ),
     ] = None,
     topic_path_partial_match: Annotated[
-        bool | None,
+        bool,
         Query(
             description="""If `false`, only comment threads whose topic path is equal to the specified `topic_path` are returned.
         If `true`, comment threads whose topic path partially matches the specified `topic_path` are returned.""",
@@ -107,10 +107,10 @@ def get_comment_threads(
         ),
     ] = None,
     page_number: Annotated[
-        int | None, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
+        int, Query(ge=1, description=_generic_descriptions.PAGE_NUMBER)
     ] = settings.default_page_number,
     page_size: Annotated[
-        int | None,
+        int,
         Query(
             ge=0,
             le=settings.max_page_size,
@@ -125,7 +125,7 @@ def get_comment_threads(
         page_number=page_number,
         page_size=page_size,
     )
-    return CustomPage.create(
+    return CustomPage(
         items=results.items, total=results.total, page=page_number, size=page_size
     )
 

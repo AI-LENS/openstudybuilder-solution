@@ -72,5 +72,9 @@ class ExceptionTracebackMiddleware:
 
             span.add_attribute(
                 COMMON_ATTRIBUTES["STACKTRACE"],
-                "\n".join(traceback.format_tb(exception.__traceback__)),
+                "\n".join(
+                    traceback.format_tb(
+                        exception.__traceback__, limit=settings.traceback_max_entries
+                    )
+                ),
             )

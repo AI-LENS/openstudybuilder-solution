@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Sequence
 
 from neomodel import db
 
@@ -97,10 +97,13 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
 
     def _transform_all_to_response_model(
         self,
-        study_selection: StudySelectionObjectivesAR,
+        study_selection: StudySelectionObjectivesAR | None,
         no_brackets: bool,
         study_value_version: str | None = None,
     ) -> list[StudySelectionObjective]:
+        if study_selection is None:
+            return []
+
         result = []
         terms_at_specific_datetime = self._extract_study_standards_effective_date(
             study_uid=study_selection.study_uid,
@@ -220,6 +223,10 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                 study_uid=study_uid, for_update=True
             )
             objective_repo = repos.objective_repository
+            if selection_create_input.objective_uid is None:
+                raise exceptions.ValidationException(
+                    msg="Objective UID is required for making a selection."
+                )
             selected_objective: ObjectiveAR = objective_repo.find_by_uid(
                 selection_create_input.objective_uid, status=LibraryItemStatus.FINAL
             )
@@ -463,7 +470,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                         is_instance=False,
                         objective_uid=objective_template.uid,
                         objective_version=objective_template.item_metadata.version,
-                        objective_level_uid=None,
+                        objective_level_uid="",
                         objective_level_order=None,
                         generate_uid_callback=repos.study_objective_repository.generate_uid,
                     )
@@ -534,7 +541,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                 objective_service: ObjectiveService = ObjectiveService()
                 objective_ar = objective_service.create_ar_from_input_values(
                     selection_create_input.objective_data,
-                    generate_uid_callback=(lambda: "preview"),
+                    generate_uid_callback=lambda: "preview",
                     study_uid=study_uid,
                     include_study_endpoints=True,
                 )
@@ -551,12 +558,12 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                     objective_version=objective_ar.item_metadata.version,
                     objective_level_uid=selection_create_input.objective_level_uid,
                     objective_level_order=None,
-                    generate_uid_callback=(lambda: "preview"),
+                    generate_uid_callback=lambda: "preview",
                 )
 
                 selection_aggregate.add_objective_selection(
                     new_selection,
-                    (lambda _: True),
+                    lambda _: True,
                     self._repos.ct_term_name_repository.term_specific_exists_by_uid,
                 )
 
@@ -578,7 +585,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                         lambda _: Objective.from_objective_ar(objective_ar)
                     ),
                     get_objective_by_uid_version_callback=(
-                        lambda _: Objective.from_objective_ar(objective_ar)
+                        lambda uid, version: Objective.from_objective_ar(objective_ar)
                     ),
                     get_ct_term_by_uid=self._find_by_uid_or_raise_not_found,
                     get_study_endpoint_count_callback=self._repos.study_endpoint_repository.quantity_of_study_endpoints_in_study_objective_uid,
@@ -598,7 +605,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudySelectionObjective]:
         # Extract the study uids to use database level filtering for these
@@ -644,22 +651,22 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
         study_uid: str | None = None,
         project_name: str | None = None,
         project_number: str | None = None,
-        search_string: str | None = "",
+        search_string: str = "",
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_size: int = 10,
         study_value_version: str | None = None,
     ):
         repos = self._repos
 
         if study_uid:
-            objective_selection_ars = repos.study_objective_repository.find_by_study(
+            objective_selection_ar = repos.study_objective_repository.find_by_study(
                 study_uid, study_value_version=study_value_version
             )
 
             header_values = service_level_generic_header_filtering(
                 items=self._transform_all_to_response_model(
-                    objective_selection_ars, no_brackets=False
+                    objective_selection_ar, no_brackets=False
                 ),
                 field_name=field_name,
                 search_string=search_string,
@@ -712,7 +719,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
         no_brackets: bool,
         sort_by: dict[str, bool] | None = None,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         page_number: int = 1,
         page_size: int = 0,
         total_count: bool = False,
@@ -752,13 +759,15 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                     page_size=page_size,
                 )
                 # Put the sorted and filtered items back into the AR and transform them to the response model
-                objective_selection_ar.study_objectives_selection = filtered_items
+                objective_selection_ar.study_objectives_selection = tuple(
+                    filtered_items
+                )
                 filtered_items = self._transform_all_to_response_model(
                     objective_selection_ar,
                     no_brackets=no_brackets,
                     study_value_version=study_value_version,
                 )
-                return GenericFilteringReturn.create(filtered_items, count)
+                return GenericFilteringReturn(items=filtered_items, total=count)
 
             # Fall back to full generic filtering
             selections = []
@@ -771,7 +780,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                 selections.append(selection)
 
             # Do filtering, sorting, pagination and count
-            filtered_items = service_level_generic_filtering(
+            return service_level_generic_filtering(
                 items=selections,
                 sort_by=sort_by,
                 filter_by=filter_by,
@@ -780,7 +789,6 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
                 page_number=page_number,
                 page_size=page_size,
             )
-            return filtered_items
         finally:
             repos.close()
 
@@ -788,7 +796,7 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
         self,
         study_selection_history: list[SelectionHistory],
         study_uid: str,
-        effective_dates: datetime | None = None,
+        effective_dates: Sequence[datetime | None],
     ) -> list[StudySelectionObjectiveCore]:
         # Transform each history to the response model
         result = []
@@ -993,6 +1001,10 @@ class StudyObjectiveSelectionService(StudySelectionMixin):
         else:
             objective_level_order = None
 
+        if request_study_objective.objective_uid is None:
+            raise exceptions.ValidationException(
+                msg="Objective UID is required for patching a selection."
+            )
         requested_objective = self._repos.objective_repository.find_by_uid(
             request_study_objective.objective_uid
         )

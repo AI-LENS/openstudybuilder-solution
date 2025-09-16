@@ -85,7 +85,7 @@ class User:
         roles: set[str] | None = None,
     ) -> None:
         if roles is None:
-            roles = {}
+            roles = set()
 
         self.sub = sub
         self.azp = azp
@@ -116,12 +116,12 @@ class User:
         """
         return role in self.roles
 
-    def has_roles(self, *roles: tuple[str], has_all: bool = True) -> bool:
+    def has_roles(self, *roles: str, has_all: bool = True) -> bool:
         """
         Checks if the user has any or all of the specified roles.
 
         Args:
-            *roles (tuple[str]): The roles to check.
+            *roles (str): The roles to check.
             has_all (bool): Optional. If True, checks if the user has all of the specified roles.
             If False, checks if the user has any of the specified roles.
             Default is True.
@@ -147,12 +147,12 @@ class User:
         """
         return not self.has_role(role)
 
-    def hasnt_roles(self, *roles: tuple[str], hasnt_any: bool = True) -> bool:
+    def hasnt_roles(self, *roles: str, hasnt_any: bool = True) -> bool:
         """
         Checks if the user doesn't have any or doesn't have at least one of the specified roles.
 
         Args:
-            *roles (tuple[str]): The roles to check.
+            *roles (str): The roles to check.
             hasnt_any (bool): Optional. If True, checks if the user doesn't have any of the specified roles.
             If False, checks if the user doesn't have at least one of the specified roles.
             Default is True.
@@ -180,12 +180,12 @@ class User:
         """
         return {role} == self.roles
 
-    def has_only_roles(self, *roles: tuple[str]) -> bool:
+    def has_only_roles(self, *roles: str) -> bool:
         """
         Checks if the user has only the specified roles.
 
         Args:
-            *roles (tuple[str]): The roles to check.
+            *roles (str): The roles to check.
 
         Returns:
             bool: True if the user has only the specified roles, False otherwise.
@@ -193,12 +193,12 @@ class User:
         """
         return set(roles) == self.roles
 
-    def authorize(self, *roles: tuple[str], has_all: bool = False) -> bool:
+    def authorize(self, *roles: str, has_all: bool = False) -> bool:
         """
         Authorizes the user based on the specified roles.
 
         Args:
-            *roles (tuple[str]): The roles required for authorization.
+            *roles (str): The roles required for authorization.
             has_all (bool): Optional. If True, requires the user to have all specified roles for authorization.
             If False, requires the user to have at least one of the specified roles.
             Default is False.
@@ -230,11 +230,11 @@ class Auth:
     def __init__(self, jwt_claims: JWTClaims, access_token_claims: AccessTokenClaims):
         self.user = User(
             sub=access_token_claims.sub,
-            azp=access_token_claims.azp,
-            oid=access_token_claims.oid,
-            name=access_token_claims.name,
-            username=access_token_claims.preferred_username,
-            email=access_token_claims.preferred_username,
+            azp=access_token_claims.azp or "",
+            oid=access_token_claims.oid or "",
+            name=access_token_claims.name or "",
+            username=access_token_claims.preferred_username or "",
+            email=access_token_claims.preferred_username or "",
             roles=access_token_claims.roles,
         )
         self.jwt_claims = jwt_claims

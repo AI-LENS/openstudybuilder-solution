@@ -40,7 +40,6 @@ def test_adding_selection_1st(api_client):
         "short_name": "BranchArm_Short_Name_1",
         "code": "BranchArm_code_1",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_1",
         "number_of_subjects": 1,
         "arm_uid": "StudyArm_000001",
@@ -98,12 +97,10 @@ def test_adding_selection_1st(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 1
     assert res["randomization_group"] == "Randomization_Group_1"
     assert res["author_username"] == "unknown-user@example.com"
@@ -115,7 +112,6 @@ def test_adding_selection_2nd(api_client):
         "short_name": "BranchArm_Short_Name_2",
         "code": "BranchArm_code_2",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_2",
         "number_of_subjects": 2,
         "arm_uid": "StudyArm_000001",
@@ -128,7 +124,7 @@ def test_adding_selection_2nd(api_client):
 
     assert res["study_uid"] == "study_root"
     assert res["study_version"]
-    assert res["branch_arm_uid"] == "StudyBranchArm_000003"
+    assert res["branch_arm_uid"] == "StudyBranchArm_000002"
     assert res["order"] == 2
     assert res["name"] == "BranchArm_Name_2"
     assert res["short_name"] == "BranchArm_Short_Name_2"
@@ -173,12 +169,10 @@ def test_adding_selection_2nd(api_client):
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 2
     assert res["randomization_group"] == "Randomization_Group_2"
     assert res["author_username"] == "unknown-user@example.com"
@@ -190,7 +184,6 @@ def test_adding_selection4(api_client):
         "short_name": "BranchArm_Short_Name_9",
         "code": "BranchArm_code_9",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_9",
         "number_of_subjects": 1,
         "arm_uid": "StudyArm_000001",
@@ -214,7 +207,6 @@ def test_patch_specific_everything_to_a_new_randomization_group_name(api_client)
         "short_name": "BranchArm_Short_Name_4",
         "code": "BranchArm_code_4",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_4",
     }
     response = api_client.patch(
@@ -272,12 +264,10 @@ def test_patch_specific_everything_to_a_new_randomization_group_name(api_client)
         "new_version",
     ]
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["author_username"] == "unknown-user@example.com"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["number_of_subjects"] == 1
     assert res["randomization_group"] == "Randomization_Group_4"
     assert res["author_username"] == "unknown-user@example.com"
@@ -302,7 +292,6 @@ def test_all_history_of_specific_selection4(api_client):
     assert res[0]["short_name"] == "BranchArm_Short_Name_4"
     assert res[0]["code"] == "BranchArm_code_4"
     assert res[0]["description"] == "desc..."
-    assert res[0]["colour_code"] == "desc..."
     assert res[0]["randomization_group"] == "Randomization_Group_4"
     assert res[0]["number_of_subjects"] == 1
     assert res[0]["author_username"] == "unknown-user@example.com"
@@ -332,7 +321,6 @@ def test_all_history_of_specific_selection4(api_client):
     assert res[1]["short_name"] == "BranchArm_Short_Name_1"
     assert res[1]["code"] == "BranchArm_code_1"
     assert res[1]["description"] == "desc..."
-    assert res[1]["colour_code"] == "desc..."
     assert res[1]["randomization_group"] == "Randomization_Group_1"
     assert res[1]["number_of_subjects"] == 1
     assert res[1]["author_username"] == "unknown-user@example.com"
@@ -352,7 +340,6 @@ def test_patch_specific_patch_a_randomization_group_name_that_is_in_history_not_
         "short_name": "BranchArm_Short_Name_5",
         "code": "BranchArm_code_5",
         "description": "desc...",
-        "colour_code": "desc...",
         "randomization_group": "Randomization_Group_1",
     }
     response = api_client.patch(
@@ -371,7 +358,6 @@ def test_patch_specific_patch_a_randomization_group_name_that_is_in_history_not_
     assert res["short_name"] == "BranchArm_Short_Name_5"
     assert res["code"] == "BranchArm_code_5"
     assert res["description"] == "desc..."
-    assert res["colour_code"] == "desc..."
     assert res["randomization_group"] == "Randomization_Group_1"
     assert res["number_of_subjects"] == 1
     assert res["arm_root"]["study_uid"] == "study_root"
@@ -381,7 +367,6 @@ def test_patch_specific_patch_a_randomization_group_name_that_is_in_history_not_
     assert res["arm_root"]["short_name"] == "StudyArm_000001"
     assert res["arm_root"]["code"] is None
     assert res["arm_root"]["description"] is None
-    assert res["arm_root"]["arm_colour"] is None
     assert res["arm_root"]["randomization_group"] is None
     assert res["arm_root"]["number_of_subjects"] is None
     assert res["arm_root"]["arm_type"]["term_uid"] == "term_root_final"
@@ -419,29 +404,3 @@ def test_patch_specific_patch_a_randomization_group_name_that_is_in_history_not_
     assert res["status"] is None
     assert res["change_type"] is None
     assert res["accepted_version"] is False
-
-
-def test_patch_specific_patch_some_randomization_group_that_is_already_used_on_another_branch1(
-    api_client,
-):
-    data = {
-        "name": "BranchArm_Name_8",
-        "short_name": "BranchArm_Short_Name_8",
-        "code": "BranchArm_code_8",
-        "description": "desc...",
-        "colour_code": "desc...",
-        "randomization_group": "Randomization_Group_2",
-    }
-    response = api_client.patch(
-        "/studies/study_root/study-branch-arms/StudyBranchArm_000001", json=data
-    )
-
-    assert_response_status_code(response, 422)
-
-    res = response.json()
-
-    assert res["type"] == "ValidationException"
-    assert (
-        res["message"]
-        == "Value 'Randomization_Group_2' in field Branch Arm Randomization code is not unique for the study."
-    )

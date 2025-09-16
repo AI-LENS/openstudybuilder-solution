@@ -81,10 +81,10 @@ class ActivityInstructionTemplateAR(TemplateAggregateRootBase):
         author_id: str,
         template: TemplateVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
         next_available_sequence_id_callback: Callable[
-            [str, LibraryVO | None], str | None
-        ] = lambda uid, library: None,
+            ..., str
+        ] = lambda uid, library: "",
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
         indications: list[SimpleTermModel] | None = None,
         activities: list[SimpleNameModel] | None = None,
         activity_groups: list[SimpleNameModel] | None = None,

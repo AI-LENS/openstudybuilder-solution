@@ -1,23 +1,4 @@
 from dataclasses import dataclass
-from typing import Callable
-
-from common import exceptions
-
-
-def default_failure_callback_for_variable(variable_name: str) -> Callable[[str], bool]:
-    """
-    function used to generate produce a default value for some methods arguments in StudyDefinitionAR class
-    :param variable_name: A name of the variable which shows up in a message inside a value error exception.
-    :return: A Callable[[str],bool] which raises ValeError once called. A Value error says there was no proper
-    callback function provided.
-    """
-
-    def raise_value_error(msg: str) -> bool:
-        raise exceptions.ValidationException(msg=msg)
-
-    return lambda _: raise_value_error(
-        f"A proper existence check callback not provided for {variable_name}"
-    )
 
 
 def dataclass_with_default_init(*args, _cls=None, **kwargs):

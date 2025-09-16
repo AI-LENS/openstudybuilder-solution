@@ -8,7 +8,7 @@ from clinical_mdr_api.domain_repositories.models._utils import convert_to_dateti
 from clinical_mdr_api.domains.concepts.activities.activity_sub_group import (
     ActivitySubGroupAR,
 )
-from clinical_mdr_api.domains.controlled_terminologies.ct_term_name import CTTermNameAR
+from clinical_mdr_api.domains.concepts.concept_base import ConceptARBase
 from clinical_mdr_api.models.concepts.activities.activity import (
     ActivityBase,
     ActivityHierarchySimpleModel,
@@ -23,7 +23,7 @@ class ActivitySubGroup(ActivityBase):
     def from_activity_ar(
         cls,
         activity_subgroup_ar: ActivitySubGroupAR,
-        find_activity_by_uid: Callable[[str], CTTermNameAR | None],
+        find_activity_by_uid: Callable[[str], ConceptARBase | None],
     ) -> Self:
         activity_groups = []
         for activity_group in activity_subgroup_ar.concept_vo.activity_groups:
@@ -104,7 +104,7 @@ class ActivitySubGroupDetail(BaseModel):
     status: Annotated[str | None, Field()] = None
     version: Annotated[str | None, Field()] = None
     possible_actions: Annotated[list[str] | None, Field()] = None
-    change_description: Annotated[str | None, Field()] = None
+    change_description: Annotated[str, Field()]
     author_username: Annotated[str | None, Field()] = None
     activity_groups: Annotated[list[ActivityGroup], Field()]
 
@@ -129,7 +129,6 @@ class ActivitySubGroupOverview(BaseModel):
                 name=subgroup_value.get("name"),
                 name_sentence_case=subgroup_value.get("name_sentence_case"),
                 definition=subgroup_value.get("definition"),
-                abbreviation=subgroup_value.get("abbreviation"),
                 # Get library name from library node
                 library_name=library_info.get("name"),
                 # Get version metadata from version node
@@ -137,8 +136,9 @@ class ActivitySubGroupOverview(BaseModel):
                 end_date=convert_to_datetime(version_data.get("end_date")),
                 status=version_data.get("status"),
                 version=version_data.get("version"),
+                activity_groups=version_data.get("activity_groups", {}),
                 possible_actions=version_data.get("possible_actions"),
-                change_description=version_data.get("change_description"),
+                change_description=version_data["change_description"],
             ),
             all_versions=overview.get("all_versions", []),
         )

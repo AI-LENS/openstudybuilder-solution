@@ -747,8 +747,6 @@ onMounted(() => {
           itemsToFilter.value.push(newItem)
         }
         apiParams.set(key, map[key])
-      } else {
-        search.value = map[key][0]
       }
     }
     selectedColumnData.value = map
@@ -893,6 +891,7 @@ function clearFilters() {
 }
 function columnFilter(params) {
   apiParams.set(params.column, params.data)
+  savedOptions.page = 1
   filterTable()
 }
 function filterTable(options) {

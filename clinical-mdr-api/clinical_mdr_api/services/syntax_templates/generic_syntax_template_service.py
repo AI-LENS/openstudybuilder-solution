@@ -42,9 +42,7 @@ class GenericSyntaxTemplateService(GenericSyntaxService[_AggregateRootType], abc
             return self.pre_instance_repository_interface()
         return None
 
-    def _create_ar_from_input_values(
-        self, template: BaseModel
-    ) -> TemplateAggregateRootBase:
+    def _create_ar_from_input_values(self, template: BaseModel) -> _AggregateRootType:
         template_vo, library_vo = self._create_template_vo(template)
 
         # Process item to save
@@ -273,7 +271,7 @@ class GenericSyntaxTemplateService(GenericSyntaxService[_AggregateRootType], abc
         self,
         uid: str,
         study_uid: str | None = None,
-        include_study_endpoints: bool | None = False,
+        include_study_endpoints: bool = False,
     ):
         try:
             parameters = self.repository.get_parameters_including_terms(

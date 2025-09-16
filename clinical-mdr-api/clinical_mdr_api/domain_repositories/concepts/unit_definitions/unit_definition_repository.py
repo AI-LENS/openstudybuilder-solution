@@ -231,7 +231,7 @@ class UnitDefinitionRepository(ConceptGenericRepository[UnitDefinitionAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> UnitDefinitionAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
 
         ct_units = []
         for ct_unit in input_dict.get("ct_units"):
@@ -250,18 +250,16 @@ class UnitDefinitionRepository(ConceptGenericRepository[UnitDefinitionAR]):
         ucum_uid = ucum.get("uid") if ucum else None
         ucum_name = ucum.get("name") if ucum else None
         return UnitDefinitionAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             unit_definition_value=UnitDefinitionValueVO.from_repository_values(
-                name=input_dict.get("name"),
+                name=input_dict["name"],
                 definition=input_dict.get("definition"),
-                si_unit=input_dict.get("si_unit"),
-                display_unit=input_dict.get("display_unit"),
-                master_unit=input_dict.get("master_unit"),
-                convertible_unit=input_dict.get("convertible_unit"),
-                us_conventional_unit=input_dict.get("us_conventional_unit"),
-                use_complex_unit_conversion=input_dict.get(
-                    "use_complex_unit_conversion"
-                ),
+                si_unit=input_dict["si_unit"],
+                display_unit=input_dict["display_unit"],
+                master_unit=input_dict["master_unit"],
+                convertible_unit=input_dict["convertible_unit"],
+                us_conventional_unit=input_dict["us_conventional_unit"],
+                use_complex_unit_conversion=input_dict["use_complex_unit_conversion"],
                 use_molecular_weight=input_dict.get("use_molecular_weight"),
                 legacy_code=input_dict.get("legacy_code"),
                 conversion_factor_to_master=input_dict.get(
@@ -275,20 +273,20 @@ class UnitDefinitionRepository(ConceptGenericRepository[UnitDefinitionAR]):
                 unit_dimension_name=unit_dimension_name,
                 order=input_dict.get("order"),
                 comment=input_dict.get("comment"),
-                is_template_parameter=input_dict.get("template_parameter"),
+                is_template_parameter=input_dict["template_parameter"],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),

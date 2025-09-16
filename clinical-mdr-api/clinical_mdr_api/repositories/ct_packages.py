@@ -438,7 +438,7 @@ def get_package_changes_by_year():
 
 
 def update_modified_codelists(
-    output: dict[str, Any], all_codelists_in_package: list[dict[str, Any]]
+    output: dict[str, Any], all_codelists_in_package: dict[str, Any]
 ):
     """
     The following function adds codelists that contains some terms from the

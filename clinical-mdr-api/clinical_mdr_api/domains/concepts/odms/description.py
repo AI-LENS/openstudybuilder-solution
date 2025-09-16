@@ -50,12 +50,16 @@ class OdmDescriptionAR(OdmARBase):
     def concept_vo(self) -> OdmDescriptionVO:
         return self._concept_vo
 
+    @concept_vo.setter
+    def concept_vo(self, value: OdmDescriptionVO) -> None:
+        self._concept_vo = value
+
     @classmethod
     def from_repository_values(
         cls,
         uid: str,
         concept_vo: OdmDescriptionVO,
-        library: LibraryVO | None,
+        library: LibraryVO,
         item_metadata: LibraryItemMetadataVO,
     ) -> Self:
         return cls(
@@ -71,7 +75,7 @@ class OdmDescriptionAR(OdmARBase):
         author_id: str,
         concept_vo: OdmDescriptionVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
+        generate_uid_callback: Callable[[], str] = lambda: "",
     ) -> Self:
         item_metadata = LibraryItemMetadataVO.get_initial_item_metadata(
             author_id=author_id
@@ -87,7 +91,7 @@ class OdmDescriptionAR(OdmARBase):
     def edit_draft(
         self,
         author_id: str,
-        change_description: str | None,
+        change_description: str,
         concept_vo: OdmDescriptionVO,
     ) -> None:
         """

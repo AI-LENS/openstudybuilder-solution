@@ -19,7 +19,6 @@ from clinical_mdr_api.domain_repositories.models.odm import (
     OdmMethodValue,
 )
 from clinical_mdr_api.domains._utils import ObjectStatus
-from clinical_mdr_api.domains.concepts.concept_base import ConceptARBase
 from clinical_mdr_api.domains.concepts.odms.method import OdmMethodAR, OdmMethodVO
 from clinical_mdr_api.domains.versioned_object_aggregate import (
     LibraryItemMetadataVO,
@@ -38,7 +37,7 @@ class MethodRepository(OdmGenericRepository[OdmMethodAR]):
     def _create_aggregate_root_instance_from_version_root_relationship_and_value(
         self,
         root: VersionRoot,
-        library: Library | None,
+        library: Library,
         relationship: VersionRelationship,
         value: VersionValue,
         **_kwargs,
@@ -60,7 +59,7 @@ class MethodRepository(OdmGenericRepository[OdmMethodAR]):
             ),
             library=LibraryVO.from_input_values_2(
                 library_name=library.name,
-                is_library_editable_callback=(lambda _: library.is_editable),
+                is_library_editable_callback=lambda _: library.is_editable,
             ),
             item_metadata=self._library_item_metadata_vo_from_relation(relationship),
         )
@@ -68,29 +67,29 @@ class MethodRepository(OdmGenericRepository[OdmMethodAR]):
     def _create_aggregate_root_instance_from_cypher_result(
         self, input_dict: dict[str, Any]
     ) -> OdmMethodAR:
-        major, minor = input_dict.get("version").split(".")
+        major, minor = input_dict["version"].split(".")
         odm_method_ar = OdmMethodAR.from_repository_values(
-            uid=input_dict.get("uid"),
+            uid=input_dict["uid"],
             concept_vo=OdmMethodVO.from_repository_values(
                 oid=input_dict.get("oid"),
-                name=input_dict.get("name"),
+                name=input_dict["name"],
                 method_type=input_dict.get("method_type"),
-                formal_expression_uids=input_dict.get("formal_expression_uids"),
-                description_uids=input_dict.get("description_uids"),
-                alias_uids=input_dict.get("alias_uids"),
+                formal_expression_uids=input_dict["formal_expression_uids"],
+                description_uids=input_dict["description_uids"],
+                alias_uids=input_dict["alias_uids"],
             ),
             library=LibraryVO.from_input_values_2(
-                library_name=input_dict.get("library_name"),
+                library_name=input_dict["library_name"],
                 is_library_editable_callback=(
-                    lambda _: input_dict.get("is_library_editable")
+                    lambda _: input_dict["is_library_editable"]
                 ),
             ),
             item_metadata=LibraryItemMetadataVO.from_repository_values(
-                change_description=input_dict.get("change_description"),
+                change_description=input_dict["change_description"],
                 status=LibraryItemStatus(input_dict.get("status")),
-                author_id=input_dict.get("author_id"),
+                author_id=input_dict["author_id"],
                 author_username=input_dict.get("author_username"),
-                start_date=convert_to_datetime(value=input_dict.get("start_date")),
+                start_date=convert_to_datetime(value=input_dict["start_date"]),
                 end_date=None,
                 major_version=int(major),
                 minor_version=int(minor),
@@ -122,9 +121,7 @@ apoc.coll.toSet([description in descriptions | description.uid]) AS description_
 apoc.coll.toSet([alias in aliases | alias.uid]) AS alias_uids
 """
 
-    def _get_or_create_value(
-        self, root: VersionRoot, ar: ConceptARBase
-    ) -> VersionValue:
+    def _get_or_create_value(self, root: VersionRoot, ar: OdmMethodAR) -> VersionValue:
         new_value = super()._get_or_create_value(root, ar)
 
         root.has_formal_expression.disconnect_all()

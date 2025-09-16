@@ -7,7 +7,7 @@ from neomodel.sync_.core import NodeMeta, db
 from neomodel.sync_.match import Collect, NodeNameResolver, Optional, Size
 
 from clinical_mdr_api.domain_repositories.generic_repository import (
-    RepositoryClosureData,  # type: ignore
+    RepositoryClosureData,
 )
 from clinical_mdr_api.domain_repositories.models.study import StudyRoot, StudyValue
 from clinical_mdr_api.domain_repositories.models.study_field import StudyBooleanField
@@ -628,7 +628,7 @@ return *
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
         deleted: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionAR]:
@@ -697,7 +697,7 @@ return *
             study.repository_closure_data = repository_closure_data
 
         # and we are done
-        return GenericFilteringReturn.create(items=studies, total=snapshots.total)
+        return GenericFilteringReturn(items=studies, total=snapshots.total)
 
     def find_study_snapshot_history(
         self,
@@ -706,7 +706,7 @@ return *
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionAR]:
         study_snapshots = self._retrieve_study_snapshot_history(
@@ -723,8 +723,7 @@ return *
             StudyDefinitionAR.from_snapshot(s) for s in study_snapshots.items
         ]
 
-        study_snapshots.items = studies
-        return study_snapshots
+        return GenericFilteringReturn(items=studies, total=study_snapshots.total)
 
     def _retrieve_study_snapshot_history(
         self,
@@ -733,7 +732,7 @@ return *
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionSnapshot]:
         raise NotImplementedError
@@ -766,7 +765,7 @@ return *
         page_number: int = 1,
         page_size: int = 50,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
     ) -> GenericFilteringReturn[StudyDefinitionAR]:
         """
         Public method which is to retrieve the list of studies having selected the library item with provided uid
@@ -804,7 +803,7 @@ return *
             study.repository_closure_data = repository_closure_data
 
         # Return output
-        return GenericFilteringReturn.create(items=studies, total=0)
+        return GenericFilteringReturn(items=studies, total=0)
 
     def close(self) -> None:
         """
@@ -904,9 +903,9 @@ return *
         page_number: int = 1,
         page_size: int = 0,
         filter_by: dict[str, dict[str, Any]] | None = None,
-        filter_operator: FilterOperator | None = FilterOperator.AND,
+        filter_operator: FilterOperator = FilterOperator.AND,
         total_count: bool = False,
-        study_selection_object_node_id: int | None = None,
+        study_selection_object_node_id: int | str | None = None,
         study_selection_object_node_type: NodeMeta | None = None,
         deleted: bool = False,
     ) -> GenericFilteringReturn[StudyDefinitionSnapshot]:

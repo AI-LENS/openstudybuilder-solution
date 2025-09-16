@@ -93,10 +93,10 @@ class NumericValueWithUnitAR(NumericValueAR):
         author_id: str,
         simple_concept_vo: SimpleConceptVO,
         library: LibraryVO,
-        generate_uid_callback: Callable[[], str | None] = (lambda: None),
-        find_uid_by_name_callback: Callable[[str], str | None] = (lambda _: None),
+        generate_uid_callback: Callable[[], str | None] = lambda: None,
+        find_uid_by_name_callback: Callable[[str], str | None] = lambda _: None,
         find_uid_by_value_and_unit_callback: (
-            Callable[[str, str | None], str | None] | None
+            Callable[[float, str], str | None] | None
         ) = None,
     ) -> Self:
         item_metadata = LibraryItemMetadataVO(
@@ -117,12 +117,14 @@ class NumericValueWithUnitAR(NumericValueAR):
         if find_uid_by_value_and_unit_callback:
             # Check whether simple concept with the same value and unit already exists. If yes, return its uid, otherwise None.
             simple_concept_uid = find_uid_by_value_and_unit_callback(
-                getattr(simple_concept_vo, "value", None),
-                getattr(simple_concept_vo, "unit_definition_uid", None),
+                getattr(simple_concept_vo, "value"),
+                getattr(simple_concept_vo, "unit_definition_uid"),
             )
         else:
             # Check whether simple concept with the same name already exits. If yes, return its uid, otherwise None.
-            simple_concept_uid = find_uid_by_name_callback(simple_concept_vo.name)
+            simple_concept_uid = None
+            if simple_concept_vo.name is not None:
+                simple_concept_uid = find_uid_by_name_callback(simple_concept_vo.name)
 
         simple_concept_ar = cls(
             _uid=(

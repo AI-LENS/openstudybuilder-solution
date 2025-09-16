@@ -60,7 +60,6 @@ def generate_default_input_data_for_visit():
     week_uid = get_unit_uid_by_name("week")
     return {
         "visit_sublabel_reference": None,
-        "consecutive_visit_group": None,
         "show_visit": True,
         "min_visit_window_value": -1,
         "max_visit_window_value": 1,
@@ -129,9 +128,9 @@ def create_study_visit_codelists(
     )
     if create_unit_definitions:
         unit_service = UnitDefinitionService()
-        week_unit = unit_service.create(UnitDefinitionPostInput(**WEEK))
+        week_unit = unit_service.create(UnitDefinitionPostInput(**WEEK))  # type: ignore[arg-type]
         unit_service.approve(uid=week_unit.uid)
-        day_unit = unit_service.create(UnitDefinitionPostInput(**DAY))
+        day_unit = unit_service.create(UnitDefinitionPostInput(**DAY))  # type: ignore[arg-type]
         unit_service.approve(uid=day_unit.uid)
 
     codelist = create_codelist(

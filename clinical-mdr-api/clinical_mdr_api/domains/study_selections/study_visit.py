@@ -4,6 +4,8 @@ from enum import Enum
 from math import ceil, floor
 from typing import Any, Self
 
+import neo4j.time
+
 from clinical_mdr_api.domains.study_definition_aggregates.study_metadata import (
     StudyStatus,
 )
@@ -13,21 +15,6 @@ from clinical_mdr_api.models.controlled_terminologies.ct_term import (
 from common import exceptions
 from common.config import settings
 from common.utils import TimeUnit, VisitClass, VisitSubclass
-
-VisitTypeNamedTuple = SimpleCTTermNameWithConflictFlag
-StudyVisitType: dict[str, VisitTypeNamedTuple] = {}
-
-VisitRepeatingFrequencyNamedTuple = SimpleCTTermNameWithConflictFlag
-StudyVisitRepeatingFrequency: dict[str, VisitRepeatingFrequencyNamedTuple] = {}
-
-VisitTimeReferenceNamedTuple = SimpleCTTermNameWithConflictFlag
-StudyVisitTimeReference: dict[str, VisitTimeReferenceNamedTuple] = {}
-
-VisitContactModeNamedTuple = SimpleCTTermNameWithConflictFlag
-StudyVisitContactMode: dict[str, VisitContactModeNamedTuple] = {}
-
-VisitEpochAllocationNamedTuple = SimpleCTTermNameWithConflictFlag
-StudyVisitEpochAllocation: dict[str, VisitEpochAllocationNamedTuple] = {}
 
 
 class VisitGroupFormat(Enum):
@@ -45,15 +32,15 @@ class VisitGroup:
 @dataclass
 class TimePoint:
     uid: str
-    visit_timereference: SimpleCTTermNameWithConflictFlag
+    visit_timereference: SimpleCTTermNameWithConflictFlag | None
     time_unit_uid: str
-    visit_value: int
+    visit_value: int | None
 
 
 @dataclass
 class NumericValue:
     uid: str
-    value: int
+    value: int | float | None
 
 
 @dataclass
@@ -66,7 +53,7 @@ class TextValue:
 class SimpleStudyEpoch:
     uid: str
     study_uid: str
-    epoch: SimpleCTTermNameWithConflictFlag
+    epoch: SimpleCTTermNameWithConflictFlag | None
     order: int
 
 
@@ -76,21 +63,21 @@ class StudyVisitVO:
     visit_window_max: int | None
     window_unit_uid: str | None
 
-    description: str
-    start_rule: str  # Free text
-    end_rule: str  # Free text
+    description: str | None
+    start_rule: str | None
+    end_rule: str | None
     visit_contact_mode: (
-        SimpleCTTermNameWithConflictFlag  # CT Codelist Visit Contact Mode
+        SimpleCTTermNameWithConflictFlag | None  # CT Codelist Visit Contact Mode
     )
-    visit_type: SimpleCTTermNameWithConflictFlag  # CT Codelist VISIT_TYPE -
+    visit_type: SimpleCTTermNameWithConflictFlag | None  # CT Codelist VISIT_TYPE -
 
     status: StudyStatus
     start_date: datetime.datetime
     author_id: str
     author_username: str
 
-    visit_class: VisitClass
-    visit_subclass: VisitSubclass
+    visit_class: VisitClass | None
+    visit_subclass: VisitSubclass | None
     is_global_anchor_visit: bool
     visit_number: float
     visit_order: int
@@ -326,23 +313,32 @@ class StudyVisitVO:
 
     @property
     def study_week_label(self):
-        return f"Week {self.study_week.value}"
+        study_week = self.study_week.value if self.study_week else 0
+        return f"Week {study_week}"
 
     @property
     def study_duration_weeks_label(self):
-        return f"{self.study_duration_weeks.value} weeks"
+        study_duration_weeks = (
+            self.study_duration_weeks.value if self.study_duration_weeks else 0
+        )
+        return f"{study_duration_weeks} weeks"
 
     @property
     def week_in_study_label(self):
-        return f"Week {self.week_in_study.value}"
+        week_in_study = self.week_in_study.value if self.week_in_study else 0
+        return f"Week {week_in_study}"
 
     @property
     def study_day_label(self):
-        return f"Day {self.study_day.value}"
+        study_day = self.study_day.value if self.study_day else 0
+        return f"Day {study_day}"
 
     @property
     def study_duration_days_label(self):
-        return f"{self.study_duration_days.value} days"
+        study_duration_days = (
+            self.study_duration_days.value if self.study_duration_days else 0
+        )
+        return f"{study_duration_days} days"
 
     @property
     def visit_subnumber(self):
@@ -379,7 +375,12 @@ class StudyVisitVO:
         return None
 
     def get_unified_window(self):
-        absolute_duration: int = self.get_absolute_duration()
+        absolute_duration: int | None = self.get_absolute_duration()
+        if absolute_duration is None:
+            raise exceptions.BusinessLogicException(
+                msg="Visit has no absolute duration, cannot derive visit window."
+            )
+
         _dur = int(
             absolute_duration / self.time_unit_object.conversion_factor_to_master
         )
@@ -420,4 +421,4 @@ class StudyVisitVO:
 @dataclass
 class StudyVisitHistoryVO(StudyVisitVO):
     change_type: str | None = None
-    end_date: datetime.datetime | None = None
+    end_date: neo4j.time.DateTime | None = None

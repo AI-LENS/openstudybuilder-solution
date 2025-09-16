@@ -1,5 +1,7 @@
 const { When, Then } = require("@badeball/cypress-cucumber-preprocessor");
 
+When('User waits for the table', () => cy.longWaitForTable(60000))
+
 When('User adds column {string} to filters', (headerName) => cy.tableHeaderActions(headerName, 'Add to filter'))
 
 When('User sets status filter to {string}', (filterValue) => {

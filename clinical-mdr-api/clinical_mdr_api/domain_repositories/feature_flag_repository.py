@@ -58,7 +58,7 @@ class FeatureFlagRepository:
             resolve_objects=True,
         )
 
-        NotFoundException.raise_if_not(rs[0], "Feature Flag", sn, "Serial Number")
+        NotFoundException.raise_if_not(rs[0], "Feature Flag", str(sn), "Serial Number")
 
         return self._transform_to_model(rs[0][0][0])
 
@@ -66,7 +66,7 @@ class FeatureFlagRepository:
         self,
         name: str,
         enabled: bool,
-        description: str,
+        description: str | None,
     ) -> FeatureFlag:
         newest_sn = db.cypher_query(
             """
@@ -109,7 +109,7 @@ class FeatureFlagRepository:
             resolve_objects=True,
         )
 
-        NotFoundException.raise_if_not(rs[0], "Feature Flag", sn, "Serial Number")
+        NotFoundException.raise_if_not(rs[0], "Feature Flag", str(sn), "Serial Number")
 
         return self._transform_to_model(rs[0][0][0])
 

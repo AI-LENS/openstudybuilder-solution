@@ -1,8 +1,17 @@
 import re
 from datetime import datetime
-from typing import Annotated, Any, Callable, Iterable, Mapping, NamedTuple, Self
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Self,
+    TypeVar,
+)
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from clinical_mdr_api.domain_repositories.study_selections.study_activity_instance_repository import (
     SelectionHistory as StudyActivityInstanceSelectionHistory,
@@ -40,6 +49,7 @@ from clinical_mdr_api.domains.concepts.simple_concepts.numeric_value_with_unit i
 from clinical_mdr_api.domains.concepts.unit_definitions.unit_definition import (
     UnitDefinitionAR,
 )
+from clinical_mdr_api.domains.enums import StudyDesignClassEnum, StudySourceVariableEnum
 from clinical_mdr_api.domains.study_selections.study_activity_instruction import (
     StudyActivityInstructionVO,
 )
@@ -157,6 +167,7 @@ STUDY_ARM_UID_DESC = "the uid of the related study arm"
 STUDY_EPOCH_UID_DESC = "the uid of the related study epoch"
 STUDY_ELEMENT_UID_DESC = "the uid of the related study element"
 STUDY_BRANCH_ARM_UID_DESC = "the uid of the related study branch arm"
+STUDY_COHORT_ARM_UID_DESC = "the uid of the related study cohort"
 ARM_UID_DESC = "uid for the study arm"
 ELEMENT_UID_DESC = "uid for the study element"
 TRANSITION_RULE_DESC = "transition rule for the cell"
@@ -223,7 +234,9 @@ class StudySelection(BaseModel):
         ),
     ] = None
 
-    order: Annotated[int, Field(description=ORDER_DESC)]
+    order: Annotated[
+        int | None, Field(description=ORDER_DESC, json_schema_extra={"nullable": True})
+    ]
 
     project_number: Annotated[
         str | None,
@@ -321,9 +334,9 @@ class StudySelectionObjectiveCore(StudySelection):
         cls,
         study_selection_history: StudyObjectiveSelectionHistory,
         study_uid: str,
-        get_ct_term_objective_level: Callable[[str], CTTermName],
-        get_objective_by_uid_version_callback: Callable[[str], Objective],
-        effective_date: datetime = None,
+        get_ct_term_objective_level: Callable[..., CTTermName],
+        get_objective_by_uid_version_callback: Callable[[str, str | None], Objective],
+        effective_date: datetime | None = None,
     ) -> Self:
         if study_selection_history.objective_level_uid:
             objective_level = get_ct_term_objective_level(
@@ -333,6 +346,9 @@ class StudySelectionObjectiveCore(StudySelection):
             )
         else:
             objective_level = None
+
+        if study_selection_history.objective_uid is None:
+            raise BusinessLogicException("Objective UID must be provided")
 
         return cls(
             study_objective_uid=study_selection_history.study_selection_uid,
@@ -382,7 +398,7 @@ class StudySelectionObjective(StudySelectionObjectiveCore):
         order: int,
         get_objective_template_by_uid_callback: Callable[[str], ObjectiveTemplate],
         get_objective_template_by_uid_version_callback: Callable[
-            [str], ObjectiveTemplate
+            [str, str | None], ObjectiveTemplate
         ],
         find_project_by_study_uid: Callable,
         accepted_version: bool = False,
@@ -399,6 +415,7 @@ class StudySelectionObjective(StudySelectionObjectiveCore):
         study_objective_uid = single_study_selection.study_selection_uid
         objective_template_uid = single_study_selection.objective_uid
         #
+        latest_objective_template: ObjectiveTemplate | None
         assert objective_template_uid is not None
         latest_objective_template = get_objective_template_by_uid_callback(
             objective_template_uid
@@ -439,9 +456,9 @@ class StudySelectionObjective(StudySelectionObjectiveCore):
         study_selection_objectives_ar: StudySelectionObjectivesAR,
         order: int,
         get_objective_by_uid_callback: Callable[[str], Objective],
-        get_objective_by_uid_version_callback: Callable[[str], Objective],
-        get_ct_term_by_uid: Callable[[str], CTTermName],
-        get_study_endpoint_count_callback: Callable[[str], int],
+        get_objective_by_uid_version_callback: Callable[[str, str | None], Objective],
+        get_ct_term_by_uid: Callable[..., CTTermName],
+        get_study_endpoint_count_callback: Callable[[str, str, str | None], int],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         no_brackets: bool = False,
@@ -695,9 +712,9 @@ class StudySelectionEndpoint(StudySelection):
         order: int,
         get_endpoint_template_by_uid_callback: Callable[[str], EndpointTemplate],
         get_endpoint_template_by_uid_version_callback: Callable[
-            [str], EndpointTemplate
+            [str, str | None], EndpointTemplate
         ],
-        get_study_objective_by_uid: Callable[[str], StudySelectionObjective],
+        get_study_objective_by_uid: Callable[..., StudySelectionObjective],
         find_project_by_study_uid: Callable,
         accepted_version: bool = False,
     ) -> "StudySelectionEndpoint":
@@ -713,6 +730,7 @@ class StudySelectionEndpoint(StudySelection):
         endpoint_template_uid = single_study_selection.endpoint_uid
         #
         assert endpoint_template_uid is not None
+        latest_endpoint_template: EndpointTemplate | None
         latest_endpoint_template = get_endpoint_template_by_uid_callback(
             endpoint_template_uid
         )
@@ -754,12 +772,12 @@ class StudySelectionEndpoint(StudySelection):
         study_selection: StudySelectionEndpointVO,
         study_uid: str,
         order: int,
-        get_endpoint_by_uid_and_version: Callable[[str], Endpoint],
+        get_endpoint_by_uid_and_version: Callable[[str, str | None], Endpoint],
         get_latest_endpoint_by_uid: Callable[[str], Endpoint],
-        get_timeframe_by_uid_and_version: Callable[[str], Timeframe],
+        get_timeframe_by_uid_and_version: Callable[[str, str | None], Timeframe],
         get_latest_timeframe: Callable[[str], Timeframe],
-        get_ct_term_by_uid: Callable[[str], CTTermName],
-        get_study_objective_by_uid: Callable[[str], StudySelectionObjective],
+        get_ct_term_by_uid: Callable[..., CTTermName],
+        get_study_objective_by_uid: Callable[..., StudySelectionObjective],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         accepted_version: bool = False,
@@ -864,7 +882,7 @@ class StudySelectionEndpoint(StudySelection):
             author_username=study_selection.author_username,
             project_name=project.name,
             project_number=project.project_number,
-            **model,
+            **model,  # type: ignore[arg-type]
         )
 
     @classmethod
@@ -872,11 +890,11 @@ class StudySelectionEndpoint(StudySelection):
         cls,
         study_selection_history: StudyEndpointSelectionHistory,
         study_uid: str,
-        get_endpoint_by_uid: Callable[[str], Endpoint],
-        get_timeframe_by_uid: Callable[[str], Timeframe],
-        get_ct_term_by_uid: Callable[[str], CTTermName],
-        get_study_objective_by_uid: Callable[[str], StudySelectionObjective],
-        effective_date: datetime = None,
+        get_endpoint_by_uid: Callable[[str, str | None], Endpoint],
+        get_timeframe_by_uid: Callable[[str, str | None], Timeframe],
+        get_ct_term_by_uid: Callable[..., CTTermName],
+        get_study_objective_by_uid: Callable[..., StudySelectionObjective],
+        effective_date: datetime | None = None,
     ) -> Self:
         if study_selection_history.endpoint_uid:
             endpoint = get_endpoint_by_uid(
@@ -916,16 +934,16 @@ class StudySelectionEndpoint(StudySelection):
         else:
             endpoint_sublevel = None
 
-        units = None
+        unit_items = None
         if study_selection_history.endpoint_units:
-            units = tuple(
-                EndpointUnitItem(**u)
+            unit_items = tuple(
+                EndpointUnitItem(**u)  # type: ignore[arg-type]
                 for u in study_selection_history.endpoint_units
                 if u.get("uid")
             )
-        if units:
+        if unit_items:
             units = EndpointUnits(
-                units=units,
+                units=unit_items,
                 separator=study_selection_history.unit_separator,
             )
         else:
@@ -1208,7 +1226,7 @@ class StudySelectionCompound(StudySelection):
         study_uid: str,
         get_compound_by_uid: Callable[[str], Compound],
         get_compound_alias_by_uid: Callable[[str], CompoundAlias],
-        get_medicinal_product_by_uid: Callable[[str], MedicinalProduct],
+        get_medicinal_product_by_uid: Callable[[str | None], MedicinalProduct | None],
         find_simple_term_model_name_by_term_uid: Callable,
     ) -> Self:
         if study_selection_history.compound_uid:
@@ -1400,7 +1418,7 @@ class StudySelectionCriteriaCore(StudySelection):
         study_selection_history: StudyCriteriaSelectionHistory,
         study_uid: str,
         get_criteria_template_by_uid_version_callback: Callable[
-            [str], CriteriaTemplate
+            [str, str | None], CriteriaTemplate
         ],
     ) -> Self:
         return cls(
@@ -1426,7 +1444,7 @@ class StudySelectionCriteriaCore(StudySelection):
         cls,
         study_selection_history: StudyCriteriaSelectionHistory,
         study_uid: str,
-        get_criteria_by_uid_version_callback: Callable[[str], Criteria],
+        get_criteria_by_uid_version_callback: Callable[[str, str | None], Criteria],
     ) -> Self:
         return cls(
             study_criteria_uid=study_selection_history.study_selection_uid,
@@ -1478,9 +1496,9 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         criteria_type_order: int,
         get_criteria_template_by_uid_callback: Callable[[str], CriteriaTemplate],
         get_criteria_template_by_uid_version_callback: Callable[
-            [str], CriteriaTemplate
+            [str, str | None], CriteriaTemplate
         ],
-        get_ct_term_criteria_type: Callable[[str], CTTermName],
+        get_ct_term_criteria_type: Callable[..., CTTermName],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         accepted_version: bool = False,
@@ -1509,6 +1527,7 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         )
 
         assert criteria_template_uid is not None
+        latest_criteria_template: CriteriaTemplate | None
         latest_criteria_template = get_criteria_template_by_uid_callback(
             criteria_template_uid
         )
@@ -1550,8 +1569,8 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         criteria_type_uid: str,
         criteria_type_order: int,
         get_criteria_by_uid_callback: Callable[[str], Criteria],
-        get_criteria_by_uid_version_callback: Callable[[str], Criteria],
-        get_ct_term_criteria_type: Callable[[str], CTTermName],
+        get_criteria_by_uid_version_callback: Callable[[str, str | None], Criteria],
+        get_ct_term_criteria_type: Callable[..., CTTermName],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         no_brackets: bool = False,
@@ -1581,6 +1600,7 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         )
 
         assert criteria_uid is not None
+        latest_criteria: Criteria | None
         latest_criteria = get_criteria_by_uid_callback(criteria_uid)
         if (
             latest_criteria
@@ -1624,9 +1644,9 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         study_selection_criteria_vo: StudySelectionCriteriaVO,
         get_criteria_template_by_uid_callback: Callable[[str], CriteriaTemplate],
         get_criteria_template_by_uid_version_callback: Callable[
-            [str], CriteriaTemplate
+            [str, str | None], CriteriaTemplate
         ],
-        get_ct_term_criteria_type: Callable[[str], CTTermName],
+        get_ct_term_criteria_type: Callable[..., CTTermName],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         accepted_version: bool = False,
@@ -1646,6 +1666,7 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         )
 
         assert criteria_template_uid is not None
+        latest_criteria_template: CriteriaTemplate | None
         latest_criteria_template = get_criteria_template_by_uid_callback(
             criteria_template_uid
         )
@@ -1686,8 +1707,8 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         study_selection_criteria_ar: StudySelectionCriteriaAR,
         study_selection_criteria_vo: StudySelectionCriteriaVO,
         get_criteria_by_uid_callback: Callable[[str], Criteria],
-        get_criteria_by_uid_version_callback: Callable[[str], Criteria],
-        get_ct_term_criteria_type: Callable[[str], CTTermName],
+        get_criteria_by_uid_version_callback: Callable[[str, str | None], Criteria],
+        get_ct_term_criteria_type: Callable[..., CTTermName],
         find_project_by_study_uid: Callable,
         terms_at_specific_datetime: datetime | None,
         no_brackets: bool = False,
@@ -1708,6 +1729,7 @@ class StudySelectionCriteria(StudySelectionCriteriaCore):
         )
 
         assert criteria_uid is not None
+        latest_criteria: Criteria | None
         latest_criteria = get_criteria_by_uid_callback(criteria_uid)
         if (
             latest_criteria
@@ -1824,11 +1846,11 @@ class DetailedSoAHistory(BaseModel):
     @classmethod
     def from_history(cls, detailed_soa_history_item: dict[Any, Any]):
         return cls(
-            object_type=detailed_soa_history_item.get("object_type"),
-            description=detailed_soa_history_item.get("description"),
-            action=detailed_soa_history_item.get("change_type"),
+            object_type=detailed_soa_history_item["object_type"],
+            description=detailed_soa_history_item["description"],
+            action=detailed_soa_history_item["change_type"],
             author_username=detailed_soa_history_item.get("author_username"),
-            start_date=detailed_soa_history_item.get("start_date"),
+            start_date=detailed_soa_history_item["start_date"],
             end_date=detailed_soa_history_item.get("end_date"),
         )
 
@@ -1912,7 +1934,7 @@ class StudySelectionActivityCore(StudySelection):
             description=START_DATE_DESC,
             json_schema_extra={"source": AFTER_DATE_QUALIFIER, "nullable": True},
         ),
-    ]
+    ] = None
     author_username: Annotated[
         str | None,
         Field(
@@ -1929,11 +1951,13 @@ class StudySelectionActivityCore(StudySelection):
         cls,
         study_selection_history: StudyActivitySelectionHistory,
         study_uid: str,
-        get_ct_term_flowchart_group: Callable[[str], CTTermName],
-        get_activity_by_uid_version_callback: Callable[[str], ActivityForStudyActivity],
-        effective_date: datetime = None,
+        get_ct_term_flowchart_group: Callable[..., CTTermName],
+        get_activity_by_uid_version_callback: Callable[
+            [str, str | None], ActivityForStudyActivity
+        ],
+        effective_date: datetime | None = None,
     ) -> Self:
-        flowchart_group = get_ct_term_flowchart_group(
+        flowchart_group: CTTermName = get_ct_term_flowchart_group(
             study_selection_history.soa_group_term_uid,
             at_specific_date=effective_date,
         )
@@ -2020,7 +2044,7 @@ class StudySelectionActivity(StudySelectionActivityCore):
         study_selection: StudySelectionActivityVO,
         get_activity_by_uid_callback: Callable[[str], ActivityForStudyActivity],
         get_activity_by_uid_version_callback: Callable[
-            [str, str], ActivityForStudyActivity
+            [str, str | None], ActivityForStudyActivity
         ],
         get_ct_term_flowchart_group: Callable[..., CTTermName],
         terms_at_specific_datetime: datetime | None,
@@ -2070,7 +2094,7 @@ class StudySelectionActivity(StudySelectionActivityCore):
             study_soa_group=SimpleStudySoAGroup(
                 study_soa_group_uid=study_selection.study_soa_group_uid,
                 soa_group_term_uid=study_selection.soa_group_term_uid,
-                soa_group_term_name=soa_group_term_name,
+                soa_group_term_name=soa_group_term_name or "",
                 order=study_selection.study_soa_group_order,
             ),
             activity=selected_activity,
@@ -2115,14 +2139,14 @@ class StudySelectionActivityInSoACreateInput(PatchInputModel):
 
 class StudyActivitySubGroupEditInput(PatchInputModel):
     show_activity_subgroup_in_protocol_flowchart: Annotated[
-        bool | None, SHOW_ACTIVITY_SUBGROUP_IN_PROTOCOL_FLOWCHART_FIELD
-    ] = None
+        bool, SHOW_ACTIVITY_SUBGROUP_IN_PROTOCOL_FLOWCHART_FIELD
+    ] = False
 
 
 class StudyActivitySubGroup(BaseModel):
-    show_activity_subgroup_in_protocol_flowchart: Annotated[bool | None, Field()] = (
-        SHOW_ACTIVITY_SUBGROUP_IN_PROTOCOL_FLOWCHART_FIELD
-    )
+    show_activity_subgroup_in_protocol_flowchart: Annotated[
+        bool, SHOW_ACTIVITY_SUBGROUP_IN_PROTOCOL_FLOWCHART_FIELD
+    ]
     study_uid: Annotated[
         str | None,
         Field(description=STUDY_UID_DESC, json_schema_extra={"nullable": True}),
@@ -2259,7 +2283,7 @@ class StudySoAGroup(BaseModel):
 
 
 class StudySelectionActivityInput(PatchInputModel):
-    show_activity_in_protocol_flowchart: Annotated[bool | None, Field()] = None
+    show_activity_in_protocol_flowchart: Annotated[bool, Field()] = False
     soa_group_term_uid: Annotated[
         str | None, Field(description="flowchart CT term uid")
     ] = None
@@ -2281,8 +2305,8 @@ class StudySelectionActivityRequestEditInput(StudySelectionActivityInput):
     activity_uid: Annotated[str | None, Field()] = None
     activity_name: Annotated[str | None, Field()] = None
     request_rationale: Annotated[str | None, Field()] = None
-    is_data_collected: Annotated[bool | None, Field()] = None
-    is_request_final: Annotated[bool | None, Field()] = None
+    is_data_collected: Annotated[bool, Field()] = False
+    is_request_final: Annotated[bool, Field()] = False
 
 
 class UpdateActivityPlaceholderToSponsorActivity(StudySelectionActivityInput):
@@ -2380,7 +2404,7 @@ class StudySelectionActivityInstance(BaseModel):
     start_date: Annotated[
         datetime | None,
         Field(description=START_DATE_DESC, json_schema_extra={"nullable": True}),
-    ]
+    ] = None
 
     author_username: Annotated[
         str | None,
@@ -2416,7 +2440,7 @@ class StudySelectionActivityInstance(BaseModel):
 
     @classmethod
     def _get_state_out_of_activity_and_activity_instance(
-        cls, activity: Activity, activity_instance: ActivityInstance
+        cls, activity: Activity, activity_instance: ActivityInstance | None
     ) -> StudyActivityInstanceState:
         if activity.is_data_collected:
             if activity_instance:
@@ -2433,9 +2457,9 @@ class StudySelectionActivityInstance(BaseModel):
         cls,
         study_selection_history: StudyActivityInstanceSelectionHistory,
         study_uid: str,
-        get_activity_by_uid_version_callback: Callable[[str, str], Activity],
+        get_activity_by_uid_version_callback: Callable[[str, str | None], Activity],
         get_activity_instance_by_uid_version_callback: Callable[
-            [str, str], ActivityInstance
+            [str, str | None], ActivityInstance
         ],
     ) -> Self:
         activity = get_activity_by_uid_version_callback(
@@ -2471,11 +2495,13 @@ class StudySelectionActivityInstance(BaseModel):
         cls,
         study_uid: str,
         study_selection: StudySelectionActivityInstanceVO,
-        get_activity_by_uid_callback: Callable[[str], Activity],
-        get_activity_by_uid_version_callback: Callable[[str, str], Activity],
+        get_activity_by_uid_callback: Callable[[str], ActivityForStudyActivity],
+        get_activity_by_uid_version_callback: Callable[
+            [str, str | None], ActivityForStudyActivity
+        ],
         get_activity_instance_by_uid_callback: Callable[[str], ActivityInstance],
         get_activity_instance_by_uid_version_callback: Callable[
-            [str, str], ActivityInstance
+            [str, str | None], ActivityInstance
         ],
         activity_versions_by_uid: (
             Mapping[str, Iterable[ActivityForStudyActivity]] | None
@@ -2545,6 +2571,8 @@ class StudySelectionActivityInstance(BaseModel):
                     soa_group_term_name=study_selection.soa_group_term_name,
                 )
                 if study_selection.study_soa_group_uid
+                and study_selection.soa_group_term_uid
+                and study_selection.soa_group_term_name
                 else None
             ),
         )
@@ -2596,10 +2624,10 @@ class StudyActivitySchedule(BaseModel):
     ] = None
 
     study_activity_schedule_uid: Annotated[
-        str | None,
+        str,
         Field(
             description="uid for the study activity schedule",
-            json_schema_extra={"source": "uid", "nullable": True},
+            json_schema_extra={"source": "uid"},
         ),
     ]
 
@@ -2651,6 +2679,16 @@ class StudyActivitySchedule(BaseModel):
         schedule_vo: StudyActivityScheduleVO,
         study_value_version: str | None = None,
     ) -> Self:
+        if not schedule_vo.uid:
+            raise BusinessLogicException(
+                "Study UID is required to create a StudyActivitySchedule instance."
+            )
+
+        if not schedule_vo.study_visit_uid:
+            raise BusinessLogicException(
+                "Study visit UID is required to create a StudyActivitySchedule instance."
+            )
+
         return cls(
             study_activity_schedule_uid=schedule_vo.uid,
             study_uid=schedule_vo.study_uid,
@@ -2884,9 +2922,9 @@ class StudyDesignCell(BaseModel):
             study_branch_arm_uid=design_cell_vo.study_branch_arm_uid,
             study_branch_arm_name=design_cell_vo.study_branch_arm_name,
             study_epoch_uid=design_cell_vo.study_epoch_uid,
-            study_epoch_name=design_cell_vo.study_epoch_name,
+            study_epoch_name=design_cell_vo.study_epoch_name or "",
             study_element_uid=design_cell_vo.study_element_uid,
-            study_element_name=design_cell_vo.study_element_name,
+            study_element_name=design_cell_vo.study_element_name or "",
             transition_rule=design_cell_vo.transition_rule,
             start_date=design_cell_vo.start_date,
             author_username=UserInfoService.get_author_username_from_id(
@@ -3052,14 +3090,6 @@ class StudySelectionBranchArmWithoutStudyArm(StudySelection):
         ),
     ] = None
 
-    colour_code: Annotated[
-        str | None,
-        Field(
-            description="colour_code for the study Brancharm",
-            json_schema_extra={"nullable": True},
-        ),
-    ] = None
-
     randomization_group: Annotated[
         str | None,
         Field(
@@ -3113,11 +3143,10 @@ class StudySelectionBranchArmWithoutStudyArm(StudySelection):
         return cls(
             study_uid=study_uid,
             branch_arm_uid=selection.study_selection_uid,
-            name=selection.name,
-            short_name=selection.short_name,
+            name=selection.name or "",
+            short_name=selection.short_name or "",
             code=selection.code,
             description=selection.description,
-            colour_code=selection.colour_code,
             order=order,
             randomization_group=selection.randomization_group,
             number_of_subjects=selection.number_of_subjects,
@@ -3131,12 +3160,84 @@ class StudySelectionBranchArmWithoutStudyArm(StudySelection):
 
 
 # Study arms
+class CompactStudyBranchArm(BaseModel):
+    uid: Annotated[str, Field(description="uid for the study branch arm")]
+    name: Annotated[str, Field(description="name for the study branch arm")]
+    number_of_subjects: Annotated[
+        int | None, Field(description="number_of_subjects for the study cohort")
+    ] = None
+    short_name: Annotated[str, Field(description="short name for the study branch arm")]
+    code: Annotated[str | None, Field(description="code for the study branch arm")] = (
+        None
+    )
+    randomization_group: Annotated[
+        str | None,
+        Field(description="randomization group name for the study branch arm"),
+    ] = None
+
+
+class CompactStudyCohort(BaseModel):
+    uid: Annotated[str, Field(description="uid for the study cohort")]
+    name: Annotated[str, Field(description="name for the study cohort")]
+    short_name: Annotated[str, Field(description="short name for the study cohort")]
+    number_of_subjects: Annotated[
+        int | None, Field(description="number_of_subjects for the study cohort")
+    ] = None
+    study_branch_arms: Annotated[
+        list[CompactStudyBranchArm], Field(description="list of nested StudyBranchArms")
+    ]
+
+
+class CompactStudyArm(BaseModel):
+    uid: Annotated[str, Field(description="uid for the study arm")]
+    name: Annotated[str, Field(description="name for the study arm")]
+    short_name: Annotated[str, Field(description="short name for the study arm")]
+    number_of_subjects: Annotated[
+        int | None, Field(description="number_of_subjects for the study arm")
+    ] = None
+    study_cohorts: Annotated[
+        list[CompactStudyCohort], Field(description="list of nested StudyCohorts")
+    ]
+
+    @classmethod
+    def from_repository_output(
+        cls,
+        arm_structure: dict[str, Any],
+    ) -> Self:
+        cohorts = []
+        for study_cohort in arm_structure["study_cohorts"]:
+            branch_arms = []
+            for study_branch_arm in study_cohort["study_branch_arms"]:
+                branch_arm = CompactStudyBranchArm(
+                    uid=study_branch_arm["uid"],
+                    name=study_branch_arm["name"],
+                    number_of_subjects=study_branch_arm["number_of_subjects"],
+                    short_name=study_branch_arm["short_name"],
+                    code=study_branch_arm["branch_arm_code"],
+                    randomization_group=study_branch_arm["randomization_group"],
+                )
+                branch_arms.append(branch_arm)
+            cohort = CompactStudyCohort(
+                uid=study_cohort["uid"],
+                name=study_cohort["name"],
+                short_name=study_cohort["short_name"],
+                number_of_subjects=study_cohort["number_of_subjects"],
+                study_branch_arms=branch_arms,
+            )
+            cohorts.append(cohort)
+        return CompactStudyArm(
+            uid=arm_structure["uid"],
+            name=arm_structure["name"],
+            short_name=arm_structure["short_name"],
+            number_of_subjects=arm_structure["number_of_subjects"],
+            study_cohorts=cohorts,
+        )
 
 
 class StudySelectionArm(StudySelection):
     arm_uid: Annotated[
-        str | None,
-        Field(description=ARM_UID_DESC, json_schema_extra={"nullable": True}),
+        str,
+        Field(description=ARM_UID_DESC),
     ]
 
     name: Annotated[str, Field(description="name for the study arm")]
@@ -3158,13 +3259,6 @@ class StudySelectionArm(StudySelection):
         Field(
             description="description for the study arm",
             json_schema_extra={"nullable": True},
-        ),
-    ] = None
-
-    arm_colour: Annotated[
-        str | None,
-        Field(
-            description="colour for the study arm", json_schema_extra={"nullable": True}
         ),
     ] = None
 
@@ -3191,10 +3285,7 @@ class StudySelectionArm(StudySelection):
         ),
     ] = None
 
-    start_date: Annotated[
-        datetime | None,
-        Field(description=START_DATE_DESC, json_schema_extra={"nullable": True}),
-    ]
+    start_date: Annotated[datetime, Field(description=START_DATE_DESC)]
 
     author_username: Annotated[
         str | None,
@@ -3217,6 +3308,12 @@ class StudySelectionArm(StudySelection):
             json_schema_extra={"nullable": True},
         ),
     ] = None
+    merge_branch_for_this_arm_for_sdtm_adam: Annotated[
+        bool,
+        Field(
+            description="Indicates whether to merge branches for this arm for SDTM/ADM"
+        ),
+    ] = False
 
     @classmethod
     def from_study_selection_arm_ar_and_order(
@@ -3242,7 +3339,6 @@ class StudySelectionArm(StudySelection):
             short_name=selection.short_name,
             code=selection.code,
             description=selection.description,
-            arm_colour=selection.arm_colour,
             order=order,
             randomization_group=selection.randomization_group,
             number_of_subjects=selection.number_of_subjects,
@@ -3255,6 +3351,7 @@ class StudySelectionArm(StudySelection):
             status=selection.status,
             change_type=selection.change_type,
             accepted_version=selection.accepted_version,
+            merge_branch_for_this_arm_for_sdtm_adam=selection.merge_branch_for_this_arm_for_sdtm_adam,
         )
 
     @classmethod
@@ -3262,8 +3359,8 @@ class StudySelectionArm(StudySelection):
         cls,
         study_selection_history: SelectionHistoryArm,
         study_uid: str,
-        get_ct_term_arm_type: Callable[[str], CTTermName],
-        effective_date: datetime = None,
+        get_ct_term_arm_type: Callable[..., CTTermName],
+        effective_date: datetime | None = None,
     ) -> Self:
         if study_selection_history.arm_type:
             arm_type_call_back = get_ct_term_arm_type(
@@ -3280,7 +3377,6 @@ class StudySelectionArm(StudySelection):
             short_name=study_selection_history.arm_short_name,
             code=study_selection_history.arm_code,
             description=study_selection_history.arm_description,
-            arm_colour=study_selection_history.arm_colour,
             randomization_group=study_selection_history.arm_randomization_group,
             number_of_subjects=study_selection_history.arm_number_of_subjects,
             arm_type=arm_type_call_back,
@@ -3292,6 +3388,7 @@ class StudySelectionArm(StudySelection):
             status=study_selection_history.status,
             change_type=study_selection_history.change_type,
             accepted_version=study_selection_history.accepted_version,
+            merge_branch_for_this_arm_for_sdtm_adam=study_selection_history.merge_branch_for_this_arm_for_sdtm_adam,
         )
 
 
@@ -3335,7 +3432,6 @@ class StudySelectionArmWithConnectedBranchArms(StudySelectionArm):
             ),
             code=selection.code,
             description=selection.description,
-            arm_colour=selection.arm_colour,
             order=order,
             randomization_group=selection.randomization_group,
             number_of_subjects=selection.number_of_subjects,
@@ -3354,6 +3450,7 @@ class StudySelectionArmWithConnectedBranchArms(StudySelectionArm):
             status=selection.status,
             change_type=selection.change_type,
             accepted_version=selection.accepted_version,
+            merge_branch_for_this_arm_for_sdtm_adam=selection.merge_branch_for_this_arm_for_sdtm_adam,
         )
 
 
@@ -3370,10 +3467,6 @@ class StudySelectionArmCreateInput(PostInputModel):
         str | None, Field(description="description for the study arm")
     ] = None
 
-    arm_colour: Annotated[str | None, Field(description="colour for the study arm")] = (
-        None
-    )
-
     randomization_group: Annotated[
         str | None, Field(description="randomization group for the study arm")
     ] = None
@@ -3388,6 +3481,12 @@ class StudySelectionArmCreateInput(PostInputModel):
     ] = None
 
     arm_type_uid: Annotated[str | None, Field(description=ARM_UID_DESC)] = None
+    merge_branch_for_this_arm_for_sdtm_adam: Annotated[
+        bool,
+        Field(
+            description="Indicates whether to merge branches for this arm for SDTM/ADM"
+        ),
+    ] = False
 
 
 class StudySelectionArmInput(PatchInputModel):
@@ -3402,10 +3501,6 @@ class StudySelectionArmInput(PatchInputModel):
     description: Annotated[
         str | None, Field(description="description for the study arm")
     ] = None
-
-    arm_colour: Annotated[str | None, Field(description="colour for the study arm")] = (
-        None
-    )
 
     randomization_group: Annotated[
         str | None, Field(description="randomization group for the study arm")
@@ -3422,6 +3517,12 @@ class StudySelectionArmInput(PatchInputModel):
 
     arm_type_uid: Annotated[str | None, Field(description=ARM_UID_DESC)] = None
     arm_uid: Annotated[str | None, Field(description=ARM_UID_DESC)] = None
+    merge_branch_for_this_arm_for_sdtm_adam: Annotated[
+        bool,
+        Field(
+            description="Indicates whether to merge branches for this arm for SDTM/ADM"
+        ),
+    ] = False
 
 
 class StudySelectionArmNewOrder(PatchInputModel):
@@ -3439,6 +3540,29 @@ class StudySelectionArmVersion(StudySelectionArm):
     changes: Annotated[list[str], Field()]
 
 
+class StudySelectionArmBatchUpdateInput(StudySelectionArmInput):
+    arm_uid: Annotated[str, Field(description="UID of the Study Arm to update")]
+
+
+class StudySelectionArmBatchInput(BatchInputModel):
+    method: Annotated[str, METHOD_FIELD]
+    content: Annotated[
+        StudySelectionArmBatchUpdateInput | StudySelectionArmCreateInput,
+        Field(),
+    ]
+
+
+class StudySelectionArmBatchOutput(BaseModel):
+    response_code: Annotated[int, RESPONSE_CODE_FIELD]
+    content: Annotated[
+        StudySelectionArm
+        | StudySelectionArmWithConnectedBranchArms
+        | None
+        | BatchErrorResponse,
+        Field(),
+    ]
+
+
 # Study Activity Instructions
 
 
@@ -3449,7 +3573,7 @@ class StudyActivityInstruction(BaseModel):
         str | None,
         Field(
             description="uid for the study activity instruction",
-            json_schema_extra={"source": "uid", "nullable": True},
+            json_schema_extra={"source": "uid"},
         ),
     ]
 
@@ -3471,7 +3595,7 @@ class StudyActivityInstruction(BaseModel):
     ]
 
     activity_instruction_uid: Annotated[
-        str,
+        str | None,
         Field(
             description="The related activity instruction UID",
             json_schema_extra={
@@ -3481,7 +3605,7 @@ class StudyActivityInstruction(BaseModel):
     ]
 
     activity_instruction_name: Annotated[
-        str,
+        str | None,
         Field(
             description="The related activity instruction name",
             json_schema_extra={"source": "activity_instruction_value.name"},
@@ -3489,10 +3613,10 @@ class StudyActivityInstruction(BaseModel):
     ]
 
     start_date: Annotated[
-        datetime | None,
+        datetime,
         Field(
             description=START_DATE_DESC,
-            json_schema_extra={"source": AFTER_DATE_QUALIFIER, "nullable": True},
+            json_schema_extra={"source": AFTER_DATE_QUALIFIER},
         ),
     ]
 
@@ -3709,21 +3833,22 @@ class StudySelectionElement(StudySelection):
         study_uid: str,
         selection: StudySelectionElementVO,
         order: int,
-        find_simple_term_element_by_term_uid: Callable[[str], CTTermName],
-        get_term_element_type_by_element_subtype: Callable[[str], CTTermName],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_simple_term_element_by_term_uid: Callable[..., CTTermName],
+        get_term_element_type_by_element_subtype: Callable[[str], str | None],
+        find_all_study_time_units: Callable[..., tuple[list[UnitDefinitionAR], int]],
         terms_at_specific_datetime: datetime | None,
         study_value_version: str | None = None,
     ) -> Self:
         element_subtype = find_simple_term_element_by_term_uid(
-            selection.element_subtype_uid, at_specific_date=terms_at_specific_datetime
+            selection.element_subtype_uid or "",
+            at_specific_date=terms_at_specific_datetime,
         )
         term_element_type = get_term_element_type_by_element_subtype(
-            selection.element_subtype_uid
+            selection.element_subtype_uid or ""
         )
         element_type = (
             find_simple_term_element_by_term_uid(
-                term_element_type,
+                term_element_type or "",
                 at_specific_date=terms_at_specific_datetime,
             )
             if term_element_type
@@ -3769,22 +3894,24 @@ class StudySelectionElement(StudySelection):
         cls,
         study_selection_history: SelectionHistoryElement,
         study_uid: str,
-        get_ct_term_element_subtype: Callable[[str], CTTermName],
-        get_term_element_type_by_element_subtype: Callable[[str], CTTermName],
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
-        effective_date: datetime = None,
+        get_ct_term_element_subtype: Callable[..., CTTermName],
+        get_term_element_type_by_element_subtype: Callable[[str], str | None],
+        find_all_study_time_units: Callable[[str], tuple[list[UnitDefinitionAR], int]],
+        effective_date: datetime | None = None,
     ) -> Self:
         element_subtype = get_ct_term_element_subtype(
-            study_selection_history.element_subtype, at_specific_date=effective_date
+            study_selection_history.element_subtype or "",
+            at_specific_date=effective_date,
         )
         element_type = (
             get_ct_term_element_subtype(
                 get_term_element_type_by_element_subtype(
-                    study_selection_history.element_subtype
+                    study_selection_history.element_subtype or ""
                 )
+                or ""
             )
             if get_term_element_type_by_element_subtype(
-                study_selection_history.element_subtype
+                study_selection_history.element_subtype or ""
             )
             else None
         )
@@ -3926,7 +4053,7 @@ class StudySelectionElementInput(PatchInputModel):
     def from_study_selection_element(
         cls,
         selection: StudySelectionElementVO,
-        find_all_study_time_units: Callable[[str], Iterable[UnitDefinitionAR]],
+        find_all_study_time_units: Callable[..., tuple[list[UnitDefinitionAR], int]],
     ) -> Self:
         return cls(
             element_uid=selection.study_selection_uid,
@@ -3974,11 +4101,18 @@ class StudySelectionElementVersion(StudySelectionElement):
 # Study brancharms adding Arm Root parameter
 
 
+class StudyCohortInBranchArm(BaseModel):
+    study_cohort_uid: Annotated[str, Field()]
+    study_cohort_name: Annotated[str | None, Field()] = None
+    study_cohort_code: Annotated[str | None, Field()] = None
+
+
 class StudySelectionBranchArm(StudySelectionBranchArmWithoutStudyArm):
     arm_root: Annotated[
         StudySelectionArm,
         Field(description="Root for the study branch arm"),
     ]
+    study_cohorts: Annotated[list[StudyCohortInBranchArm] | None, Field()] = None
 
     @classmethod
     def from_study_selection_branch_arm_ar_and_order(
@@ -3998,11 +4132,10 @@ class StudySelectionBranchArm(StudySelectionBranchArmWithoutStudyArm):
                 else get_latest_on_datetime_str()
             ),
             branch_arm_uid=selection.study_selection_uid,
-            name=selection.name,
-            short_name=selection.short_name,
+            name=selection.name or "",
+            short_name=selection.short_name or "",
             code=selection.code,
             description=selection.description,
-            colour_code=selection.colour_code,
             order=order,
             randomization_group=selection.randomization_group,
             number_of_subjects=selection.number_of_subjects,
@@ -4011,6 +4144,18 @@ class StudySelectionBranchArm(StudySelectionBranchArmWithoutStudyArm):
                 study_selection_uid=selection.arm_root_uid,
                 study_value_version=study_value_version,
                 terms_at_specific_datetime=terms_at_specific_datetime,
+            ),
+            study_cohorts=(
+                [
+                    StudyCohortInBranchArm(
+                        study_cohort_uid=study_cohort.study_cohort_uid,
+                        study_cohort_name=study_cohort.study_cohort_name,
+                        study_cohort_code=study_cohort.study_cohort_code,
+                    )
+                    for study_cohort in selection.study_cohorts
+                ]
+                if selection.study_cohorts
+                else []
             ),
             start_date=selection.start_date,
             author_username=selection.author_username,
@@ -4025,17 +4170,18 @@ class StudySelectionBranchArm(StudySelectionBranchArmWithoutStudyArm):
         cls,
         study_selection_history: SelectionHistoryBranchArm,
         study_uid: str,
-        find_simple_term_branch_arm_root_by_term_uid: Callable[[str], CTTermName],
+        find_simple_term_branch_arm_root_by_term_uid: Callable[
+            [str, str], StudySelectionArm
+        ],
     ) -> Self:
         return cls(
             study_uid=study_uid,
             order=study_selection_history.order,
             branch_arm_uid=study_selection_history.study_selection_uid,
-            name=study_selection_history.branch_arm_name,
-            short_name=study_selection_history.branch_arm_short_name,
+            name=study_selection_history.branch_arm_name or "",
+            short_name=study_selection_history.branch_arm_short_name or "",
             code=study_selection_history.branch_arm_code,
             description=study_selection_history.branch_arm_description,
-            colour_code=study_selection_history.branch_arm_colour_code,
             randomization_group=study_selection_history.branch_arm_randomization_group,
             number_of_subjects=study_selection_history.branch_arm_number_of_subjects,
             arm_root=find_simple_term_branch_arm_root_by_term_uid(
@@ -4072,11 +4218,10 @@ class StudySelectionBranchArmHistory(StudySelectionBranchArmWithoutStudyArm):
             study_uid=study_uid,
             order=study_selection_history.order,
             branch_arm_uid=study_selection_history.study_selection_uid,
-            name=study_selection_history.branch_arm_name,
-            short_name=study_selection_history.branch_arm_short_name,
+            name=study_selection_history.branch_arm_name or "",
+            short_name=study_selection_history.branch_arm_short_name or "",
             code=study_selection_history.branch_arm_code,
             description=study_selection_history.branch_arm_description,
-            colour_code=study_selection_history.branch_arm_colour_code,
             randomization_group=study_selection_history.branch_arm_randomization_group,
             number_of_subjects=study_selection_history.branch_arm_number_of_subjects,
             arm_root_uid=study_selection_history.arm_root,
@@ -4114,11 +4259,6 @@ class StudySelectionBranchArmCreateInput(PostInputModel):
         Field(description="description for the study Brancharm"),
     ] = None
 
-    colour_code: Annotated[
-        str | None,
-        Field(description="colour_code for the study Brancharm"),
-    ] = None
-
     randomization_group: Annotated[
         str | None,
         Field(
@@ -4135,7 +4275,10 @@ class StudySelectionBranchArmCreateInput(PostInputModel):
         ),
     ] = None
 
-    arm_uid: Annotated[str | None, Field(description=ARM_UID_DESC)] = None
+    study_cohort_uid: Annotated[
+        str | None, Field(description=STUDY_COHORT_ARM_UID_DESC)
+    ] = None
+    arm_uid: Annotated[str, Field(description=ARM_UID_DESC)]
 
 
 class StudySelectionBranchArmEditInput(PatchInputModel):
@@ -4161,11 +4304,6 @@ class StudySelectionBranchArmEditInput(PatchInputModel):
         Field(description="description for the study Brancharm"),
     ] = None
 
-    colour_code: Annotated[
-        str | None,
-        Field(description="colour_code for the study Brancharm"),
-    ] = None
-
     randomization_group: Annotated[
         str | None,
         Field(
@@ -4186,6 +4324,9 @@ class StudySelectionBranchArmEditInput(PatchInputModel):
     branch_arm_uid: Annotated[
         str | None, Field(description="uid for the study branch arm")
     ] = None
+    study_cohort_uid: Annotated[
+        str | None, Field(description=STUDY_COHORT_ARM_UID_DESC)
+    ] = None
 
 
 class StudySelectionBranchArmNewOrder(PatchInputModel):
@@ -4201,6 +4342,33 @@ class StudySelectionBranchArmNewOrder(PatchInputModel):
 
 class StudySelectionBranchArmVersion(StudySelectionBranchArmHistory):
     changes: Annotated[list[str], Field()]
+
+
+class StudySelectionBranchArmBatchDeleteInput(InputModel):
+    branch_arm_uid: Annotated[
+        str, Field(description="UID of the Study Branch Arm to delete")
+    ]
+
+
+class StudySelectionBranchArmBatchUpdateInput(StudySelectionBranchArmEditInput):
+    branch_arm_uid: Annotated[
+        str, Field(description="UID of the Study Branch Arm to update")
+    ]
+
+
+class StudySelectionBranchArmBatchInput(BatchInputModel):
+    method: Annotated[str, METHOD_FIELD]
+    content: Annotated[
+        StudySelectionBranchArmBatchUpdateInput
+        | StudySelectionBranchArmCreateInput
+        | StudySelectionBranchArmBatchDeleteInput,
+        Field(),
+    ]
+
+
+class StudySelectionBranchArmBatchOutput(BaseModel):
+    response_code: Annotated[int, RESPONSE_CODE_FIELD]
+    content: Annotated[StudySelectionBranchArm | None | BatchErrorResponse, Field()]
 
 
 # Study cohorts
@@ -4236,14 +4404,6 @@ class StudySelectionCohortWithoutArmBranArmRoots(StudySelection):
         str | None,
         Field(
             description="description for the study Cohort",
-            json_schema_extra={"nullable": True},
-        ),
-    ]
-
-    colour_code: Annotated[
-        str | None,
-        Field(
-            description="colour code for the study Cohort",
             json_schema_extra={"nullable": True},
         ),
     ]
@@ -4308,8 +4468,8 @@ class StudySelectionCohort(StudySelectionCohortWithoutArmBranArmRoots):
         selection: StudySelectionCohortVO,
         order: int,
         terms_at_specific_datetime: datetime | None,
-        find_arm_root_by_uid: Callable | None = None,
-        find_branch_arm_root_cohort_by_uid: Callable | None = None,
+        find_arm_root_by_uid: Callable = lambda: None,
+        find_branch_arm_root_cohort_by_uid: Callable = lambda: None,
         study_value_version: str | None = None,
     ):
         """
@@ -4361,7 +4521,6 @@ class StudySelectionCohort(StudySelectionCohortWithoutArmBranArmRoots):
             code=selection.code,
             description=selection.description,
             order=order,
-            colour_code=selection.colour_code,
             number_of_subjects=selection.number_of_subjects,
             branch_arm_roots=branch_arm_roots,
             arm_roots=arm_roots,
@@ -4411,11 +4570,10 @@ class StudySelectionCohortHistory(StudySelectionCohortWithoutArmBranArmRoots):
             study_uid=study_uid,
             order=study_selection_history.order,
             cohort_uid=study_selection_history.study_selection_uid,
-            name=study_selection_history.cohort_name,
-            short_name=study_selection_history.cohort_short_name,
+            name=study_selection_history.cohort_name or "",
+            short_name=study_selection_history.cohort_short_name or "",
             code=study_selection_history.cohort_code,
             description=study_selection_history.cohort_description,
-            colour_code=study_selection_history.cohort_colour_code,
             number_of_subjects=study_selection_history.cohort_number_of_subjects,
             branch_arm_roots_uids=branch_arm_roots_uids,
             arm_roots_uids=arm_roots_uids,
@@ -4443,10 +4601,6 @@ class StudySelectionCohortCreateInput(PostInputModel):
         str | None, Field(description="description for the study Cohort")
     ] = None
 
-    colour_code: Annotated[
-        str | None, Field(description="colour code for the study Cohort")
-    ] = None
-
     number_of_subjects: Annotated[
         int | None, Field(description="number of subjects for the study Cohort")
     ] = None
@@ -4469,10 +4623,6 @@ class StudySelectionCohortEditInput(PatchInputModel):
 
     description: Annotated[
         str | None, Field(description="description for the study Cohort")
-    ] = None
-
-    colour_code: Annotated[
-        str | None, Field(description="colour code for the study Cohort")
     ] = None
 
     number_of_subjects: Annotated[
@@ -4507,6 +4657,23 @@ class StudySelectionCohortNewOrder(PatchInputModel):
 
 class StudySelectionCohortVersion(StudySelectionCohortHistory):
     changes: Annotated[list[str], Field()]
+
+
+class StudySelectionCohortBatchUpdateInput(StudySelectionCohortEditInput):
+    cohort_uid: Annotated[str, Field(description="UID of the Study Cohort to update")]
+
+
+class StudySelectionCohortBatchInput(BatchInputModel):
+    method: Annotated[str, METHOD_FIELD]
+    content: Annotated[
+        StudySelectionCohortBatchUpdateInput | StudySelectionCohortCreateInput,
+        Field(),
+    ]
+
+
+class StudySelectionCohortBatchOutput(BaseModel):
+    response_code: Annotated[int, RESPONSE_CODE_FIELD]
+    content: Annotated[StudySelectionCohort | None | BatchErrorResponse, Field()]
 
 
 #
@@ -4562,10 +4729,8 @@ class StudyCompoundDosing(StudySelection):
         order: int,
         study_compound_model: StudySelectionCompound,
         study_element_model: StudySelectionElement,
-        find_simple_term_model_name_by_term_uid: Callable,
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
-        terms_at_specific_datetime: datetime | None,
         study_value_version: str | None = None,
     ) -> Self:
         return cls(
@@ -4584,10 +4749,6 @@ class StudyCompoundDosing(StudySelection):
                 find_unit_by_uid=find_unit_by_uid,
                 find_numeric_value_by_uid=find_numeric_value_by_uid,
             ),
-            dose_frequency=find_simple_term_model_name_by_term_uid(
-                compound_dosing_vo.dose_frequency_uid,
-                at_specific_date=terms_at_specific_datetime,
-            ),
             start_date=compound_dosing_vo.start_date,
             author_username=compound_dosing_vo.author_username,
         )
@@ -4600,7 +4761,7 @@ class StudyCompoundDosing(StudySelection):
         order: int,
         study_compound_model: StudySelectionCompound,
         study_element_model: StudySelectionElement,
-        find_simple_term_model_name_by_term_uid: Callable,
+        # find_simple_term_model_name_by_term_uid: Callable,
         find_unit_by_uid: Callable[[str], UnitDefinitionAR | None],
         find_numeric_value_by_uid: Callable[[str], NumericValueWithUnitAR | None],
     ) -> Self:
@@ -4614,9 +4775,6 @@ class StudyCompoundDosing(StudySelection):
                 uid=study_selection_history.dose_value_uid,
                 find_unit_by_uid=find_unit_by_uid,
                 find_numeric_value_by_uid=find_numeric_value_by_uid,
-            ),
-            dose_frequency=find_simple_term_model_name_by_term_uid(
-                study_selection_history.dose_frequency_uid
             ),
             start_date=study_selection_history.start_date,
             end_date=study_selection_history.end_date,
@@ -4677,13 +4835,16 @@ class CellCoordinates(NamedTuple):
     col: Annotated[int, Field()]
 
 
+ConceptType = TypeVar("ConceptType", bound=Concept)  # pylint: disable=invalid-name
+
+
 def _find_versions(
     uid: str,
-    version: str,
-    versions_by_uid: Mapping[str, Iterable[Concept]] | None = None,
-    get_by_uid_callback: Callable[[str], Concept] | None = None,
-    get_by_uid_version_callback: Callable[[str, str], Concept] | None = None,
-) -> tuple[Concept, Concept]:
+    version: str | None,
+    versions_by_uid: Mapping[str, Iterable[ConceptType]] | None = None,
+    get_by_uid_callback: Callable[[str], ConceptType] | None = None,
+    get_by_uid_version_callback: Callable[[str, str | None], ConceptType] | None = None,
+) -> tuple[ConceptType, ConceptType]:
     latest_version, selected_version = None, None
 
     if versions_by_uid:
@@ -4691,7 +4852,7 @@ def _find_versions(
         # If so we should pick with the latest start_date
         latest_version = max(
             versions_by_uid[uid],
-            key=lambda a: (version_string_to_tuple(a.version), a.start_date),
+            key=lambda a: (version_string_to_tuple(a.version), a.start_date),  # type: ignore[arg-type]
         )
         BusinessLogicException.raise_if_not(
             latest_version,
@@ -4723,3 +4884,86 @@ def _find_versions(
         selected_version = get_by_uid_version_callback(uid, version)
 
     return latest_version, selected_version
+
+
+class StudyDesignClassInput(PatchInputModel):
+    model_config = ConfigDict(populate_by_name=True, title="Study Design Class input")
+    value: Annotated[
+        StudyDesignClassEnum,
+        Field(
+            json_schema_extra={"source": "value"},
+        ),
+    ]
+
+
+class StudyDesignClass(StudyDesignClassInput):
+    model_config = ConfigDict(populate_by_name=True, title="Study Design Class")
+
+    study_uid: Annotated[str, STUDY_UID_FIELD]
+    start_date: Annotated[
+        datetime,
+        Field(
+            description=START_DATE_DESC,
+            json_schema_extra={"source": AFTER_DATE_QUALIFIER, "nullable": True},
+        ),
+    ]
+
+    author_username: Annotated[
+        str,
+        Field(
+            description=AUTHOR_FIELD_DESC,
+            json_schema_extra={"source": AFTER_USER_QUALIFIER},
+        ),
+    ]
+
+    @field_validator("author_username", mode="before")
+    @classmethod
+    def instantiate_author_username(cls, value):
+        return UserInfoService.get_author_username_from_id(value)
+
+
+class StudySourceVariableInput(PatchInputModel):
+    model_config = ConfigDict(
+        populate_by_name=True, title="Study source variable input"
+    )
+    source_variable: Annotated[
+        StudySourceVariableEnum | None,
+        Field(
+            json_schema_extra={"source": "source_variable", "nullable": True},
+        ),
+    ] = None
+    source_variable_description: Annotated[
+        str | None,
+        Field(
+            json_schema_extra={
+                "source": "source_variable_description",
+                "nullable": True,
+            }
+        ),
+    ] = None
+
+
+class StudySourceVariable(StudySourceVariableInput):
+    model_config = ConfigDict(populate_by_name=True, title="Study Source Variable")
+
+    study_uid: Annotated[str, STUDY_UID_FIELD]
+    start_date: Annotated[
+        datetime,
+        Field(
+            description=START_DATE_DESC,
+            json_schema_extra={"source": AFTER_DATE_QUALIFIER, "nullable": True},
+        ),
+    ]
+
+    author_username: Annotated[
+        str,
+        Field(
+            description=AUTHOR_FIELD_DESC,
+            json_schema_extra={"source": AFTER_USER_QUALIFIER},
+        ),
+    ]
+
+    @field_validator("author_username", mode="before")
+    @classmethod
+    def instantiate_author_username(cls, value):
+        return UserInfoService.get_author_username_from_id(value)
