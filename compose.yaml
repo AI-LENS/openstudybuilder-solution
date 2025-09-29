@@ -106,7 +106,7 @@ services:
       neodash:
         condition: service_healthy
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-5005}:5005"
+      - "${BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-5005}:5005"
     environment:
       API_BASE_URL: "${API_PATH:-}"
       DOC_BASE_URL: "${DOC_PATH:-}"
